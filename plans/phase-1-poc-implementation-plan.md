@@ -42,6 +42,8 @@ Everything below is new work: no Identity, no EF Core, no Semantic Kernel, no re
 Goal: a user can register a workspace, log in, get a JWT, and a `Lead` row can be created and read back — all provable via Swagger/`.http` file, UI optional this milestone.
 
 ### Feature 1 — Domain & Persistence Foundation (branch: `feature/domain-entities-dbcontext`)
+*Detailed file-by-file plan: [01-domain-entities-dbcontext.md](phase-1-features/01-domain-entities-dbcontext.md)*
+
 No dependents yet; unblocks every other feature in this milestone.
 
 - **PBI 1.1 — Domain entities & enums**
@@ -57,6 +59,8 @@ No dependents yet; unblocks every other feature in this milestone.
   - `ZenLead.Infrastructure/Persistence/AppUser.cs` — `IdentityUser<Guid>` + `WorkspaceId (Guid)`, `DisplayName`
 
 ### Feature 2 — Auth & JWT Backend (branch: `feature/auth-jwt`)
+*Detailed file-by-file plan: [02-auth-jwt.md](phase-1-features/02-auth-jwt.md)*
+
 Depends on Feature 1 (`AppUser`, `ZenLeadDbContext`).
 
 - **PBI 2.1 — Identity + JWT issuance wiring**
@@ -76,6 +80,8 @@ Depends on Feature 1 (`AppUser`, `ZenLeadDbContext`).
   - `dotnet ef migrations add InitialCreate -p ZenLead.Infrastructure -s ZenLead.Api`, apply to LocalDB, verify tables in SSMS/Azure Data Studio
 
 ### Feature 3 — Angular Auth Experience (branch: `feature/angular-auth`)
+*Detailed file-by-file plan: [03-angular-auth.md](phase-1-features/03-angular-auth.md)*
+
 Depends on Feature 2 (needs real `/auth/*` endpoints to call).
 
 - **PBI 3.1 — Angular Material + auth core services**
@@ -89,6 +95,8 @@ Depends on Feature 2 (needs real `/auth/*` endpoints to call).
   - Register `HTTP_INTERCEPTORS` and `provideHttpClient` in `app-module.ts`
 
 ### Feature 4 — Milestone 1 End-to-End Proof (branch: `feature/e2e-proof-milestone1`)
+*Detailed file-by-file plan: [04-e2e-proof-milestone1.md](phase-1-features/04-e2e-proof-milestone1.md)*
+
 Depends on Features 1–3 being merged.
 
 - **PBI 4.1 — Manual e2e smoke pass**
@@ -105,6 +113,8 @@ Depends on Features 1–3 being merged.
 Goal: `POST /api/ai/compose-email` returns a usable, personalised draft referencing the lead's real data, callable from a "Generate draft" button on the lead detail screen.
 
 ### Feature 5 — Semantic Kernel Wiring (branch: `feature/semantic-kernel-wiring`)
+*Detailed file-by-file plan: [05-semantic-kernel-wiring.md](phase-1-features/05-semantic-kernel-wiring.md)*
+
 Depends on Milestone 1 (`[Authorize]`-protected API must already exist).
 
 - **PBI 5.1 — OpenAI account & spend cap (prerequisite)**
@@ -116,6 +126,8 @@ Depends on Milestone 1 (`[Authorize]`-protected API must already exist).
   - `Kernel` registered via `AddKernel().AddOpenAIChatCompletion(modelId: "gpt-4o", apiKey: ...)` in DI
 
 ### Feature 6 — Compose-Email Use Case (branch: `feature/compose-email-use-case`)
+*Detailed file-by-file plan: [06-compose-email-use-case.md](phase-1-features/06-compose-email-use-case.md)*
+
 Depends on Feature 5 (`IEmailComposer`/`Kernel` registered).
 
 - **PBI 6.1 — ComposeEmailUseCase**
@@ -126,6 +138,8 @@ Depends on Feature 5 (`IEmailComposer`/`Kernel` registered).
   - Basic guardrail now (full `AiGenerationLog` table is Phase 2 §5, but log token usage to `ILogger` this milestone so the habit — and the data needed for the real table later — exists from the first call, per parent plan §9 "AI cost guardrails")
 
 ### Feature 7 — Compose Endpoint (branch: `feature/compose-endpoint`)
+*Detailed file-by-file plan: [07-compose-endpoint.md](phase-1-features/07-compose-endpoint.md)*
+
 Depends on Feature 6 (`ComposeEmailUseCase`).
 
 - **PBI 7.1 — AiController compose-email endpoint**
@@ -136,6 +150,8 @@ Depends on Feature 6 (`ComposeEmailUseCase`).
   - `.http` file requests added to `ZenLead.Api.http` for quick manual testing without the UI
 
 ### Feature 8 — Angular Lead-Detail & Draft Generation UI (branch: `feature/angular-lead-detail`)
+*Detailed file-by-file plan: [08-angular-lead-detail.md](phase-1-features/08-angular-lead-detail.md)*
+
 Depends on Feature 7 (real compose endpoint to call).
 
 - **PBI 8.1 — Lead-detail component**
@@ -145,6 +161,8 @@ Depends on Feature 7 (real compose endpoint to call).
   - Loading state + error state (OpenAI timeout / rate limit) surfaced in the UI, not just the console
 
 ### Feature 9 — Cost Logging & AI Test Coverage (branch: `feature/cost-logging-polish`)
+*Detailed file-by-file plan: [09-cost-logging-polish.md](phase-1-features/09-cost-logging-polish.md)*
+
 Depends on Feature 6 (`ComposeEmailUseCase` + prompt logic to test).
 
 - **PBI 9.1 — Unit tests with fake `IEmailComposer`**
@@ -161,6 +179,8 @@ Depends on Feature 6 (`ComposeEmailUseCase` + prompt logic to test).
 Goal: no new functionality — stabilize what exists and rehearse the Gate 1 demo exactly as its exit criteria will be checked live.
 
 ### Feature 10 — Gate 1 Hardening & Demo Readiness (branch: `feature/gate1-hardening`)
+*Detailed file-by-file plan: [10-gate1-hardening.md](phase-1-features/10-gate1-hardening.md)*
+
 Depends on Milestones 1 and 2 being complete; this feature only touches existing behavior.
 
 - **PBI 10.1 — Auth & UX hardening pass**
