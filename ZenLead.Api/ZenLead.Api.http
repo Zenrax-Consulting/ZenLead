@@ -1,6 +1,30 @@
 @ZenLead.Api_HostAddress = http://localhost:5114
 
-GET {{ZenLead.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Register (copy accessToken/refreshToken from the response)
+POST {{ZenLead.Api_HostAddress}}/api/v1/auth/register
+Content-Type: application/json
 
-###
+{ "workspaceName": "Acme", "email": "owner@acme.test", "password": "Passw0rd!", "displayName": "Owner" }
+
+### Login
+POST {{ZenLead.Api_HostAddress}}/api/v1/auth/login
+Content-Type: application/json
+
+{ "email": "owner@acme.test", "password": "Passw0rd!" }
+
+### Refresh
+POST {{ZenLead.Api_HostAddress}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "<paste refresh token>" }
+
+### Create lead
+POST {{ZenLead.Api_HostAddress}}/api/v1/leads
+Authorization: Bearer <paste access token>
+Content-Type: application/json
+
+{ "name": "Jane Doe", "email": "jane@example.com", "title": "CTO" }
+
+### List leads
+GET {{ZenLead.Api_HostAddress}}/api/v1/leads
+Authorization: Bearer <paste access token>
