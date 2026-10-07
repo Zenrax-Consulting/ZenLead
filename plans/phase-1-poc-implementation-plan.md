@@ -3,17 +3,13 @@
 
 ---
 
-## 0. Current state (as of this plan)
+## 0. Current state
 
-The solution/layer scaffolding from the parent plan's §2 is already done:
+*Updated 2026-10-07 after the gap remediation (see [phase-1-gap-remediation-plan.md](phase-1-gap-remediation-plan.md)).*
 
-- `ZenLead.slnx` with `ZenLead.Api`, `ZenLead.Application`, `ZenLead.Domain`, `ZenLead.Infrastructure`, `ZenLead.Tests`, `ZenLead.Client` (Angular 21, `.esproj`), all on **.NET 10**.
-- Project references wired: Api → Application/Infrastructure/Client, Application → Domain, Infrastructure → Application, Tests → all three backend layers.
-- `ZenLead.Tests` already has xUnit + coverlet configured.
-- `ZenLead.Client` has NgModule-based routing (`app-module.ts` / `app-routing-module.ts`, not standalone components), SPA proxy to `https://localhost:52618` for `ng serve`, `MapFallbackToFile("/index.html")` on the API side.
-- Feature folders (`core/`, `features/{auth,leads,campaigns,inbox,analytics}`, `shared/`) exist as empty placeholders.
+**Features 1–10 are implemented** on .NET 10 / Angular 21 (NgModule-based): domain + EF Core/Identity persistence, JWT auth with rotating refresh tokens, leads CRUD (manual `workspace_id` claim scoping), Semantic Kernel compose-email behind `IEmailComposer`, Angular auth/leads/lead-detail screens, usage logging, and the Gate 1 hardening pass. The remediation stages additionally made registration transactional, hardened the schema, mapped AI failures to friendly HTTP statuses, added input bounds and rate limits, persisted AI usage, made token refresh single-flight, and added fail-fast configuration plus a README.
 
-Everything below is new work: no Identity, no EF Core, no Semantic Kernel, no real controllers/entities, no Angular screens yet.
+**Still outstanding for Gate 1** (cannot be proven from code): the OpenAI dashboard hard cap, timed rehearsal runs and the screenshots/recording. Tracked in `docs/phase-1-gap-reanalysis.md`; the §5 checklist below is ticked only for items proven there.
 
 ### Prerequisites (resolved, before Milestone 1 starts)
 - **Git** — repo will be `git init`'d and the current scaffolding committed before Milestone 1 coding begins (was an open question; resolved — init now, not deferred to Feature 4).

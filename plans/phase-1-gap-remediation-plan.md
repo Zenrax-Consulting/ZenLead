@@ -176,3 +176,15 @@ Repeat the original method against `phase-1-poc-implementation-plan.md` (Feature
 - **Transaction scope with Identity:** `UserManager` calls `SaveChanges` internally. Verify they participate in the ambient `DbContext` transaction (same scoped context) rather than assuming it.
 - **Rate-limit values** are placeholders. Tune them after the 6.3 timing runs so the demo can't trip its own limit.
 - **Latency vs the 5 s criterion** (H2) may need a product decision, not a code change. Surface it in 6.3 rather than silently changing the timeout.
+
+---
+
+## Decisions made during remediation
+- **Registration transaction:** `IUnitOfWork` (Application) implemented by `EfUnitOfWork` over `DbContext.Database.BeginTransactionAsync`; `UserManager` shares the scoped context, so it joins the transaction.
+- **Password rules:** source of truth is the Identity options in `Program.cs` (length 8, digit, lower, upper, symbol); `RegisterRequestValidator` mirrors them.
+- **Refresh rotation concurrency:** conditional `ExecuteUpdate` (`WHERE RevokedAt IS NULL`) rather than a `rowversion` column, so no extra schema change. Tested against SQLite because the EF in-memory provider supports neither.
+- **AI usage tracking:** `AiUsageLog` table (migration `AddAiUsageLog`), cost estimated from `OpenAI:PricePer1K*Usd` config (defaults are gpt-4o list prices).
+- **Rate limits:** compose 10/min per workspace; auth 20/min per client IP. Placeholders, to be tuned after the timing runs.
+- **API reference UI:** Scalar at `/scalar` (Development only).
+- **Account lockout:** not enabled in Phase 1; login throttling only.
+- **npm advisories:** `npm audit fix` took 12 to 4. Remaining (`@angular/router` SSR DoS, `piscina`, `undici`) need breaking upgrades; SSR is not used and the others are build tooling, so they are accepted for Phase 1.
