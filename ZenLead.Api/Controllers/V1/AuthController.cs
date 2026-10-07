@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.RateLimiting;
 using ZenLead.Application.Abstractions;
 using ZenLead.Application.Dtos.Auth;
 using ZenLead.Application.UseCases.Auth;
@@ -9,6 +10,7 @@ namespace ZenLead.Api.Controllers.V1;
 
 [ApiController]
 [Route("api/v1/auth")]
+[EnableRateLimiting(RateLimiting.AuthPolicy)]
 public class AuthController(
     RegisterWorkspaceUseCase registerWorkspace,
     LoginUseCase login,

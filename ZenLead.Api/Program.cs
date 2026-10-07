@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 using Microsoft.SemanticKernel;
 using ZenLead.Application.Abstractions;
 using ZenLead.Application.UseCases.Ai;
@@ -16,9 +18,23 @@ using ZenLead.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+StartupConfiguration.ThrowIfInvalid(builder.Configuration); // fail fast with a clear message, not a NullReferenceException
+
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
+{
+    // lets the API reference UI offer an "Authorize" box for the JWT access token
+    document.Components ??= new OpenApiComponents();
+    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+    document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    };
+    return Task.CompletedTask;
+}));
 
 builder.Services.AddDbContext<ZenLeadDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
@@ -62,6 +78,7 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy(RateLimiting.ComposePolicy, RateLimiting.ComposePartition);
+    options.AddPolicy(RateLimiting.AuthPolicy, RateLimiting.AuthPartition);
     options.OnRejected = (context, _) =>
     {
         context.HttpContext.Response.Headers.RetryAfter = "60";
@@ -101,6 +118,7 @@ app.MapStaticAssets();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(); // interactive API reference at /scalar
 }
 
 app.UseHttpsRedirection();

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,7 +23,7 @@ public class AiController(
     [EnableRateLimiting(RateLimiting.ComposePolicy)]
     public async Task<ActionResult<ComposeEmailApiResponse>> ComposeEmail(ComposeEmailApiRequest request, CancellationToken ct)
     {
-        var workspaceId = Guid.Parse(User.FindFirstValue("workspace_id")!);
+        if (this.WorkspaceId() is not { } workspaceId) return Unauthorized();
         var composeRequest = new ComposeEmailRequest(request.LeadId, request.Context);
 
         var validation = await validator.ValidateAsync(composeRequest, ct);
@@ -65,5 +64,7 @@ public class AiController(
     /// <summary>Usage for the caller's own workspace only — never a cross-tenant total.</summary>
     [HttpGet("token-usage")]
     public async Task<ActionResult<AiUsageSummary>> GetTokenUsage(CancellationToken ct)
-        => Ok(await usage.GetSummaryAsync(Guid.Parse(User.FindFirstValue("workspace_id")!), ct));
+        => this.WorkspaceId() is { } workspaceId
+            ? Ok(await usage.GetSummaryAsync(workspaceId, ct))
+            : Unauthorized();
 }
