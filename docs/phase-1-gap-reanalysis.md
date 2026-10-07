@@ -8,12 +8,12 @@
 
 ## Result
 
-No Critical gaps. **One High item remains open (H2), and it needs a person, not code:** the OpenAI dashboard cap and a browser rehearsal recording. Everything else from the original report is closed or explicitly accepted. Remediation exit criterion "no High open" is therefore **not yet met**.
+No Critical gaps. **One High item remains open (H2), and it needs a person, not code:** setting the OpenAI limit to $20 and a browser rehearsal recording. Everything else from the original report is closed or explicitly accepted. Remediation exit criterion "no High open" is therefore **not yet met**.
 
 | Original gap | Status | Evidence |
 |---|---|---|
 | **H1** Registration not transactional | **Closed** | `RegisterWorkspaceUseCaseTests` (rollback, duplicate), `RegisterRequestValidatorTests`; live probe: weak password → 400 with 0 workspaces, duplicate → 409 |
-| **H2** Gate 1 steps unverifiable | **Partially closed** | Done: fresh-DB migration, 5 timed runs, spend estimate, regression probes. Open: OpenAI $20 cap screenshot, browser rehearsal recording, second-machine README run. Latency: median 2.3 s, but cold first call 5.2 s (see N3) |
+| **H2** Gate 1 steps unverifiable | **Partially closed** | Done: fresh-DB migration, 5 timed runs, spend estimate, regression probes. Done: OpenAI dashboard checked (spend $0.02, balance $14.98). Open: dashboard limit is **$100, not the planned $20 hard cap**; browser rehearsal recording; second-machine README run. Latency: median 2.3 s, but cold first call 5.2 s (see N3) |
 | **M1** Schema lacks keys/indexes | **Closed** | `HardenSchema` applied to fresh and existing DB; FKs confirmed in `sys.foreign_keys` |
 | **M2** AI error handling | **Closed** | `EmailComposerFailureTests`, `AiControllerTests` (429/502/503/504); UI messages in `LeadDetail` spec. Not exercised against the live provider |
 | **M3** No input bounds | **Closed** | Validator + `max_tokens` cap; live: oversize `Context` → 400, 429 after 10/min per workspace |
@@ -48,12 +48,12 @@ All Low; none introduced Critical/High/Medium risk.
 - [ ] Register a workspace and log back in with a JWT-protected session. *API register, refresh and protected calls proven live; UI login and browser session not rehearsed.*
 - [x] A lead can be created and persisted via EF Core. *Proven live against a fresh database.*
 - [ ] AI compose returns a usable, personalised draft in under ~5 s. *4 of 5 runs 2.1–2.6 s; first (cold) run 5.2 s. Left unticked pending a decision on N3.*
-- [ ] Total spend under ~$20. *Rehearsal cost ≈ $0.008 by estimate; dashboard cap and actual spend not confirmed.*
+- [x] Total spend under ~$20. *Dashboard (screenshot): October spend $0.02, credit balance $14.98. Note the account limit is $100, not the planned $20 cap (see below).*
 
 ## To close the remaining items (needs you)
-1. In the OpenAI dashboard: confirm the $20 hard usage cap and screenshot it plus current spend into `docs/gate1-evidence/`.
+1. In the OpenAI dashboard (Settings → Limits): lower the monthly spend limit from $100 to $20, confirm auto-recharge is off, and add a new screenshot to `docs/gate1-evidence/`.
 2. Run the register → logout → login → add lead → refresh tab → generate draft loop once in the browser and save a recording or screenshots to `docs/gate1-evidence/`.
 3. Decide on N3 (accept the cold-start latency, or add a warm-up / lower the timeout).
 4. Optionally follow `README.md` on a second machine or clean profile.
 
-After 1–3, tick the remaining §5 boxes and Phase 1 meets the remediation exit criteria.
+After 1–3, tick the remaining §5 boxes (login/session and latency) and Phase 1 meets the remediation exit criteria.

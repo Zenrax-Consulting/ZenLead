@@ -201,7 +201,7 @@ Depends on Milestones 1 and 2 being complete; this feature only touches existing
 - [ ] A user can register a workspace and log back in with a JWT-protected session
 - [x] A lead can be created and persisted via EF Core *(proven live, see docs/phase-1-gap-reanalysis.md)*
 - [ ] The AI compose endpoint returns a usable, personalised draft in under ~5 seconds
-- [ ] Total spend to this point stays under ~$20 (OpenAI usage only)
+- [x] Total spend to this point stays under ~$20 (OpenAI usage only) *($0.02 per dashboard screenshot; the $20 hard cap itself is still to be set, see docs/phase-1-gap-reanalysis.md)*
 
 ---
 

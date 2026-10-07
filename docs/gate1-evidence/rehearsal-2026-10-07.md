@@ -20,6 +20,11 @@ Median compose ≈ 2.3 s; max 5.2 s (first call after process start). 4 of 5 run
 ## Spend (this rehearsal)
 `AiUsageLogs`: 5 calls, 885 prompt + 589 completion tokens, estimated **$0.0081**. Authoritative spend must still be read from the OpenAI dashboard (not done here).
 
+## OpenAI dashboard check (screenshot: [openai-dashboard-2026-10-07.png](openai-dashboard-2026-10-07.png))
+- Organisation "Zenrax Consulting Services", last 24 h: **11 requests, 1,811 tokens**. October spend **$0.02**. Credit balance **$14.98**.
+- The app's own log shows 5 calls / 1,474 tokens for the rehearsal; the other 6 requests and ~337 tokens are earlier manual dev calls made before usage was persisted. Same order of magnitude, so the cost estimate looks sound (not reconciled call-by-call).
+- **The spend limit shown is $100.00, not the $20 hard cap the plan requires (PBI 5.1).** Prepaid credit ($14.98) is a de facto ceiling only if auto-recharge is off, which the screenshot does not show.
+
 ## Regression probes (live)
 
 | Probe | Result |
@@ -39,6 +44,6 @@ Median compose ≈ 2.3 s; max 5.2 s (first call after process start). 4 of 5 run
 | `/openapi/v1.json`, `/scalar` | 200 / 302 ✅ |
 
 ## Not covered here (needs a person)
-- OpenAI dashboard: hard $20 cap screenshot and actual spend.
+- OpenAI dashboard: lower the monthly spend limit from $100 to $20 (Settings → Limits) and re-screenshot; confirm auto-recharge is off.
 - Browser walkthrough with screenshots or a recording: register in the UI, refresh the tab (silent re-auth), empty state, logout toolbar, parallel-401 behaviour.
 - A run on a second machine / clean profile following only the README.
