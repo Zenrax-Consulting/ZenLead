@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { CreateLeadRequest, Lead } from './leads.models';
+import { ComposedEmail, CreateLeadRequest, Lead } from './leads.models';
 
 @Injectable({ providedIn: 'root' })
 export class LeadsService {
@@ -13,5 +13,13 @@ export class LeadsService {
 
   create(request: CreateLeadRequest): Observable<Lead> {
     return this.http.post<Lead>('/api/v1/leads', request);
+  }
+
+  getById(id: string): Observable<Lead> {
+    return this.http.get<Lead>(`/api/v1/leads/${id}`);
+  }
+
+  composeEmail(leadId: string, context?: string): Observable<ComposedEmail> {
+    return this.http.post<ComposedEmail>('/api/v1/ai/compose-email', { leadId, context });
   }
 }
