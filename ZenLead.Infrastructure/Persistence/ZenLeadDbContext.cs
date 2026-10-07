@@ -18,5 +18,6 @@ public class ZenLeadDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, G
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // required — maps Identity's own tables
+        builder.ApplyConfigurationsFromAssembly(typeof(ZenLeadDbContext).Assembly);
     }
 }

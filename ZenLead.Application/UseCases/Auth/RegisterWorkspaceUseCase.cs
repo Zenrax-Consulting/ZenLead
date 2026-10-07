@@ -7,17 +7,23 @@ public class RegisterWorkspaceUseCase(
     IWorkspaceRepository workspaces,
     IIdentityService identity,
     IJwtTokenGenerator jwtTokenGenerator,
-    IRefreshTokenService refreshTokens)
+    IRefreshTokenService refreshTokens,
+    IUnitOfWork unitOfWork)
 {
     public async Task<AuthResponse> ExecuteAsync(RegisterRequest request, CancellationToken ct = default)
     {
         if (await identity.EmailExistsAsync(request.Email, ct))
-            throw new InvalidOperationException("Email already registered.");
+            throw new EmailAlreadyRegisteredException();
 
-        var workspace = await workspaces.CreateAsync(request.WorkspaceName, ct);
-        var userId = await identity.CreateUserAsync(workspace.Id, request.Email, request.Password, request.DisplayName, ct);
+        // workspace + user are created atomically so a failed user never leaves an orphan workspace
+        var (workspaceId, userId) = await unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            var workspace = await workspaces.CreateAsync(request.WorkspaceName, ct);
+            var userId = await identity.CreateUserAsync(workspace.Id, request.Email, request.Password, request.DisplayName, ct);
+            return (workspace.Id, userId);
+        }, ct);
 
-        var accessToken = jwtTokenGenerator.GenerateAccessToken(userId, workspace.Id, request.Email);
+        var accessToken = jwtTokenGenerator.GenerateAccessToken(userId, workspaceId, request.Email);
         var refreshToken = await refreshTokens.IssueAsync(userId, ct);
 
         return new AuthResponse(accessToken, refreshToken);

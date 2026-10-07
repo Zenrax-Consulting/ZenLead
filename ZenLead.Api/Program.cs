@@ -23,7 +23,15 @@ builder.Services.AddDbContext<ZenLeadDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services
-    .AddIdentityCore<AppUser>(options => options.Password.RequiredLength = 8)
+    .AddIdentityCore<AppUser>(options =>
+    {
+        // keep in sync with RegisterRequestValidator
+        options.Password.RequiredLength = 8;
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+    })
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ZenLeadDbContext>();
 
@@ -50,6 +58,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IIdentityService, IdentityService>();
+builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 builder.Services.AddScoped<ILeadRepository, LeadRepository>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();

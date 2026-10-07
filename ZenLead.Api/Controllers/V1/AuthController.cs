@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using ZenLead.Application.Abstractions;
 using ZenLead.Application.Dtos.Auth;
 using ZenLead.Application.UseCases.Auth;
 
@@ -26,9 +27,16 @@ public class AuthController(
         {
             return await registerWorkspace.ExecuteAsync(request, ct);
         }
-        catch (InvalidOperationException ex)
+        catch (EmailAlreadyRegisteredException ex)
         {
             return Conflict(new { message = ex.Message });
+        }
+        catch (RegistrationFailedException ex)
+        {
+            var modelState = new ModelStateDictionary();
+            foreach (var error in ex.Errors)
+                modelState.AddModelError(nameof(RegisterRequest.Password), error);
+            return ValidationProblem(modelState);
         }
     }
 

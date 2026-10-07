@@ -12,8 +12,11 @@ public class FakeIdentityService : IIdentityService
     public Task<bool> EmailExistsAsync(string email, CancellationToken ct = default)
         => Task.FromResult(RegisteredEmails.Contains(email));
 
+    public Exception? ExceptionOnCreate { get; set; }
+
     public Task<Guid> CreateUserAsync(Guid workspaceId, string email, string password, string displayName, CancellationToken ct = default)
     {
+        if (ExceptionOnCreate is not null) throw ExceptionOnCreate;
         RegisteredEmails.Add(email);
         WorkspaceIdForUser = workspaceId;
         return Task.FromResult(NextUserId);
@@ -28,8 +31,35 @@ public class FakeIdentityService : IIdentityService
 
 public class FakeWorkspaceRepository : IWorkspaceRepository
 {
+    public List<Workspace> Created { get; } = [];
+
     public Task<Workspace> CreateAsync(string name, CancellationToken ct = default)
-        => Task.FromResult(new Workspace { Id = Guid.NewGuid(), Name = name, CreatedAt = DateTime.UtcNow });
+    {
+        var workspace = new Workspace { Id = Guid.NewGuid(), Name = name, CreatedAt = DateTime.UtcNow };
+        Created.Add(workspace);
+        return Task.FromResult(workspace);
+    }
+}
+
+public class FakeUnitOfWork : IUnitOfWork
+{
+    public bool Committed { get; private set; }
+    public bool RolledBack { get; private set; }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await action();
+            Committed = true;
+            return result;
+        }
+        catch
+        {
+            RolledBack = true;
+            throw;
+        }
+    }
 }
 
 public class FakeJwtTokenGenerator : IJwtTokenGenerator
