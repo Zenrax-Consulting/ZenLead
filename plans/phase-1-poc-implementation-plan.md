@@ -9,7 +9,7 @@
 
 **Features 1–10 are implemented** on .NET 10 / Angular 21 (NgModule-based): domain + EF Core/Identity persistence, JWT auth with rotating refresh tokens, leads CRUD (manual `workspace_id` claim scoping), Semantic Kernel compose-email behind `IEmailComposer`, Angular auth/leads/lead-detail screens, usage logging, and the Gate 1 hardening pass. The remediation stages additionally made registration transactional, hardened the schema, mapped AI failures to friendly HTTP statuses, added input bounds and rate limits, persisted AI usage, made token refresh single-flight, and added fail-fast configuration plus a README.
 
-**Still outstanding for Gate 1** (cannot be proven from code): the OpenAI dashboard hard cap, timed rehearsal runs and the screenshots/recording. Tracked in `docs/phase-1-gap-reanalysis.md`; the §5 checklist below is ticked only for items proven there.
+**Gate 1 checklist (§5) is complete**; evidence is in `docs/phase-1-gap-reanalysis.md` and `docs/gate1-evidence/`.
 
 ### Prerequisites (resolved, before Milestone 1 starts)
 - **Git** — repo will be `git init`'d and the current scaffolding committed before Milestone 1 coding begins (was an open question; resolved — init now, not deferred to Feature 4).
@@ -201,7 +201,7 @@ Depends on Milestones 1 and 2 being complete; this feature only touches existing
 - [x] A user can register a workspace and log back in with a JWT-protected session *(browser + API, docs/gate1-evidence/)*
 - [x] A lead can be created and persisted via EF Core *(proven live, see docs/phase-1-gap-reanalysis.md)*
 - [x] The AI compose endpoint returns a usable, personalised draft in under ~5 seconds *(1.9–3.9 s in browser; cold start 5.2 s accepted)*
-- [x] Total spend to this point stays under ~$20 (OpenAI usage only) *($0.02 per dashboard screenshot; the $20 hard cap itself is still to be set, see docs/phase-1-gap-reanalysis.md)*
+- [x] Total spend to this point stays under ~$20 (OpenAI usage only) *($0.02 per dashboard screenshot; $20 hard cap set)*
 
 ---
 

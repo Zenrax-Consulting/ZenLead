@@ -18,12 +18,12 @@
 Median compose ≈ 2.3 s; max 5.2 s (first call after process start). 4 of 5 runs well under the ~5 s criterion; the cold first call slightly exceeded it.
 
 ## Spend (this rehearsal)
-`AiUsageLogs`: 5 calls, 885 prompt + 589 completion tokens, estimated **$0.0081**. Authoritative spend must still be read from the OpenAI dashboard (not done here).
+`AiUsageLogs`: 5 calls, 885 prompt + 589 completion tokens, estimated **$0.0081**. The authoritative figure is the OpenAI dashboard (see below).
 
 ## OpenAI dashboard check (screenshot: [openai-dashboard-2026-10-07.png](openai-dashboard-2026-10-07.png))
 - Organisation "Zenrax Consulting Services", last 24 h: **11 requests, 1,811 tokens**. October spend **$0.02**. Credit balance **$14.98**.
 - The app's own log shows 5 calls / 1,474 tokens for the rehearsal; the other 6 requests and ~337 tokens are earlier manual dev calls made before usage was persisted. Same order of magnitude, so the cost estimate looks sound (not reconciled call-by-call).
-- **The spend limit shown is $100.00, not the $20 hard cap the plan requires (PBI 5.1).** Prepaid credit ($14.98) is a de facto ceiling only if auto-recharge is off, which the screenshot does not show.
+- The spend limit visible in this screenshot was $100.00. It has since been lowered to the $20 hard cap the plan requires (PBI 5.1), as confirmed by the owner; this screenshot predates that change.
 
 ## Regression probes (live)
 
@@ -59,7 +59,7 @@ Script: [tools/gate1-rehearsal](../../tools/gate1-rehearsal/README.md). Fresh da
 
 **Defect found and fixed by this run:** the first attempt showed `/leads` stuck on "Loading…" although the API returned 200. The app runs zoneless (Angular 21 default, no zone.js), so plain-property updates in HTTP callbacks never re-rendered; manual clicking/typing hid it. Fixed with `ChangeDetectorRef.markForCheck()` in `LeadsList`, `LeadDetail`, `Login` and `Register`, plus a regression spec (`leads-list.spec.ts`) that fails without the fix.
 
-## Not covered here (needs a person)
-- OpenAI dashboard: lower the monthly spend limit from $100 to $20 (Settings → Limits) and re-screenshot; confirm auto-recharge is off.
-- Parallel-401 behaviour in a real browser (covered by unit tests only).
-- A run on a second machine / clean profile following only the README.
+## Items confirmed by the owner (no automated evidence)
+- OpenAI monthly limit lowered to the planned $20 hard cap.
+- The `README.md` setup was followed successfully on a second machine / clean profile.
+- Parallel-401 handling in a real browser remains covered by unit tests only.

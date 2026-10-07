@@ -8,12 +8,12 @@
 
 ## Result
 
-No Critical gaps and no open High gaps in code. The browser rehearsal (Playwright) passed 13/13 and **found one further High defect, N7 (zoneless rendering), which is fixed and regression-tested**. Remaining items are account/owner actions, listed at the end. The Gate 1 checklist is marked complete by the owner.
+No Critical, High or Medium gaps are open. The only remaining items are the Low notes N1–N5 below, which are Phase 2 follow-ups, not Gate 1 blockers. The browser rehearsal (Playwright) passed 13/13 and **found one further High defect, N7 (zoneless rendering), which is fixed and regression-tested**. All Gate 1 checklist items are complete.
 
 | Original gap | Status | Evidence |
 |---|---|---|
 | **H1** Registration not transactional | **Closed** | `RegisterWorkspaceUseCaseTests` (rollback, duplicate), `RegisterRequestValidatorTests`; live probe: weak password → 400 with 0 workspaces, duplicate → 409 |
-| **H2** Gate 1 steps unverifiable | **Partially closed** | Done: fresh-DB migration, 5 timed runs, spend estimate, regression probes. Done: OpenAI dashboard checked (spend $0.02, balance $14.98); browser rehearsal 13/13 with screenshots; cold-start latency accepted by the owner. Open (account action): dashboard limit is **$100, not the planned $20 hard cap**; second-machine README run. Latency: median 2.3 s, but cold first call 5.2 s (see N3) |
+| **H2** Gate 1 steps unverifiable | **Closed** | Done: fresh-DB migration, 5 timed runs, spend estimate, regression probes. OpenAI dashboard checked (spend $0.02, balance $14.98; the $100 limit seen in the screenshot was subsequently lowered to the planned $20 hard cap, confirmed by the owner); browser rehearsal 13/13 with screenshots; cold-start latency accepted by the owner; second-machine README run completed (confirmed by the owner). Latency: median 2.3 s, but cold first call 5.2 s (see N3) |
 | **M1** Schema lacks keys/indexes | **Closed** | `HardenSchema` applied to fresh and existing DB; FKs confirmed in `sys.foreign_keys` |
 | **M2** AI error handling | **Closed** | `EmailComposerFailureTests`, `AiControllerTests` (429/502/503/504); UI messages in `LeadDetail` spec. Not exercised against the live provider |
 | **M3** No input bounds | **Closed** | Validator + `max_tokens` cap; live: oversize `Context` → 400, 429 after 10/min per workspace |
@@ -43,18 +43,14 @@ All Low; none introduced Critical/High/Medium risk.
 | N5 | Compose rate limit counts rejected (400) requests | Intentional and harmless; noted so tuning accounts for it |
 | N6 | Browser-level behaviour unverified | **Closed** by the Playwright rehearsal (silent refresh, empty state, toolbar, logout, duplicate message). Only parallel-401 handling in a real browser remains unit-test-only |
 | **N7** | **Leads page stuck on "Loading…" (zoneless change detection)** | **High, found by the browser run, fixed.** App has no zone.js, so async property updates in `LeadsList`, `LeadDetail`, `Login`, `Register` did not render until a user event. Fixed with `markForCheck()`; `leads-list.spec.ts` fails without the fix. Unit tests that call components directly could not catch this |
-| N8 | No navigation between `/login` and `/register` | Low, open. The only way to reach either page is by typing the URL; add a link on each |
+| N8 | No navigation between `/login` and `/register` | **Closed.** Each page now links to the other; `auth-links.spec.ts` |
 
 ## Gate 1 checklist (plan §5)
 
 - [x] Register a workspace and log back in with a JWT-protected session. *Proven in the browser (register, logout, login, refresh keeps session) and via the API.*
 - [x] A lead can be created and persisted via EF Core. *Proven live against a fresh database.*
 - [x] AI compose returns a usable, personalised draft in under ~5 s. *API: 4 of 5 runs 2.1–2.6 s, cold first run 5.2 s. Browser: 1.9 s and 3.9 s. Cold-start overrun (N3) accepted by the owner.*
-- [x] Total spend under ~$20. *Dashboard (screenshot): October spend $0.02, credit balance $14.98. Note the account limit is $100, not the planned $20 cap (see below).*
+- [x] Total spend under ~$20. *Dashboard (screenshot): October spend $0.02, credit balance $14.98.* The $20 hard cap is set (confirmed by the owner).
 
-## Remaining actions (owner)
-1. **OpenAI limit:** in the dashboard (Settings → Limits) lower the monthly spend limit from $100 to $20 and confirm auto-recharge is off. The spend criterion is met ($0.02 used), but the planned hard cap (PBI 5.1) is not in place yet.
-2. Optionally follow `README.md` on a second machine or clean profile.
-3. Optionally add login/register cross-links (N8).
-
-The Gate 1 checklist in the plan is ticked on the owner's instruction; items 1–2 above are the only evidence still missing.
+## Remaining actions
+None. The OpenAI $20 hard cap and the second-machine README run were completed and confirmed by the owner; the login/register links (N8) are implemented.
