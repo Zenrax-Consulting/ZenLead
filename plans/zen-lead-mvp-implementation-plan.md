@@ -56,7 +56,7 @@ In development, `ng serve` still runs standalone with a proxy to the API for hot
 
 `ZenLead.sln`, generated from the ASP.NET Core + Angular template and then split into layers:
 
-- **ZenLead.Api** — Controllers, JWT auth, Swagger, Hangfire dashboard, **and `ClientApp/` (the Angular project)**. `SpaProxy` forwards to `ng serve` in development; `ng build` output is published into this project's `wwwroot/` for production, so `dotnet publish` produces the one deployable artifact.
+- **ZenLead.Api** — Controllers, JWT auth, Swagger, Hangfire dashboard, **and `ClientApp/` (the Angular project)**. `SpaProxy` forwards to `ng serve` in development; `ng build` output is copied into this project's `wwwroot/` **before** `dotnet publish` (an explicit script/CI step added in Phase 2 Feature 30 — the repo does not do this automatically today), so the publish produces the one deployable artifact.
   - `ClientApp/src/app/core/` — Auth guard, JWT interceptor, typed API clients
   - `ClientApp/src/app/features/auth` — Register, login, workspace onboarding
   - `ClientApp/src/app/features/leads` — List, detail, CSV import wizard
@@ -106,7 +106,7 @@ CSV import: upload to Blob Storage, column-mapping UI in Angular, background par
 Campaign builder: ordered steps with fixed-day delays, subject/body templates, optional AI personalisation per step. Sender domain verification (SPF/DKIM via SendGrid). Hangfire recurring job walks active enrollments and sends due steps through SendGrid, recording `EmailMessage` rows.
 
 ### Sprint 4 — Unified inbox (Weeks 10–11)
-SendGrid Inbound Parse webhook (needs a subdomain + MX record — **start DNS work at the top of this sprint, not the end**) lands replies as `InboxMessage` rows threaded by lead. GPT-4o classifies each reply as interested / not interested / unsubscribe; unsubscribes auto-pause the enrollment. Angular inbox UI: thread list + conversation view.
+SendGrid Inbound Parse webhook (needs a subdomain + MX record — **start DNS work at the top of this sprint, not the end**) lands replies as `InboxMessage` rows threaded by lead. GPT-4o (or the cheaper classifier model) classifies each reply as interested / not interested / unsubscribe / out of office, in a background job; unsubscribes above a confidence threshold auto-pause the enrollment and add the address to the suppression list. Angular inbox UI: thread list + conversation view.
 
 ### Sprint 5 — Analytics, UAT, hardening (Weeks 12–13)
 Per-campaign and workspace-level dashboard (sent, open rate, reply rate, bounce rate) from SendGrid event webhooks. Serilog → Application Insights end-to-end. Internal UAT with at least 3 users running the full loop. Fix, harden, prepare the Gate 2 demo.
@@ -128,14 +128,22 @@ Shared-schema multi-tenancy: every tenant-owned table carries a `WorkspaceId`, e
 | `Workspace` | Name, PlanTier, TimeZone, Country | Tenant root |
 | `WorkspaceMember` | WorkspaceId, UserId, Role, Status | Role: Owner \| Member |
 | `Company` | Name, Domain, Industry, Country | Derived from CSV import |
-| `Lead` | CompanyId, Name, Email, Title, Status | Status: New → Contacted → Replied → Unsubscribed |
+| `Lead` | CompanyId, Name, Email, Title, Status, Source, SourceRunId, EmailVerificationStatus, DeletedAt | Status: New → Contacted → Replied → Unsubscribed \| Bounced; unique (WorkspaceId, Email); soft delete |
 | `CsvImportBatch` | FileName, ColumnMapping (json), RowCount, ErrorLog | One row per upload |
-| `Campaign` | Name, Status, FromSenderId | Status: Draft \| Active \| Paused \| Completed |
+| `Campaign` | Name, Status, FromName (optional), DailySendCap, send window | Status: Draft \| Active \| Paused \| Completed. One configured sender for Zenrax, so no `FromSenderId`/sender table (per-workspace senders deferred) |
 | `CampaignStep` | Order, DelayDays, SubjectTemplate, BodyTemplate | Email-only, no branching in MVP |
 | `CampaignEnrollment` | CampaignId, LeadId, CurrentStep, NextSendAt | Drives the Hangfire sender job |
 | `EmailMessage` | SendGridMessageId, SentAt, OpenedAt, BouncedAt | Source for analytics |
 | `InboxThread` / `InboxMessage` | LeadId, Direction, Body, Classification | Classification via GPT-4o |
-| `AiGenerationLog` | WorkspaceId, Prompt, TokensUsed, Cost | Per-workspace AI cost guardrail |
+| `AiGenerationLog` | WorkspaceId, Purpose, TokensUsed, Cost | Per-workspace AI cost guardrail. Implemented by extending the existing Phase 1 `AiUsageLog` table, not a new one |
+| `TargetProfile` / `LeadDiscoveryRun` | Criteria, Provider, counts, CreditsUsed | Automated lead discovery behind `ILeadSource` |
+| `RegistrationApproval` / `PasswordResetToken` | UserId, TokenHash, ExpiresAt, UsedAt | Hashed single-use tokens |
+| `SuppressedEmail` | WorkspaceId, Email, Reason | Checked at ingestion, enrollment and send |
+| `InboundQuarantine` | Reason, From/To, headers snippet | Unmatched inbound mail; never dropped silently |
+| `ProcessedWebhookEvent` | SgEventId | Idempotency for the SendGrid Event Webhook |
+| `AuditLogEntry` | Actor, Action, Target | Platform-level (super admin workspace creation) |
+
+> Phase 2 detail (single-organisation scope, super admin, approval-based membership, local-first order) is in [phase-2-mvp-implementation-plan.md](phase-2-mvp-implementation-plan.md) and [phase-2-features/](phase-2-features/README.md), which take precedence over this section where they differ (e.g. `WorkspaceMember`/roles are deferred there).
 
 ---
 

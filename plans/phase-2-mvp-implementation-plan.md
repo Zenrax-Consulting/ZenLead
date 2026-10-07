@@ -3,7 +3,7 @@
 
 > **Scope decision (multi-tenant model, single-organisation use):** until further notice only Zenrax uses ZenLead, but the multi-tenant model from Phase 1 stays and is hardened (`WorkspaceId` on every tenant table, EF global query filter, isolation tests — Feature 11). **Colleagues share one workspace:** registration is by picking an existing workspace from a searchable list, and the workspace's admin (one per workspace, identified by an admin email) approves each new user via an emailed link (Feature 20). Roles beyond admin/member, invites and a user-management UI remain deferred (see §14). Cost target is re-baselined for this scale (see §1a).
 
-Format follows [phase-1-poc-implementation-plan.md](phase-1-poc-implementation-plan.md): numbered features continue from Phase 1 (which ended at Feature 10), each is one feature branch + PR, with PBIs underneath. Per-feature file-by-file docs (like `phase-1-features/`) go in `plans/phase-2-features/` and are written at the start of each sprint, not now.
+Format follows [phase-1-poc-implementation-plan.md](phase-1-poc-implementation-plan.md): numbered features continue from Phase 1 (which ended at Feature 10), each is one feature branch + PR, with PBIs underneath. Per-feature file-by-file docs (like `phase-1-features/`) are in [phase-2-features/](phase-2-features/README.md) (drafted 2026-10-08 for all of Features 11–31; re-check each against the code at the start of its sprint). Where a feature doc deviates from the wording below, the README there lists it under "Deviations from the parent plan".
 
 > **Numbering:** features are numbered 11–31 in build order (renumbered 2026-10-07 after the sprint re-sequencing). Earlier drafts used different numbers; PBI numbers follow their feature.
 
@@ -309,7 +309,7 @@ Sprint 5:  F28 (events + analytics) ∥ F29 (hardening) ─► F30 (Azure + CI/C
 
 ## 9. Data model delta (Phase 1 → end of Phase 2)
 
-New tables: `Company`, `CsvImportBatch`, `TargetProfile`, `LeadDiscoveryRun`, `RegistrationApproval`, `PasswordResetToken`, `Campaign`, `CampaignStep`, `CampaignEnrollment`, `EmailMessage`, `InboxThread`, `InboxMessage`, `AiGenerationLog`, plus Hangfire's own schema.
+New tables: `Company`, `CsvImportBatch`, `TargetProfile`, `LeadDiscoveryRun`, `RegistrationApproval`, `PasswordResetToken`, `Campaign`, `CampaignStep`, `CampaignEnrollment`, `EmailMessage`, `InboxThread`, `InboxMessage`, `AiGenerationLog` (= the existing `AiUsageLog`, extended — see F23 doc), plus `AuditLogEntry` (F19), `SuppressedEmail` (F23), `InboundQuarantine` (F25), `ProcessedWebhookEvent` (F28) and Hangfire's own schema.
 Changed: `Workspace` (+TimeZone, +AdminEmail), `AppUser` (+Status, +PlatformRole, nullable `WorkspaceId`), `Lead` (+CompanyId, unique `(WorkspaceId, Email)`, soft delete, `Source`, `SourceRunId`, `EmailVerificationStatus`). `AppUser.WorkspaceId` unchanged.
 All tenant tables implement `ITenantEntity`, carry `WorkspaceId`, and are covered by the EF global query filter (Feature 11).
 
