@@ -33,6 +33,7 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
 
         var tokensUsed = ExtractTokenUsage(response);
         logger.LogInformation("compose-email call used {TokensUsed} tokens for lead {LeadEmail}", tokensUsed, context.LeadEmail);
+        TokenUsageTracker.Add(tokensUsed);
 
         var parsed = JsonSerializer.Deserialize<SubjectBodyDto>(response.Content!, new JsonSerializerOptions(JsonSerializerDefaults.Web))
             ?? throw new InvalidOperationException("Model did not return the expected JSON shape.");
@@ -40,7 +41,7 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
         return new ComposedEmail(parsed.Subject, parsed.Body, tokensUsed);
     }
 
-    private static string BuildUserMessage(EmailComposeContext context) =>
+    internal static string BuildUserMessage(EmailComposeContext context) =>
         $"""
         Lead name: {context.LeadName}
         Lead email: {context.LeadEmail}

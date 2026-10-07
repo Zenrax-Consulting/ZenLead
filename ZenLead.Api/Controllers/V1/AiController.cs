@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZenLead.Application.UseCases.Ai;
+using ZenLead.Infrastructure.Ai;
 
 namespace ZenLead.Api.Controllers.V1;
 
@@ -31,4 +32,7 @@ public class AiController(ComposeEmailUseCase composeEmail) : ControllerBase
             return StatusCode(StatusCodes.Status504GatewayTimeout, new { message = "AI provider timed out. Please try again." });
         }
     }
+
+    [HttpGet("token-usage")]
+    public ActionResult<object> GetTokenUsage() => Ok(new { totalTokens = TokenUsageTracker.Total });
 }

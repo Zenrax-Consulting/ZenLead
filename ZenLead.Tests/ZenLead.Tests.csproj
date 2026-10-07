@@ -23,6 +23,7 @@
     <ProjectReference Include="..\ZenLead.Domain\ZenLead.Domain.csproj" />
     <ProjectReference Include="..\ZenLead.Application\ZenLead.Application.csproj" />
     <ProjectReference Include="..\ZenLead.Infrastructure\ZenLead.Infrastructure.csproj" />
+    <ProjectReference Include="..\ZenLead.Api\ZenLead.Api.csproj" />
   </ItemGroup>
 
 </Project>
