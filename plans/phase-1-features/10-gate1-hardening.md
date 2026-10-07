@@ -132,7 +132,7 @@ internal class FakeChatCompletionService : IChatCompletionService
         if (CallCount <= ThrowForFirstNCalls)
             throw new OperationCanceledException("Simulated timeout");
 
-        var content = new ChatMessageContent(AuthorRole.Assistant, """{ "Subject": "Hi", "Body": "Body text" }""");
+        var content = new ChatMessageContent(AuthorRole.Assistant, """{ "subject": "Hi", "body": "Body text" }""");
         return Task.FromResult<IReadOnlyList<ChatMessageContent>>([content]);
     }
 

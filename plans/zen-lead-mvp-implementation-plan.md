@@ -210,6 +210,7 @@ In addition to the proposal's own risk table, these are specific to building thi
 | AI spend creeps past the $20–60/month assumption | Per-workspace token cap and cost logging from the first AI call, not retrofitted later |
 | CSV data quality (duplicate leads, malformed emails) pollutes the dataset | Dedup and validation are a dedicated Sprint 2 deliverable, not a side effect |
 | Tenant isolation bug leaks one workspace's leads into another's view | Global query filter plus a dedicated integration test suite before the Gate 2 demo |
+| Structured AI output silently mis-parses (e.g. model returns camelCase JSON, DTO is PascalCase, and default `System.Text.Json` is case-sensitive → null fields) | Deserialize model output with `JsonSerializerDefaults.Web` (case-insensitive), validate required fields explicitly rather than trusting the deserializer, and use camelCase fixtures in parsing tests. Found in Phase 1 Feature 6; applies to every future structured-output call (e.g. Phase 2 reply classification) |
 | .NET / Angular version drift across a 3-person team | Pin .NET 10 LTS and Angular 21 in Phase 1 week 1; upgrade only between phases |
 
 ---

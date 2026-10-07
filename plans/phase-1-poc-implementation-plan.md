@@ -134,6 +134,7 @@ Depends on Feature 5 (`IEmailComposer`/`Kernel` registered).
   - `ZenLead.Application/UseCases/Ai/ComposeEmailUseCase.cs` — takes `LeadId`, loads `Lead` (+ `Company` if present, though `Company` entity itself is a Sprint 2 item — for Phase 1, a free-text "context" field on the request is enough, no need to build the full `Company` table early)
 - **PBI 6.2 — Prompt design & structured output**
   - System prompt: personalised cold-outreach email, tone constraint, no fabricated claims about the sender's company, output subject + body as structured JSON (use Semantic Kernel's structured output / a simple `SubjectBodyDto` schema) so the API returns clean fields rather than a blob to regex apart
+  - **Finding (Feature 6 implementation):** the model returns camelCase JSON (`"subject"`, `"body"`) but `SubjectBodyDto` has PascalCase properties, and `JsonSerializer.Deserialize` is case-sensitive by default — so a plain `Deserialize<SubjectBodyDto>(json)` yields null/empty fields (or throws) on real output. Deserialize with `new JsonSerializerOptions(JsonSerializerDefaults.Web)` (case-insensitive). Any test that parses model output must use the same options and a camelCase fixture, or it will pass against JSON the model never produces.
 - **PBI 6.3 — Token usage logging guardrail**
   - Basic guardrail now (full `AiGenerationLog` table is Phase 2 §5, but log token usage to `ILogger` this milestone so the habit — and the data needed for the real table later — exists from the first call, per parent plan §9 "AI cost guardrails")
 
