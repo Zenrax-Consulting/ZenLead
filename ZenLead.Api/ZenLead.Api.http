@@ -28,3 +28,10 @@ Content-Type: application/json
 ### List leads
 GET {{ZenLead.Api_HostAddress}}/api/v1/leads
 Authorization: Bearer <paste access token>
+
+### Compose an email draft for a lead (needs a lead id from the create-lead response)
+POST {{ZenLead.Api_HostAddress}}/api/v1/ai/compose-email
+Authorization: Bearer <paste access token>
+Content-Type: application/json
+
+{ "leadId": "<paste lead id>", "context": "Met at a SaaS conference last week" }

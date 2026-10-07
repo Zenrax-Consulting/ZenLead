@@ -55,8 +55,10 @@ builder.Services.AddScoped<ILeadRepository, LeadRepository>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
+var openAiHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+
 builder.Services.AddKernel()
-    .AddOpenAIChatCompletion(modelId: "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!);
+    .AddOpenAIChatCompletion(modelId: "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient);
 
 builder.Services.AddScoped<IEmailComposer, EmailComposer>();
 
