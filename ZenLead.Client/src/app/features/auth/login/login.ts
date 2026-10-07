@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -15,7 +15,7 @@ export class Login {
   submitting = false;
   errorMessage: string | null = null;
 
-  constructor(fb: FormBuilder, private auth: AuthService, private router: Router) {
+  constructor(fb: FormBuilder, private auth: AuthService, private router: Router, private cdr: ChangeDetectorRef) {
     this.form = fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
@@ -32,6 +32,7 @@ export class Login {
       error: () => {
         this.submitting = false;
         this.errorMessage = 'Invalid email or password.';
+        this.cdr.markForCheck(); // app is zoneless: async state changes must schedule a render
       }
     });
   }

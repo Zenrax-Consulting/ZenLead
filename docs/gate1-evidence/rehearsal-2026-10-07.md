@@ -43,7 +43,23 @@ Median compose ≈ 2.3 s; max 5.2 s (first call after process start). 4 of 5 run
 | Start with `OpenAI:ApiKey` empty and a short signing key | Exits with a message naming both problems ✅ |
 | `/openapi/v1.json`, `/scalar` | 200 / 302 ✅ |
 
+## Browser rehearsal (Playwright, real Chrome, real UI)
+Script: [tools/gate1-rehearsal](../../tools/gate1-rehearsal/README.md). Fresh database, Angular dev server proxying to the API. Screenshots and `results.json` in [browser/](browser/). Final run: **13/13 steps passed**, repeated twice.
+
+| Step | Result |
+|---|---|
+| Register in the UI lands on `/leads` already authenticated | ✅ |
+| Empty state for a new workspace; toolbar visible | ✅ |
+| Duplicate email shows "That email is already registered. Try logging in instead." | ✅ |
+| Logout → `/login`, toolbar hidden; login again → `/leads` | ✅ |
+| Add lead; it is listed | ✅ |
+| Browser refresh keeps the session (one silent `/auth/refresh`, still on `/leads`) | ✅ |
+| Generate draft: personalised, editable subject/body, **1.9 s and 3.9 s** click-to-rendered in the two clean runs | ✅ |
+| Back link; with no refresh token a protected page redirects to `/login` | ✅ |
+
+**Defect found and fixed by this run:** the first attempt showed `/leads` stuck on "Loading…" although the API returned 200. The app runs zoneless (Angular 21 default, no zone.js), so plain-property updates in HTTP callbacks never re-rendered; manual clicking/typing hid it. Fixed with `ChangeDetectorRef.markForCheck()` in `LeadsList`, `LeadDetail`, `Login` and `Register`, plus a regression spec (`leads-list.spec.ts`) that fails without the fix.
+
 ## Not covered here (needs a person)
 - OpenAI dashboard: lower the monthly spend limit from $100 to $20 (Settings → Limits) and re-screenshot; confirm auto-recharge is off.
-- Browser walkthrough with screenshots or a recording: register in the UI, refresh the tab (silent re-auth), empty state, logout toolbar, parallel-401 behaviour.
+- Parallel-401 behaviour in a real browser (covered by unit tests only).
 - A run on a second machine / clean profile following only the README.

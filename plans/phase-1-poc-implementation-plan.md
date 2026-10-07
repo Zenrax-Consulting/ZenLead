@@ -198,9 +198,9 @@ Depends on Milestones 1 and 2 being complete; this feature only touches existing
 
 ## 5. Gate 1 exit criteria (unchanged from parent plan §3 — restated as a checklist)
 
-- [ ] A user can register a workspace and log back in with a JWT-protected session
+- [x] A user can register a workspace and log back in with a JWT-protected session *(browser + API, docs/gate1-evidence/)*
 - [x] A lead can be created and persisted via EF Core *(proven live, see docs/phase-1-gap-reanalysis.md)*
-- [ ] The AI compose endpoint returns a usable, personalised draft in under ~5 seconds
+- [x] The AI compose endpoint returns a usable, personalised draft in under ~5 seconds *(1.9–3.9 s in browser; cold start 5.2 s accepted)*
 - [x] Total spend to this point stays under ~$20 (OpenAI usage only) *($0.02 per dashboard screenshot; the $20 hard cap itself is still to be set, see docs/phase-1-gap-reanalysis.md)*
 
 ---

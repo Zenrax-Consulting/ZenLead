@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { LeadDetail } from './lead-detail';
@@ -11,7 +12,7 @@ const lead: Lead = {
 describe('LeadDetail', () => {
   const build = (service: Partial<LeadsService>) => {
     const route = { snapshot: { paramMap: { get: () => 'l1' } } } as unknown as ActivatedRoute;
-    const component = new LeadDetail(route, service as LeadsService);
+    const component = new LeadDetail(route, service as LeadsService, { markForCheck: vi.fn() } as unknown as ChangeDetectorRef);
     component.ngOnInit();
     return component;
   };

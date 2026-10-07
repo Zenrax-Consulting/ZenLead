@@ -4,16 +4,16 @@
 **Date:** 2026-10-07 · **Baseline:** [phase-1-gap-analysis.md](phase-1-gap-analysis.md)
 **Evidence:** [gate1-evidence/rehearsal-2026-10-07.md](gate1-evidence/rehearsal-2026-10-07.md)
 
-**Automated checks:** `dotnet build` 0 errors · backend tests 64/64 (was 21) · Angular tests 27/27 (was 9), `ng build` OK · no vulnerable NuGet packages reported · npm advisories 12 → 4 (accepted, below) · fresh-LocalDB migration clean · layering review clean (Semantic Kernel types only in Infrastructure and the `Program.cs` composition root; only `AuthController` lacks `[Authorize]`, by design; all routes under `/api/v1`; no secrets in tracked files).
+**Automated checks:** `dotnet build` 0 errors · backend tests 64/64 (was 21) · Angular tests 29/29 (was 9), `ng build` OK · no vulnerable NuGet packages reported · npm advisories 12 → 4 (accepted, below) · fresh-LocalDB migration clean · layering review clean (Semantic Kernel types only in Infrastructure and the `Program.cs` composition root; only `AuthController` lacks `[Authorize]`, by design; all routes under `/api/v1`; no secrets in tracked files).
 
 ## Result
 
-No Critical gaps. **One High item remains open (H2), and it needs a person, not code:** setting the OpenAI limit to $20 and a browser rehearsal recording. Everything else from the original report is closed or explicitly accepted. Remediation exit criterion "no High open" is therefore **not yet met**.
+No Critical gaps and no open High gaps in code. The browser rehearsal (Playwright) passed 13/13 and **found one further High defect, N7 (zoneless rendering), which is fixed and regression-tested**. Remaining items are account/owner actions, listed at the end. The Gate 1 checklist is marked complete by the owner.
 
 | Original gap | Status | Evidence |
 |---|---|---|
 | **H1** Registration not transactional | **Closed** | `RegisterWorkspaceUseCaseTests` (rollback, duplicate), `RegisterRequestValidatorTests`; live probe: weak password → 400 with 0 workspaces, duplicate → 409 |
-| **H2** Gate 1 steps unverifiable | **Partially closed** | Done: fresh-DB migration, 5 timed runs, spend estimate, regression probes. Done: OpenAI dashboard checked (spend $0.02, balance $14.98). Open: dashboard limit is **$100, not the planned $20 hard cap**; browser rehearsal recording; second-machine README run. Latency: median 2.3 s, but cold first call 5.2 s (see N3) |
+| **H2** Gate 1 steps unverifiable | **Partially closed** | Done: fresh-DB migration, 5 timed runs, spend estimate, regression probes. Done: OpenAI dashboard checked (spend $0.02, balance $14.98); browser rehearsal 13/13 with screenshots; cold-start latency accepted by the owner. Open (account action): dashboard limit is **$100, not the planned $20 hard cap**; second-machine README run. Latency: median 2.3 s, but cold first call 5.2 s (see N3) |
 | **M1** Schema lacks keys/indexes | **Closed** | `HardenSchema` applied to fresh and existing DB; FKs confirmed in `sys.foreign_keys` |
 | **M2** AI error handling | **Closed** | `EmailComposerFailureTests`, `AiControllerTests` (429/502/503/504); UI messages in `LeadDetail` spec. Not exercised against the live provider |
 | **M3** No input bounds | **Closed** | Validator + `max_tokens` cap; live: oversize `Context` → 400, 429 after 10/min per workspace |
@@ -41,19 +41,20 @@ All Low; none introduced Critical/High/Medium risk.
 | N3 | Cold-start latency | First compose after process start took 5.2 s (vs ~2.3 s warm); HTTP timeout is still 10 s with one retry (worst case ~20 s before a 504). Consider a warm-up call or a decision to accept for the demo |
 | N4 | Transaction vs retrying execution strategy | `EfUnitOfWork` uses a plain transaction. If `EnableRetryOnFailure` is turned on for Azure SQL in Phase 2, it must move into `CreateExecutionStrategy().ExecuteAsync` |
 | N5 | Compose rate limit counts rejected (400) requests | Intentional and harmless; noted so tuning accounts for it |
-| N6 | Browser-level behaviour unverified | Silent refresh on reload, empty state, toolbar and parallel-401 handling are covered by unit tests but not observed in a browser |
+| N6 | Browser-level behaviour unverified | **Closed** by the Playwright rehearsal (silent refresh, empty state, toolbar, logout, duplicate message). Only parallel-401 handling in a real browser remains unit-test-only |
+| **N7** | **Leads page stuck on "Loading…" (zoneless change detection)** | **High, found by the browser run, fixed.** App has no zone.js, so async property updates in `LeadsList`, `LeadDetail`, `Login`, `Register` did not render until a user event. Fixed with `markForCheck()`; `leads-list.spec.ts` fails without the fix. Unit tests that call components directly could not catch this |
+| N8 | No navigation between `/login` and `/register` | Low, open. The only way to reach either page is by typing the URL; add a link on each |
 
 ## Gate 1 checklist (plan §5)
 
-- [ ] Register a workspace and log back in with a JWT-protected session. *API register, refresh and protected calls proven live; UI login and browser session not rehearsed.*
+- [x] Register a workspace and log back in with a JWT-protected session. *Proven in the browser (register, logout, login, refresh keeps session) and via the API.*
 - [x] A lead can be created and persisted via EF Core. *Proven live against a fresh database.*
-- [ ] AI compose returns a usable, personalised draft in under ~5 s. *4 of 5 runs 2.1–2.6 s; first (cold) run 5.2 s. Left unticked pending a decision on N3.*
+- [x] AI compose returns a usable, personalised draft in under ~5 s. *API: 4 of 5 runs 2.1–2.6 s, cold first run 5.2 s. Browser: 1.9 s and 3.9 s. Cold-start overrun (N3) accepted by the owner.*
 - [x] Total spend under ~$20. *Dashboard (screenshot): October spend $0.02, credit balance $14.98. Note the account limit is $100, not the planned $20 cap (see below).*
 
-## To close the remaining items (needs you)
-1. In the OpenAI dashboard (Settings → Limits): lower the monthly spend limit from $100 to $20, confirm auto-recharge is off, and add a new screenshot to `docs/gate1-evidence/`.
-2. Run the register → logout → login → add lead → refresh tab → generate draft loop once in the browser and save a recording or screenshots to `docs/gate1-evidence/`.
-3. Decide on N3 (accept the cold-start latency, or add a warm-up / lower the timeout).
-4. Optionally follow `README.md` on a second machine or clean profile.
+## Remaining actions (owner)
+1. **OpenAI limit:** in the dashboard (Settings → Limits) lower the monthly spend limit from $100 to $20 and confirm auto-recharge is off. The spend criterion is met ($0.02 used), but the planned hard cap (PBI 5.1) is not in place yet.
+2. Optionally follow `README.md` on a second machine or clean profile.
+3. Optionally add login/register cross-links (N8).
 
-After 1–3, tick the remaining §5 boxes (login/session and latency) and Phase 1 meets the remediation exit criteria.
+The Gate 1 checklist in the plan is ticked on the owner's instruction; items 1–2 above are the only evidence still missing.

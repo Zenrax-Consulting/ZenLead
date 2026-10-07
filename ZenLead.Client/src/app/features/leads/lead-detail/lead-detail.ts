@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ComposedEmail, Lead } from '../leads.models';
 import { LeadsService } from '../leads.service';
@@ -19,13 +19,14 @@ export class LeadDetail implements OnInit {
   composeState: ComposeState = 'idle';
   composeErrorMessage: string | null = null;
 
-  constructor(private route: ActivatedRoute, private leadsService: LeadsService) {}
+  constructor(private route: ActivatedRoute, private leadsService: LeadsService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.leadsService.getById(id).subscribe({
-      next: lead => this.lead = lead,
-      error: () => this.loadError = true
+      // app is zoneless: async state changes must schedule a render
+      next: lead => { this.lead = lead; this.cdr.markForCheck(); },
+      error: () => { this.loadError = true; this.cdr.markForCheck(); }
     });
   }
 
@@ -46,10 +47,11 @@ export class LeadDetail implements OnInit {
     this.composeErrorMessage = null;
 
     this.leadsService.composeEmail(this.lead.id).subscribe({
-      next: draft => { this.draft = draft; this.composeState = 'done'; },
+      next: draft => { this.draft = draft; this.composeState = 'done'; this.cdr.markForCheck(); },
       error: err => {
         this.composeState = 'error';
         this.composeErrorMessage = LeadDetail.composeErrorFor(err.status);
+        this.cdr.markForCheck();
       }
     });
   }

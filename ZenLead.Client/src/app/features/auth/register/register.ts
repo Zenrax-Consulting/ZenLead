@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -15,7 +15,7 @@ export class Register {
   submitting = false;
   errorMessage: string | null = null;
 
-  constructor(fb: FormBuilder, private auth: AuthService, private router: Router) {
+  constructor(fb: FormBuilder, private auth: AuthService, private router: Router, private cdr: ChangeDetectorRef) {
     this.form = fb.group({
       workspaceName: ['', Validators.required],
       displayName: ['', Validators.required],
@@ -43,6 +43,7 @@ export class Register {
       error: err => {
         this.submitting = false;
         this.errorMessage = Register.messageFor(err);
+        this.cdr.markForCheck(); // app is zoneless: async state changes must schedule a render
       }
     });
   }

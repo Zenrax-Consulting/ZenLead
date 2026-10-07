@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -8,7 +9,7 @@ describe('Login', () => {
   const build = (login: AuthService['login']) => {
     const auth = { login } as unknown as AuthService;
     const router = { navigate: vi.fn().mockResolvedValue(true) } as unknown as Router;
-    const component = new Login(new FormBuilder(), auth, router);
+    const component = new Login(new FormBuilder(), auth, router, { markForCheck: vi.fn() } as unknown as ChangeDetectorRef);
     return { component, router };
   };
 

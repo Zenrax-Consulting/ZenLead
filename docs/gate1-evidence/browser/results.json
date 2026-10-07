@@ -1,0 +1,71 @@
+{
+  "email": "rehearsal-1791386926589@example.test",
+  "baseUrl": "http://localhost:4300",
+  "log": [
+    {
+      "name": "Register lands on /leads (authenticated, no detour via /login)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Empty state shown for a new workspace",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Toolbar with logout visible when signed in",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Duplicate email shows a specific message",
+      "ok": true,
+      "detail": "That email is already registered. Try logging in instead."
+    },
+    {
+      "name": "Logout returns to /login and hides the toolbar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Login with the same credentials lands on /leads",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Lead is created and listed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Browser refresh keeps the session via silent /auth/refresh",
+      "ok": true,
+      "detail": "refresh calls: 1, url: http://localhost:4300/leads"
+    },
+    {
+      "name": "Draft generated and shown in editable fields",
+      "ok": true,
+      "detail": "1917 ms (click to rendered), subject: \"Exploring Synergies with Your Team\""
+    },
+    {
+      "name": "Draft is personalised (mentions the lead)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Draft rendered in under ~5 s",
+      "ok": true,
+      "detail": "1917 ms"
+    },
+    {
+      "name": "Back link returns to the leads list",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Without a refresh token a protected page redirects to /login",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
