@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HTTP_INTERCEPTORS, HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { AuthInterceptor } from './auth.interceptor';
 import { AuthService } from './auth.service';
 
@@ -15,8 +15,12 @@ class FakeAuthService {
     return this.accessToken;
   }
 
+  /** When set, refresh() waits on this subject so tests can hold the refresh open while several requests 401. */
+  pendingRefresh: Subject<{ accessToken: string; refreshToken: string }> | null = null;
+
   refresh() {
     this.refreshCalls++;
+    if (this.pendingRefresh) return this.pendingRefresh;
     if (this.refreshShouldFail) {
       return throwError(() => new Error('refresh failed'));
     }
@@ -122,5 +126,44 @@ describe('AuthInterceptor', () => {
 
     expect(fakeAuth.accessToken).toBeNull();
     expect(fakeRouter.navigateCalls).toContainEqual(['/login']);
+  });
+
+  it('shares one refresh across concurrent 401s and retries every request', () => {
+    const pending = new Subject<{ accessToken: string; refreshToken: string }>();
+    fakeAuth.pendingRefresh = pending;
+    const results: unknown[] = [];
+    const urls = ['/api/v1/a', '/api/v1/b', '/api/v1/c'];
+
+    urls.forEach(url => http.get(url).subscribe(r => results.push(r)));
+    urls.forEach(url => httpMock.expectOne(url).flush('Unauthorized', { status: 401, statusText: 'Unauthorized' }));
+    expect(fakeAuth.refreshCalls).toBe(1);
+
+    fakeAuth.accessToken = 'refreshed-token';
+    pending.next({ accessToken: 'refreshed-token', refreshToken: 'new-refresh' });
+    pending.complete();
+
+    urls.forEach(url => {
+      const retry = httpMock.expectOne(url);
+      expect(retry.request.headers.get('Authorization')).toBe('Bearer refreshed-token');
+      retry.flush('ok');
+    });
+    expect(results.length).toBe(3);
+    expect(fakeRouter.navigateCalls.length).toBe(0);
+  });
+
+  it('logs out and redirects once when a shared refresh fails', () => {
+    const pending = new Subject<{ accessToken: string; refreshToken: string }>();
+    fakeAuth.pendingRefresh = pending;
+    http.get('/api/v1/a').subscribe({ error: () => {} });
+    http.get('/api/v1/b').subscribe({ error: () => {} });
+
+    httpMock.expectOne('/api/v1/a').flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+    httpMock.expectOne('/api/v1/b').flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    pending.error(new Error('refresh failed'));
+
+    expect(fakeAuth.refreshCalls).toBe(1);
+    expect(fakeAuth.accessToken).toBeNull();
+    expect(fakeRouter.navigateCalls.length).toBe(2); // one per failed request, but a single refresh attempt
   });
 });

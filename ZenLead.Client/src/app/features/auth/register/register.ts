@@ -24,16 +24,25 @@ export class Register {
     });
   }
 
+  static messageFor(err: { status?: number; error?: { errors?: Record<string, string[]> } }): string {
+    if (err.status === 409) return 'That email is already registered. Try logging in instead.';
+    if (err.status === 400 && err.error?.errors) {
+      const messages = Object.values(err.error.errors).flat();
+      if (messages.length) return messages.join(' ');
+    }
+    return 'Registration failed. Please try again.';
+  }
+
   submit(): void {
     if (this.form.invalid) return;
     this.submitting = true;
     this.errorMessage = null;
 
     this.auth.register(this.form.getRawValue()).subscribe({
-      next: () => this.router.navigate(['/login']),
-      error: () => {
+      next: () => this.router.navigate(['/leads']), // register already stores the session
+      error: err => {
         this.submitting = false;
-        this.errorMessage = 'Registration failed. Email may already be in use.';
+        this.errorMessage = Register.messageFor(err);
       }
     });
   }

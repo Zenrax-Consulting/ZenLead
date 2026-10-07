@@ -1,1 +1,9 @@
+@if (auth.isAuthenticated()) {
+  <header class="app-toolbar">
+    <a class="app-name" routerLink="/leads">ZenLead</a>
+    <span class="spacer"></span>
+    <a mat-button routerLink="/leads">Leads</a>
+    <button mat-button type="button" (click)="logout()">Log out</button>
+  </header>
+}
 <router-outlet></router-outlet>

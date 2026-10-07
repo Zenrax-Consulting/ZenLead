@@ -31,6 +31,7 @@ export class LeadsList implements OnInit {
 
   refresh(): void {
     this.loading = true;
+    this.errorMessage = null;
     this.leadsService.list().subscribe({
       next: leads => { this.leads = leads; this.loading = false; },
       error: () => { this.errorMessage = 'Failed to load leads.'; this.loading = false; }
@@ -40,6 +41,7 @@ export class LeadsList implements OnInit {
   submit(): void {
     if (this.form.invalid) return;
     this.submitting = true;
+    this.errorMessage = null;
 
     this.leadsService.create(this.form.getRawValue()).subscribe({
       next: () => {
