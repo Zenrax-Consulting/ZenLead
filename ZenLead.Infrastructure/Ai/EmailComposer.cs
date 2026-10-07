@@ -29,7 +29,16 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
         history.AddUserMessage(BuildUserMessage(context));
 
         var settings = new OpenAIPromptExecutionSettings { ResponseFormat = typeof(SubjectBodyDto) };
-        var response = await chat.GetChatMessageContentAsync(history, settings, kernel, ct);
+        ChatMessageContent response;
+        try
+        {
+            response = await chat.GetChatMessageContentAsync(history, settings, kernel, ct);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            logger.LogWarning("compose-email call timed out, retrying once for lead {LeadEmail}", context.LeadEmail);
+            response = await chat.GetChatMessageContentAsync(history, settings, kernel, ct); // one retry, no backoff — Gate 1 scope only
+        }
 
         var tokensUsed = ExtractTokenUsage(response);
         logger.LogInformation("compose-email call used {TokensUsed} tokens for lead {LeadEmail}", tokensUsed, context.LeadEmail);

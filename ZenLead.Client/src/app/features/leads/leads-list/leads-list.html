@@ -20,6 +20,7 @@
 
 <p *ngIf="errorMessage" class="leads-error">{{ errorMessage }}</p>
 <p *ngIf="loading">Loading…</p>
+<p *ngIf="!loading && !errorMessage && leads.length === 0" class="empty-state">No leads yet — add your first one above.</p>
 
 <table mat-table [dataSource]="leads" *ngIf="!loading">
   <ng-container matColumnDef="name">
