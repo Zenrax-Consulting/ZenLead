@@ -1,0 +1,24 @@
+<p *ngIf="loadError">Lead not found.</p>
+
+<ng-container *ngIf="lead">
+  <h1>{{ lead.name }}</h1>
+  <p>{{ lead.email }} <span *ngIf="lead.title">· {{ lead.title }}</span></p>
+
+  <button mat-raised-button color="primary" (click)="generateDraft()" [disabled]="composeState === 'loading'">
+    Generate draft
+  </button>
+
+  <mat-spinner *ngIf="composeState === 'loading'" diameter="24"></mat-spinner>
+  <p *ngIf="composeState === 'error'" class="compose-error">{{ composeErrorMessage }}</p>
+
+  <mat-card *ngIf="draft" class="draft-card">
+    <mat-form-field appearance="outline">
+      <mat-label>Subject</mat-label>
+      <textarea matInput [value]="draft.subject" rows="1"></textarea>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Body</mat-label>
+      <textarea matInput [value]="draft.body" rows="8"></textarea>
+    </mat-form-field>
+  </mat-card>
+</ng-container>

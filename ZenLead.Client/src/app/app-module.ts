@@ -8,6 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTableModule } from '@angular/material/table';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
@@ -16,17 +17,19 @@ import { AuthInterceptor } from './core/auth/auth.interceptor';
 import { Register } from './features/auth/register/register';
 import { Login } from './features/auth/login/login';
 import { LeadsList } from './features/leads/leads-list/leads-list';
+import { LeadDetail } from './features/leads/lead-detail/lead-detail';
 
 @NgModule({
   declarations: [
     App,
     Register,
     Login,
-    LeadsList
+    LeadsList,
+    LeadDetail
   ],
   imports: [
     BrowserModule, ReactiveFormsModule,
-    MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatTableModule,
+    MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatTableModule, MatProgressSpinnerModule,
     AppRoutingModule
   ],
   providers: [

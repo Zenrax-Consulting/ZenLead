@@ -14,3 +14,9 @@ export interface CreateLeadRequest {
   email: string;
   title: string | null;
 }
+
+export interface ComposedEmail {
+  subject: string;
+  body: string;
+  tokensUsed: number;
+}
