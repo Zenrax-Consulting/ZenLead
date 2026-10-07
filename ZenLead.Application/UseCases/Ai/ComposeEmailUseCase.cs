@@ -5,7 +5,8 @@ namespace ZenLead.Application.UseCases.Ai;
 public record ComposeEmailRequest(Guid LeadId, string? Context);
 public record ComposeEmailResult(string Subject, string Body, int TokensUsed);
 
-public class ComposeEmailUseCase(ILeadRepository leads, IEmailComposer composer)
+public class ComposeEmailUseCase(
+    ILeadRepository leads, IEmailComposer composer, ITokenUsageTracker usage, AiPricing pricing)
 {
     public async Task<ComposeEmailResult?> ExecuteAsync(ComposeEmailRequest request, Guid workspaceId, CancellationToken ct = default)
     {
@@ -14,6 +15,10 @@ public class ComposeEmailUseCase(ILeadRepository leads, IEmailComposer composer)
 
         var composed = await composer.ComposeAsync(
             new EmailComposeContext(lead.Name, lead.Email, lead.Title, request.Context), ct);
+
+        await usage.RecordAsync(new AiUsageEntry(
+            workspaceId, pricing.Model, composed.PromptTokens, composed.CompletionTokens,
+            pricing.EstimateCostUsd(composed.PromptTokens, composed.CompletionTokens)), ct);
 
         return new ComposeEmailResult(composed.Subject, composed.Body, composed.TokensUsed);
     }

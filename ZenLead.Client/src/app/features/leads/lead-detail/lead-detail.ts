@@ -29,6 +29,17 @@ export class LeadDetail implements OnInit {
     });
   }
 
+  static composeErrorFor(status: number): string {
+    switch (status) {
+      case 400: return 'The request was invalid. Please shorten any extra context and try again.';
+      case 429: return 'Too many draft requests right now. Please wait a minute and try again.';
+      case 502: return 'The AI returned an unusable draft. Please try again.';
+      case 503: return 'The AI provider is currently unavailable. Please try again later.';
+      case 504: return 'The AI provider timed out. Please try again.';
+      default: return 'Failed to generate a draft.';
+    }
+  }
+
   generateDraft(): void {
     if (!this.lead) return;
     this.composeState = 'loading';
@@ -38,9 +49,7 @@ export class LeadDetail implements OnInit {
       next: draft => { this.draft = draft; this.composeState = 'done'; },
       error: err => {
         this.composeState = 'error';
-        this.composeErrorMessage = err.status === 504
-          ? 'The AI provider timed out. Please try again.'
-          : 'Failed to generate a draft.';
+        this.composeErrorMessage = LeadDetail.composeErrorFor(err.status);
       }
     });
   }

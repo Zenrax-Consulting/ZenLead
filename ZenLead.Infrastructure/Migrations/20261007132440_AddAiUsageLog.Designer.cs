@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZenLead.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using ZenLead.Infrastructure.Persistence;
 namespace ZenLead.Infrastructure.Migrations
 {
     [DbContext(typeof(ZenLeadDbContext))]
-    partial class ZenLeadDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007132440_AddAiUsageLog")]
+    partial class AddAiUsageLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

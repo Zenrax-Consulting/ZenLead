@@ -8,6 +8,7 @@ using Microsoft.SemanticKernel;
 using ZenLead.Application.Abstractions;
 using ZenLead.Application.UseCases.Ai;
 using ZenLead.Application.UseCases.Auth;
+using ZenLead.Api;
 using ZenLead.Application.Validation.Auth;
 using ZenLead.Infrastructure.Ai;
 using ZenLead.Infrastructure.Identity;
@@ -57,6 +58,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(RateLimiting.ComposePolicy, RateLimiting.ComposePartition);
+    options.OnRejected = (context, _) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        return ValueTask.CompletedTask;
+    };
+});
+
 builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
@@ -67,9 +79,11 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 var openAiHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
 
 builder.Services.AddKernel()
-    .AddOpenAIChatCompletion(modelId: "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient);
+    .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:Model"] ?? "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient);
 
 builder.Services.AddScoped<IEmailComposer, EmailComposer>();
+builder.Services.AddScoped<ITokenUsageTracker, EfTokenUsageTracker>();
+builder.Services.AddSingleton(builder.Configuration.GetSection("OpenAI").Get<AiPricing>() ?? new AiPricing());
 
 builder.Services.AddScoped<RegisterWorkspaceUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
@@ -93,6 +107,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

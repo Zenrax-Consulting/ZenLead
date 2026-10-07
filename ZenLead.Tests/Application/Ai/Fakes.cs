@@ -33,3 +33,21 @@ public class FakeLeadRepositoryForAi : ILeadRepository
     public Task<IReadOnlyList<Lead>> ListByWorkspaceAsync(Guid workspaceId, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Lead>>(_leads.Values.Where(l => l.WorkspaceId == workspaceId).ToList());
 }
+
+public class FakeTokenUsageTracker : ITokenUsageTracker
+{
+    public List<AiUsageEntry> Entries { get; } = [];
+
+    public Task RecordAsync(AiUsageEntry entry, CancellationToken ct = default)
+    {
+        Entries.Add(entry);
+        return Task.CompletedTask;
+    }
+
+    public Task<AiUsageSummary> GetSummaryAsync(Guid workspaceId, CancellationToken ct = default)
+    {
+        var mine = Entries.Where(e => e.WorkspaceId == workspaceId).ToList();
+        return Task.FromResult(new AiUsageSummary(
+            mine.Count, mine.Sum(e => (long)e.PromptTokens + e.CompletionTokens), mine.Sum(e => e.EstimatedCostUsd)));
+    }
+}

@@ -44,3 +44,14 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.HasOne<Workspace>().WithMany().HasForeignKey(u => u.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+public class AiUsageLogConfiguration : IEntityTypeConfiguration<AiUsageLog>
+{
+    public void Configure(EntityTypeBuilder<AiUsageLog> builder)
+    {
+        builder.Property(l => l.Model).HasMaxLength(100);
+        builder.Property(l => l.EstimatedCostUsd).HasPrecision(18, 6);
+        builder.HasIndex(l => l.WorkspaceId);
+        builder.HasOne<Workspace>().WithMany().HasForeignKey(l => l.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
