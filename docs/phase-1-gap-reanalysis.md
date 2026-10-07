@@ -8,7 +8,7 @@
 
 ## Result
 
-No Critical, High or Medium gaps are open. The only remaining items are the Low notes N1–N5 below, which are Phase 2 follow-ups, not Gate 1 blockers. The browser rehearsal (Playwright) passed 13/13 and **found one further High defect, N7 (zoneless rendering), which is fixed and regression-tested**. All Gate 1 checklist items are complete.
+No Critical, High or Medium gaps are open. The only remaining items are the Low notes N1, N4 and N5 below, which are Phase 2 follow-ups, not Gate 1 blockers. The browser rehearsal (Playwright) passed 13/13 and **found one further High defect, N7 (zoneless rendering), which is fixed and regression-tested**. All Gate 1 checklist items are complete.
 
 | Original gap | Status | Evidence |
 |---|---|---|
@@ -37,8 +37,8 @@ All Low; none introduced Critical/High/Medium risk.
 | ID | Gap | Notes |
 |---|---|---|
 | N1 | Auth rate limit keys on `RemoteIpAddress` | Behind a proxy (Azure App Service, or the `ng serve` proxy) every client can share one bucket (20/min). Add forwarded-headers handling in Phase 2. Rapid scripted registrations can hit it, which matters for demo scripts |
-| N2 | AI spend undercounted on failed calls | Usage is recorded only after a usable draft. A call that consumed tokens but returned invalid JSON is not logged. The OpenAI dashboard stays authoritative |
-| N3 | Cold-start latency | First compose after process start took 5.2 s (vs ~2.3 s warm); HTTP timeout is still 10 s with one retry (worst case ~20 s before a 504). Consider a warm-up call or a decision to accept for the demo |
+| N2 | AI spend undercounted on failed calls | **Closed.** `AiProviderException` now carries the billed prompt/completion tokens; `ComposeEmailUseCase` records them before rethrowing, and records nothing when no tokens were consumed (e.g. a 429). `UsageOnFailureAndWarmUpTests` |
+| N3 | Cold-start latency | **Closed (not reproducible).** Re-measured on fresh process starts: first compose 2.54 s and 2.75 s with warm-up off, 2.07 s and 2.86 s with it on, so the earlier 5.2 s was a one-off and the warm-up gain is within noise. Added an opt-in `OpenAiWarmUpService` (`OpenAI:WarmUpOnStartup`, default off) and longer-lived pooled OpenAI connections. Timeout unchanged (10 s, one retry) |
 | N4 | Transaction vs retrying execution strategy | `EfUnitOfWork` uses a plain transaction. If `EnableRetryOnFailure` is turned on for Azure SQL in Phase 2, it must move into `CreateExecutionStrategy().ExecuteAsync` |
 | N5 | Compose rate limit counts rejected (400) requests | Intentional and harmless; noted so tuning accounts for it |
 | N6 | Browser-level behaviour unverified | **Closed** by the Playwright rehearsal (silent refresh, empty state, toolbar, logout, duplicate message). Only parallel-401 handling in a real browser remains unit-test-only |

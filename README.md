@@ -22,7 +22,7 @@ dotnet user-secrets set "Jwt:Audience" "zenlead-client" --project ZenLead.Api
 dotnet user-secrets set "OpenAI:ApiKey" "<your OpenAI key>" --project ZenLead.Api
 ```
 
-Optional overrides: `OpenAI:Model` (default `gpt-4o`), `OpenAI:PricePer1KInputUsd` and `OpenAI:PricePer1KOutputUsd` (used for the spend estimate).
+Optional overrides: `OpenAI:Model` (default `gpt-4o`), `OpenAI:PricePer1KInputUsd` and `OpenAI:PricePer1KOutputUsd` (used for the spend estimate), and `OpenAI:WarmUpOnStartup` (default `false`; when `true`, makes one 1-token completion after startup so the first compose request does not pay connection setup. Measured gain was within noise, so it is off by default).
 
 The API refuses to start, with a message naming each missing setting, if any required value is absent or the signing key is shorter than 32 bytes.
 

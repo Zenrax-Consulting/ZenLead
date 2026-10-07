@@ -93,12 +93,19 @@ builder.Services.AddScoped<ILeadRepository, LeadRepository>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
-var openAiHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+// keep connections to OpenAI pooled longer than the default so a quiet minute does not bring back the cold-connection cost
+var openAiHttpClient = new HttpClient(new SocketsHttpHandler
+{
+    PooledConnectionIdleTimeout = TimeSpan.FromMinutes(10),
+    PooledConnectionLifetime = TimeSpan.FromMinutes(30)
+}) { Timeout = TimeSpan.FromSeconds(10) };
 
 builder.Services.AddKernel()
     .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:Model"] ?? "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient);
 
 builder.Services.AddScoped<IEmailComposer, EmailComposer>();
+if (builder.Configuration.GetValue("OpenAI:WarmUpOnStartup", false))
+    builder.Services.AddHostedService<OpenAiWarmUpService>();
 builder.Services.AddScoped<ITokenUsageTracker, EfTokenUsageTracker>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("OpenAI").Get<AiPricing>() ?? new AiPricing());
 

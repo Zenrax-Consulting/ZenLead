@@ -8,10 +8,15 @@ public enum AiProviderFailureKind
 }
 
 /// <summary>Provider-neutral AI failure, so Api/Application never see Semantic Kernel / OpenAI exception types.</summary>
-public class AiProviderException(AiProviderFailureKind kind, string message, Exception? inner = null)
+public class AiProviderException(
+    AiProviderFailureKind kind, string message, Exception? inner = null, int promptTokens = 0, int completionTokens = 0)
     : Exception(message, inner)
 {
     public AiProviderFailureKind Kind { get; } = kind;
+
+    /// <summary>Tokens the provider billed before the failure (e.g. a reply that could not be parsed). Zero if none were consumed.</summary>
+    public int PromptTokens { get; } = promptTokens;
+    public int CompletionTokens { get; } = completionTokens;
 }
 
 /// <summary>Model name and per-1K-token USD prices used to estimate cost. Bound from the "OpenAI" config section.</summary>

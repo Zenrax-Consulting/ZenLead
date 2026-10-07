@@ -47,7 +47,8 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
         logger.LogInformation("compose-email call used {TokensUsed} tokens for lead {LeadEmail}", total, context.LeadEmail);
 
         if (string.IsNullOrWhiteSpace(response.Content))
-            throw new AiProviderException(AiProviderFailureKind.InvalidResponse, "The model returned an empty response.");
+            throw new AiProviderException(AiProviderFailureKind.InvalidResponse, "The model returned an empty response.",
+                promptTokens: prompt, completionTokens: completion);
 
         SubjectBodyDto? parsed;
         try
@@ -56,11 +57,12 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
         }
         catch (JsonException ex)
         {
-            throw new AiProviderException(AiProviderFailureKind.InvalidResponse, "The model did not return valid JSON.", ex);
+            throw new AiProviderException(AiProviderFailureKind.InvalidResponse, "The model did not return valid JSON.", ex, prompt, completion);
         }
 
         if (parsed is null || string.IsNullOrWhiteSpace(parsed.Subject) || string.IsNullOrWhiteSpace(parsed.Body))
-            throw new AiProviderException(AiProviderFailureKind.InvalidResponse, "Model did not return the expected JSON shape.");
+            throw new AiProviderException(AiProviderFailureKind.InvalidResponse, "Model did not return the expected JSON shape.",
+                promptTokens: prompt, completionTokens: completion);
 
         return new ComposedEmail(parsed.Subject, parsed.Body, total, prompt, completion);
     }
