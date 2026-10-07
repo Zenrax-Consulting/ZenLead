@@ -4,11 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-ZenLead is an AI-powered cold-outreach SaaS (leads → AI-personalised email campaigns → unified inbox → analytics). **The repo is currently a scaffold, not a working app.** The solution structure and empty feature folders (marked with `.gitkeep`) already reflect the target architecture from `plans/`, but almost no real code exists yet:
+ZenLead is an AI-powered cold-outreach SaaS (leads → AI-personalised email campaigns → unified inbox → analytics). **Phase 1 (proof of concept) is built and being hardened for Gate 1**; everything beyond it (campaigns, inbox, analytics, SendGrid, Azure) is not started:
 
-- `ZenLead.Api` only has the default `WeatherForecastController` sample — no auth, no real controllers yet.
-- `ZenLead.Application`, `ZenLead.Domain`, `ZenLead.Infrastructure` are empty except for their intended subfolders.
-- `ZenLead.Client` has Angular routing/module scaffolding but no real screens.
+- `ZenLead.Api` — `AuthController` (register/login/refresh), `LeadsController`, `AiController` (compose-email, workspace-scoped token-usage), all under `/api/v1`. Startup fails fast on missing secrets (`StartupConfiguration`). Rate limits: compose per workspace, auth per IP.
+- `ZenLead.Application` / `Domain` / `Infrastructure` — auth use cases, `ComposeEmailUseCase` behind `IEmailComposer`, EF Core + Identity, refresh-token rotation, persisted AI usage log (`AiUsageLog`). Migrations: `InitialCreate`, `HardenSchema`, `AddAiUsageLog`.
+- `ZenLead.Client` — register/login, leads list, lead detail with "Generate draft", logout toolbar.
+
+Local setup (user-secrets keys, migrations) is in `README.md`. Gap analysis and remediation history: `docs/phase-1-gap-analysis.md`, `plans/phase-1-gap-remediation-plan.md`.
 
 Before implementing a feature, check `plans/phase-1-poc-implementation-plan.md` for the day-by-day plan and current decisions — it is the source of truth for what should exist next and in what order, and it explicitly tracks "current state" and "explicitly out of scope" so work doesn't drift ahead of or behind the plan.
 
@@ -33,7 +35,7 @@ ng build            # production build
 ng build --watch --configuration development
 ng test             # unit tests (Vitest runner)
 ```
-Dev server runs on port 52618. `src/proxy.conf.js` only proxies specific paths to the API (currently just the leftover `/weatherforecast` sample) — **new API paths must be added to this proxy list** or `ng serve` requests to them will 404 instead of reaching the backend.
+Dev server runs on port 52618. `src/proxy.conf.js` proxies everything under `/api` to the API, so new `/api/v1/...` controllers need no proxy change; any path outside `/api` must be added to that list or `ng serve` requests to it will 404.
 
 Running `dotnet run --project ZenLead.Api` starts `ng serve` for you automatically via the SPA proxy (`SpaProxyLaunchCommand` in `ZenLead.Api.csproj`); you don't need to run both manually during development.
 
@@ -71,6 +73,9 @@ There is **one deployable artifact**: `dotnet publish` on `ZenLead.Api` builds t
 - xUnit tests focus on things that are actually risky to get wrong: CSV parsing/dedup, sequence-step scheduling, tenant-filter enforcement, JWT claim contents, refresh-token rotation.
 - AI-dependent code is tested against a fake `IEmailComposer` — no real OpenAI calls in CI/tests.
 - Angular gets targeted unit tests (auth interceptor, scheduling display logic), not full coverage.
+
+## Where files go
+Plans go in `plans/`; reports and other docs (gap analyses, evidence, notes) go in `docs/`.
 
 ## Plans folder
 

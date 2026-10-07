@@ -14,7 +14,11 @@ public class IdentityService(UserManager<AppUser> userManager) : IIdentityServic
         var user = new AppUser { UserName = email, Email = email, WorkspaceId = workspaceId, DisplayName = displayName };
         var result = await userManager.CreateAsync(user, password);
         if (!result.Succeeded)
-            throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+        {
+            if (result.Errors.Any(e => e.Code is "DuplicateUserName" or "DuplicateEmail"))
+                throw new EmailAlreadyRegisteredException();
+            throw new RegistrationFailedException(result.Errors.Select(e => e.Description).ToList());
+        }
 
         return user.Id;
     }

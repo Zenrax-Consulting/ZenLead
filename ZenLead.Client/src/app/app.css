@@ -12,3 +12,21 @@ th, td {
 table {
     margin: 0 auto;
 }
+
+.app-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.app-name {
+    font-weight: 600;
+    text-decoration: none;
+    color: inherit;
+}
+
+.spacer {
+    flex: 1;
+}

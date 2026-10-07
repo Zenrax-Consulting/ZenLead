@@ -14,9 +14,11 @@ public class ZenLeadDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, G
     public DbSet<Workspace> Workspaces => Set<Workspace>();
     public DbSet<Lead> Leads => Set<Lead>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // required — maps Identity's own tables
+        builder.ApplyConfigurationsFromAssembly(typeof(ZenLeadDbContext).Assembly);
     }
 }

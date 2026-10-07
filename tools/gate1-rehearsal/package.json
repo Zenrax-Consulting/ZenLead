@@ -1,0 +1,12 @@
+{
+  "name": "zenlead-gate1-rehearsal",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only Playwright script that drives the UI for the Gate 1 rehearsal. Not part of the app.",
+  "scripts": {
+    "rehearse": "node rehearsal.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.50.0"
+  }
+}

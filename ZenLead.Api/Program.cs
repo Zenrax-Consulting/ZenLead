@@ -4,10 +4,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 using Microsoft.SemanticKernel;
 using ZenLead.Application.Abstractions;
 using ZenLead.Application.UseCases.Ai;
 using ZenLead.Application.UseCases.Auth;
+using ZenLead.Api;
 using ZenLead.Application.Validation.Auth;
 using ZenLead.Infrastructure.Ai;
 using ZenLead.Infrastructure.Identity;
@@ -15,15 +18,37 @@ using ZenLead.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+StartupConfiguration.ThrowIfInvalid(builder.Configuration); // fail fast with a clear message, not a NullReferenceException
+
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
+{
+    // lets the API reference UI offer an "Authorize" box for the JWT access token
+    document.Components ??= new OpenApiComponents();
+    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+    document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    };
+    return Task.CompletedTask;
+}));
 
 builder.Services.AddDbContext<ZenLeadDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services
-    .AddIdentityCore<AppUser>(options => options.Password.RequiredLength = 8)
+    .AddIdentityCore<AppUser>(options =>
+    {
+        // keep in sync with RegisterRequestValidator
+        options.Password.RequiredLength = 8;
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+    })
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ZenLeadDbContext>();
 
@@ -49,18 +74,40 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(RateLimiting.ComposePolicy, RateLimiting.ComposePartition);
+    options.AddPolicy(RateLimiting.AuthPolicy, RateLimiting.AuthPartition);
+    options.OnRejected = (context, _) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        return ValueTask.CompletedTask;
+    };
+});
+
 builder.Services.AddScoped<IIdentityService, IdentityService>();
+builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 builder.Services.AddScoped<ILeadRepository, LeadRepository>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
-var openAiHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+// keep connections to OpenAI pooled longer than the default so a quiet minute does not bring back the cold-connection cost
+var openAiHttpClient = new HttpClient(new SocketsHttpHandler
+{
+    PooledConnectionIdleTimeout = TimeSpan.FromMinutes(10),
+    PooledConnectionLifetime = TimeSpan.FromMinutes(30)
+}) { Timeout = TimeSpan.FromSeconds(10) };
 
 builder.Services.AddKernel()
-    .AddOpenAIChatCompletion(modelId: "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient);
+    .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:Model"] ?? "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient);
 
 builder.Services.AddScoped<IEmailComposer, EmailComposer>();
+if (builder.Configuration.GetValue("OpenAI:WarmUpOnStartup", false))
+    builder.Services.AddHostedService<OpenAiWarmUpService>();
+builder.Services.AddScoped<ITokenUsageTracker, EfTokenUsageTracker>();
+builder.Services.AddSingleton(builder.Configuration.GetSection("OpenAI").Get<AiPricing>() ?? new AiPricing());
 
 builder.Services.AddScoped<RegisterWorkspaceUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
@@ -78,12 +125,14 @@ app.MapStaticAssets();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(); // interactive API reference at /scalar
 }
 
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

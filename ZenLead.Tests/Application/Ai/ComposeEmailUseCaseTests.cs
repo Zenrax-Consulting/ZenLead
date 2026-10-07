@@ -1,3 +1,4 @@
+using ZenLead.Application.Abstractions;
 using ZenLead.Application.UseCases.Ai;
 using ZenLead.Domain.Entities;
 using ZenLead.Domain.Enums;
@@ -14,7 +15,7 @@ public class ComposeEmailUseCaseTests
         var leads = new FakeLeadRepositoryForAi();
         leads.Seed(lead);
         var composer = new FakeEmailComposer();
-        var sut = new ComposeEmailUseCase(leads, composer);
+        var sut = new ComposeEmailUseCase(leads, composer, new FakeTokenUsageTracker(), new AiPricing());
 
         var result = await sut.ExecuteAsync(new ComposeEmailRequest(lead.Id, "context"), workspaceId);
 
@@ -29,7 +30,7 @@ public class ComposeEmailUseCaseTests
         var lead = new Lead { Id = Guid.NewGuid(), WorkspaceId = Guid.NewGuid(), Name = "Jane", Email = "jane@acme.com", Status = LeadStatus.New, CreatedAt = DateTime.UtcNow };
         var leads = new FakeLeadRepositoryForAi();
         leads.Seed(lead);
-        var sut = new ComposeEmailUseCase(leads, new FakeEmailComposer());
+        var sut = new ComposeEmailUseCase(leads, new FakeEmailComposer(), new FakeTokenUsageTracker(), new AiPricing());
 
         var result = await sut.ExecuteAsync(new ComposeEmailRequest(lead.Id, null), Guid.NewGuid());
 

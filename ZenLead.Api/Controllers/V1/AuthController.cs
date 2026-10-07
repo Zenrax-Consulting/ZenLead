@@ -1,6 +1,8 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.RateLimiting;
+using ZenLead.Application.Abstractions;
 using ZenLead.Application.Dtos.Auth;
 using ZenLead.Application.UseCases.Auth;
 
@@ -8,6 +10,7 @@ namespace ZenLead.Api.Controllers.V1;
 
 [ApiController]
 [Route("api/v1/auth")]
+[EnableRateLimiting(RateLimiting.AuthPolicy)]
 public class AuthController(
     RegisterWorkspaceUseCase registerWorkspace,
     LoginUseCase login,
@@ -26,9 +29,16 @@ public class AuthController(
         {
             return await registerWorkspace.ExecuteAsync(request, ct);
         }
-        catch (InvalidOperationException ex)
+        catch (EmailAlreadyRegisteredException ex)
         {
             return Conflict(new { message = ex.Message });
+        }
+        catch (RegistrationFailedException ex)
+        {
+            var modelState = new ModelStateDictionary();
+            foreach (var error in ex.Errors)
+                modelState.AddModelError(nameof(RegisterRequest.Password), error);
+            return ValidationProblem(modelState);
         }
     }
 
