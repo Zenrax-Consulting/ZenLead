@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.SemanticKernel;
 using ZenLead.Application.Abstractions;
 using ZenLead.Application.UseCases.Auth;
 using ZenLead.Application.Validation.Auth;
+using ZenLead.Infrastructure.Ai;
 using ZenLead.Infrastructure.Identity;
 using ZenLead.Infrastructure.Persistence;
 
@@ -51,6 +53,11 @@ builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 builder.Services.AddScoped<ILeadRepository, LeadRepository>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+
+builder.Services.AddKernel()
+    .AddOpenAIChatCompletion(modelId: "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!);
+
+builder.Services.AddScoped<IEmailComposer, EmailComposer>();
 
 builder.Services.AddScoped<RegisterWorkspaceUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
