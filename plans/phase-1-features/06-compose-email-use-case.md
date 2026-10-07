@@ -47,7 +47,7 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
         var tokensUsed = ExtractTokenUsage(response);
         logger.LogInformation("compose-email call used {TokensUsed} tokens for lead {LeadEmail}", tokensUsed, context.LeadEmail);
 
-        var parsed = JsonSerializer.Deserialize<SubjectBodyDto>(response.Content!)
+        var parsed = JsonSerializer.Deserialize<SubjectBodyDto>(response.Content!, new JsonSerializerOptions(JsonSerializerDefaults.Web))
             ?? throw new InvalidOperationException("Model did not return the expected JSON shape.");
 
         return new ComposedEmail(parsed.Subject, parsed.Body, tokensUsed);
@@ -72,6 +72,8 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
     }
 }
 ```
+**Note (deserialization):** the model returns camelCase JSON (`"subject"`, `"body"`) while `SubjectBodyDto` is PascalCase, and `System.Text.Json` is case-sensitive by default — hence `JsonSerializerDefaults.Web` above. Without it real responses deserialize to null fields.
+
 **Note:** the exact `Usage` metadata key/property name depends on the `Microsoft.SemanticKernel.Connectors.OpenAI` version resolved in Feature 5 — confirm the real property name against the installed version and adjust `ExtractTokenUsage` if needed. It's written defensively (reflection + fallback to `0`) so a connector version bump degrades token counting rather than throwing — this is the "basic guardrail" the parent plan calls for; the full `AiGenerationLog` table is a Phase 2 item.
 
 ### `ZenLead.Application/UseCases/Ai/ComposeEmailUseCase.cs` (new)

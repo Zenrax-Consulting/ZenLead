@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.SemanticKernel;
 using ZenLead.Application.Abstractions;
+using ZenLead.Application.UseCases.Ai;
 using ZenLead.Application.UseCases.Auth;
 using ZenLead.Application.Validation.Auth;
 using ZenLead.Infrastructure.Ai;
@@ -62,6 +63,7 @@ builder.Services.AddScoped<IEmailComposer, EmailComposer>();
 builder.Services.AddScoped<RegisterWorkspaceUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
 builder.Services.AddScoped<RefreshTokenUseCase>();
+builder.Services.AddScoped<ComposeEmailUseCase>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
