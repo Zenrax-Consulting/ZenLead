@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ZenLead.Application.Abstractions;
 using ZenLead.Domain.Entities;
 
@@ -12,4 +13,7 @@ public class WorkspaceRepository(ZenLeadDbContext db) : IWorkspaceRepository
         await db.SaveChangesAsync(ct);
         return workspace;
     }
+
+    public Task<Workspace?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        => db.Workspaces.FirstOrDefaultAsync(w => w.Id == id, ct);
 }

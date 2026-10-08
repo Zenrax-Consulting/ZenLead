@@ -1,0 +1,7 @@
+.shell-container { height: calc(100vh - 64px); }
+.spacer { flex: 1; }
+.app-name { font-weight: 600; text-decoration: none; color: inherit; }
+.workspace-name { margin-right: 0.5rem; }
+mat-sidenav { width: 220px; }
+.active { background: var(--mat-sys-secondary-container); }
+mat-sidenav-content { padding: 16px 24px; }

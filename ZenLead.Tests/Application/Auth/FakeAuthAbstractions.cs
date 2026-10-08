@@ -39,6 +39,9 @@ public class FakeWorkspaceRepository : IWorkspaceRepository
         Created.Add(workspace);
         return Task.FromResult(workspace);
     }
+
+    public Task<Workspace?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        => Task.FromResult(Created.FirstOrDefault(w => w.Id == id));
 }
 
 public class FakeUnitOfWork : IUnitOfWork
