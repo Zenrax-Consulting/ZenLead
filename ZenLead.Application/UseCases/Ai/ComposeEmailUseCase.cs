@@ -17,7 +17,8 @@ public class ComposeEmailUseCase(
         try
         {
             composed = await composer.ComposeAsync(
-                new EmailComposeContext(lead.Name, lead.Email, lead.Title, request.Context), ct);
+                new EmailComposeContext(lead.Name, lead.Email, lead.Title, request.Context,
+                    lead.Company?.Name, lead.Company?.Industry, lead.Company?.Country), ct);
         }
         catch (AiProviderException ex) when (ex.PromptTokens + ex.CompletionTokens > 0)
         {

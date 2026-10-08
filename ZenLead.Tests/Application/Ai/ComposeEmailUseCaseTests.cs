@@ -36,4 +36,25 @@ public class ComposeEmailUseCaseTests
 
         Assert.Null(result);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_LeadWithCompany_PassesCompanyDetailsToComposer()
+    {
+        var workspaceId = Guid.NewGuid();
+        var lead = new Lead
+        {
+            Id = Guid.NewGuid(), WorkspaceId = workspaceId, Name = "Jane", Email = "jane@acme.com", Status = LeadStatus.New, CreatedAt = DateTime.UtcNow,
+            Company = new Company { Id = Guid.NewGuid(), WorkspaceId = workspaceId, Name = "Acme", Industry = "SaaS", Country = "DE" }
+        };
+        var leads = new FakeLeadRepositoryForAi();
+        leads.Seed(lead);
+        var composer = new FakeEmailComposer();
+        var sut = new ComposeEmailUseCase(leads, composer, new FakeTokenUsageTracker(), new AiPricing());
+
+        await sut.ExecuteAsync(new ComposeEmailRequest(lead.Id, null), workspaceId);
+
+        Assert.Equal("Acme", composer.LastContext!.CompanyName);
+        Assert.Equal("SaaS", composer.LastContext.CompanyIndustry);
+        Assert.Equal("DE", composer.LastContext.CompanyCountry);
+    }
 }

@@ -19,6 +19,7 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
         Rules:
         - Keep it under 120 words.
         - Reference the lead's name and title naturally; do not fabricate facts about the lead's company.
+        - Only use the company details given below; never add facts about the company that are not listed.
         - Never invent claims about the sender's own company — use only what's given in the context, or stay generic.
         - Tone: professional, warm, not salesy.
         Respond with JSON matching: { "subject": string, "body": string }.
@@ -72,6 +73,9 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
         Lead name: {context.LeadName}
         Lead email: {context.LeadEmail}
         Lead title: {context.LeadTitle ?? "unknown"}
+        Company: {context.CompanyName ?? "unknown"}
+        Industry: {context.CompanyIndustry ?? "unknown"}
+        Country: {context.CompanyCountry ?? "unknown"}
         Additional context: {context.AdditionalContext ?? "none"}
         """;
 

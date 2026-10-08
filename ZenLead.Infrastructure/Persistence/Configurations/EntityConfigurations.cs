@@ -12,6 +12,21 @@ public class WorkspaceConfiguration : IEntityTypeConfiguration<Workspace>
     }
 }
 
+public class CompanyConfiguration : IEntityTypeConfiguration<Company>
+{
+    public void Configure(EntityTypeBuilder<Company> builder)
+    {
+        builder.Property(c => c.Name).HasMaxLength(200);
+        builder.Property(c => c.Domain).HasMaxLength(253);
+        builder.Property(c => c.Industry).HasMaxLength(200);
+        builder.Property(c => c.Country).HasMaxLength(100);
+        builder.Property(c => c.Size).HasMaxLength(50);
+        builder.HasIndex(c => new { c.WorkspaceId, c.Domain }).IsUnique().HasFilter("[Domain] IS NOT NULL");
+        builder.HasIndex(c => new { c.WorkspaceId, c.Name });
+        builder.HasOne<Workspace>().WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class LeadConfiguration : IEntityTypeConfiguration<Lead>
 {
     public void Configure(EntityTypeBuilder<Lead> builder)
@@ -20,7 +35,10 @@ public class LeadConfiguration : IEntityTypeConfiguration<Lead>
         builder.Property(l => l.Email).HasMaxLength(256);
         builder.Property(l => l.Title).HasMaxLength(200);
         builder.HasIndex(l => l.WorkspaceId);
+        builder.HasIndex(l => new { l.WorkspaceId, l.Email }).IsUnique();     // includes soft-deleted rows on purpose
+        builder.HasIndex(l => new { l.WorkspaceId, l.SourceRunId });
         builder.HasOne<Workspace>().WithMany().HasForeignKey(l => l.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(l => l.Company).WithMany().HasForeignKey(l => l.CompanyId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

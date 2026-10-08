@@ -81,7 +81,9 @@ public class MissingWorkspaceClaimTests
     [InlineData("00000000-0000-0000-0000-000000000000")]
     public async Task LeadsController_MissingOrMalformedWorkspaceClaim_Returns401(string? claimValue)
     {
-        var controller = new LeadsController(new FakeLeadRepository(), new CreateLeadRequestValidator());
+        var store = new ZenLead.Tests.Application.Leads.FakeLeadIngestionStore();
+        var controller = new LeadsController(new FakeLeadRepository(), new ZenLead.Application.Leads.LeadIngestionService(store), store,
+            new CreateLeadRequestValidator(), new UpdateLeadRequestValidator());
         SetUser(controller, claimValue is null ? [] : [new Claim("workspace_id", claimValue)]);
 
         Assert.IsType<UnauthorizedResult>((await controller.List(CancellationToken.None)).Result);

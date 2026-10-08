@@ -8,6 +8,7 @@ using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Microsoft.SemanticKernel;
 using ZenLead.Application.Abstractions;
+using ZenLead.Application.Leads;
 using ZenLead.Application.UseCases.Ai;
 using ZenLead.Application.UseCases.Auth;
 using ZenLead.Api;
@@ -36,6 +37,8 @@ builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document,
     return Task.CompletedTask;
 }));
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentWorkspace, HttpCurrentWorkspace>();   // scoped like the DbContext that reads it
 builder.Services.AddDbContext<ZenLeadDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
@@ -90,6 +93,8 @@ builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 builder.Services.AddScoped<ILeadRepository, LeadRepository>();
+builder.Services.AddScoped<ILeadIngestionStore, LeadIngestionStore>();
+builder.Services.AddScoped<LeadIngestionService>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 

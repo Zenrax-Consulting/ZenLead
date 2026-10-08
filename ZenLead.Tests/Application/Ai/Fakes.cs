@@ -32,6 +32,14 @@ public class FakeLeadRepositoryForAi : ILeadRepository
 
     public Task<IReadOnlyList<Lead>> ListByWorkspaceAsync(Guid workspaceId, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Lead>>(_leads.Values.Where(l => l.WorkspaceId == workspaceId).ToList());
+
+    public Task UpdateAsync(Lead lead, CancellationToken ct = default) => Task.CompletedTask;
+
+    public Task SoftDeleteAsync(Lead lead, CancellationToken ct = default)
+    {
+        _leads.Remove(lead.Id);
+        return Task.CompletedTask;
+    }
 }
 
 public class FakeTokenUsageTracker : ITokenUsageTracker
