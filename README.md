@@ -26,6 +26,15 @@ Optional overrides: `OpenAI:Model` (default `gpt-4o`), `OpenAI:PricePer1KInputUs
 
 Lead discovery (F14) settings: `LeadSource:Provider` (`Fake` default in Development; `Pdl` required outside it, with `LeadSource:Pdl:ApiKey`), `LeadSource:MonthlyCreditCap` (default 500, per workspace per UTC month, in the provider's credits), `LeadSource:MaxLeadsPerRun` (100) and `LeadSource:PageSize` (25). Background jobs use Hangfire in the same SQL Server database (`HangFire` schema, created on first start); set `Hangfire:Enabled=false` to boot without it. The job dashboard at `/hangfire` is reachable only through the "Job dashboard" account-menu item for emails listed in `Hangfire:AdminEmails` (`dotnet user-secrets set "Hangfire:AdminEmails:0" "you@example.com" --project ZenLead.Api`).
 
+CSV import (F15) stores uploaded files in blob storage. Locally that is Azurite (`Storage:ConnectionString` is `UseDevelopmentStorage=true` in `appsettings.Development.json`; not a secret). Install and start it before uploading:
+
+```
+npm i -g azurite
+azurite --silent --location %TEMP%\azurite
+```
+
+(or use the Azurite component of Visual Studio). In Azure, set `Storage:AccountUri` instead and the app authenticates with `DefaultAzureCredential`. The Azurite round-trip tests are skipped unless `AZURITE=1` is set.
+
 The API refuses to start, with a message naming each missing setting, if any required value is absent or the signing key is shorter than 32 bytes.
 
 Create the database:

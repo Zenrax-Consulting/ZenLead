@@ -27,6 +27,7 @@ public class ZenLeadDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, G
     public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
     public DbSet<TargetProfile> TargetProfiles => Set<TargetProfile>();
     public DbSet<LeadDiscoveryRun> DiscoveryRuns => Set<LeadDiscoveryRun>();
+    public DbSet<CsvImportBatch> CsvImportBatches => Set<CsvImportBatch>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

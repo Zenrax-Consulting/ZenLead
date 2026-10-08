@@ -37,6 +37,9 @@ public class FakeJobScheduler(FakeDiscoveryRunRepository? runs = null) : IJobSch
     public List<(Guid RunId, Guid WorkspaceId, bool RunRowExisted)> Enqueued { get; } = [];
     public void EnqueueDiscoveryRun(Guid runId, Guid workspaceId)
         => Enqueued.Add((runId, workspaceId, runs?.Runs.Any(r => r.Id == runId) ?? true));
+
+    public List<(Guid BatchId, Guid WorkspaceId)> CsvImports { get; } = [];
+    public void EnqueueCsvImport(Guid batchId, Guid workspaceId) => CsvImports.Add((batchId, workspaceId));
 }
 
 /// <summary>Returns pre-scripted pages by cursor index ("0", "1", ...), or generates fresh unique leads forever when none are scripted.</summary>

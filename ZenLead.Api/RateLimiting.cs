@@ -11,6 +11,9 @@ public static class RateLimiting
     public const string DiscoveryPolicy = "discovery";
     public const int DiscoveryPermitsPerMinute = 5;
 
+    public const string UploadPolicy = "upload";
+    public const int UploadPermitsPerMinute = 5;
+
     public const string AuthPolicy = "auth";
     public const int AuthPermitsPerMinute = 20;
 
@@ -32,6 +35,17 @@ public static class RateLimiting
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = DiscoveryPermitsPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+
+    /// <summary>One bucket per workspace so repeated CSV uploads cannot fill storage or tie up the parser.</summary>
+    public static RateLimitPartition<string> UploadPartition(HttpContext context)
+        => RateLimitPartition.GetFixedWindowLimiter(
+            context.User.FindFirstValue("workspace_id") ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = UploadPermitsPerMinute,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             });
