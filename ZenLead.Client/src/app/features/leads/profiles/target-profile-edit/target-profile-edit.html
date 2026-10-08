@@ -1,0 +1,46 @@
+<button mat-button class="back-link" routerLink="/leads/profiles">← Back to target profiles</button>
+<h1>{{ id ? 'Edit target profile' : 'New target profile' }}</h1>
+
+<p *ngIf="draftBanner" class="banner" role="status">{{ draftBanner }}</p>
+<mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+
+<form [formGroup]="form" (ngSubmit)="save()" class="profile-form" *ngIf="!loading">
+  <mat-form-field appearance="outline">
+    <mat-label>Name</mat-label>
+    <input matInput formControlName="name" maxlength="200">
+    <mat-error>A name is required.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" *ngFor="let f of chipFields">
+    <mat-label>{{ f.label }}</mat-label>
+    <mat-chip-grid #grid [attr.aria-label]="f.label">
+      <mat-chip-row *ngFor="let value of list(f.key)" (removed)="removeChip(f.key, value)">
+        {{ value }}
+        <button matChipRemove [attr.aria-label]="'Remove ' + value"><mat-icon>cancel</mat-icon></button>
+      </mat-chip-row>
+      <input [placeholder]="f.hint" [matChipInputFor]="grid" [matChipInputSeparatorKeyCodes]="separators"
+             [matChipInputAddOnBlur]="true" (matChipInputTokenEnd)="onChipInput(f.key, $event)">
+    </mat-chip-grid>
+    <mat-hint>Press Enter or comma to add. Up to 20 items.</mat-hint>
+    <mat-error>At most 20 items of 100 characters each.</mat-error>
+  </mat-form-field>
+
+  <div class="size-row">
+    <mat-form-field appearance="outline">
+      <mat-label>Company size min</mat-label>
+      <input matInput type="number" min="0" formControlName="companySizeMin">
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Company size max</mat-label>
+      <input matInput type="number" min="0" formControlName="companySizeMax">
+    </mat-form-field>
+  </div>
+  <p class="field-error" role="alert" *ngIf="form.hasError('sizeRange')">The minimum company size must not exceed the maximum.</p>
+  <p class="field-hint" *ngIf="!hasCriterion">Add at least one criterion — an empty profile would pull random people and use credits.</p>
+
+  <p *ngIf="errorMessage" class="field-error" role="alert">{{ errorMessage }}</p>
+  <div class="actions">
+    <button mat-button type="button" routerLink="/leads/profiles">Cancel</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="!canSave">Save</button>
+  </div>
+</form>

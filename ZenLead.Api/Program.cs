@@ -1,6 +1,8 @@
 using System.Text;
 using FluentValidation;
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -8,18 +10,22 @@ using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Microsoft.SemanticKernel;
 using ZenLead.Application.Abstractions;
+using ZenLead.Application.Discovery;
 using ZenLead.Application.Leads;
+using ZenLead.Application.UseCases.Discovery;
 using ZenLead.Application.UseCases.Ai;
 using ZenLead.Application.UseCases.Auth;
 using ZenLead.Api;
 using ZenLead.Application.Validation.Auth;
 using ZenLead.Infrastructure.Ai;
 using ZenLead.Infrastructure.Identity;
+using ZenLead.Infrastructure.Jobs;
+using ZenLead.Infrastructure.LeadSources;
 using ZenLead.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-StartupConfiguration.ThrowIfInvalid(builder.Configuration); // fail fast with a clear message, not a NullReferenceException
+StartupConfiguration.ThrowIfInvalid(builder.Configuration, builder.Environment.IsDevelopment()); // fail fast with a clear message, not a NullReferenceException
 
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
@@ -82,6 +88,7 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy(RateLimiting.ComposePolicy, RateLimiting.ComposePartition);
+    options.AddPolicy(RateLimiting.DiscoveryPolicy, RateLimiting.DiscoveryPartition);
     options.AddPolicy(RateLimiting.AuthPolicy, RateLimiting.AuthPartition);
     options.OnRejected = (context, _) =>
     {
@@ -116,6 +123,38 @@ if (builder.Configuration.GetValue("OpenAI:WarmUpOnStartup", false))
 builder.Services.AddScoped<ITokenUsageTracker, EfTokenUsageTracker>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("OpenAI").Get<AiPricing>() ?? new AiPricing());
 
+// lead discovery (F14): the provider is chosen by LeadSource:Provider; everything vendor-specific lives in one Infrastructure class
+var leadSourceOptions = builder.Configuration.GetSection("LeadSource").Get<LeadSourceOptions>() ?? new LeadSourceOptions();
+builder.Services.AddSingleton(leadSourceOptions);
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<FakeLeadSource>();
+builder.Services.AddHttpClient<PdlLeadSource>(client =>
+{
+    client.BaseAddress = new Uri("https://api.peopledatalabs.com/");
+    client.DefaultRequestHeaders.Add("X-Api-Key", builder.Configuration["LeadSource:Pdl:ApiKey"] ?? "");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+var leadSourceRegistry = LeadSourceRegistry.Default();
+builder.Services.AddSingleton(leadSourceRegistry);
+builder.Services.AddScoped<ILeadSource>(sp => leadSourceRegistry.Resolve(leadSourceOptions.Provider, sp));
+builder.Services.AddScoped<ITargetProfileRepository, TargetProfileRepository>();
+builder.Services.AddScoped<IDiscoveryRunRepository, DiscoveryRunRepository>();
+builder.Services.AddScoped<StartDiscoveryRunUseCase>();
+builder.Services.AddScoped<ProcessDiscoveryRunUseCase>();
+builder.Services.AddScoped<ProcessLeadDiscoveryJob>();
+
+// background jobs; the switch lets endpoint tests boot without SQL Server
+var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
+if (hangfireEnabled)
+{
+    builder.Services.AddZenLeadHangfire(builder.Configuration);
+    builder.Services.AddScoped<IJobScheduler, HangfireJobScheduler>();
+}
+else
+{
+    builder.Services.AddScoped<IJobScheduler, NoopJobScheduler>();
+}
+
 builder.Services.AddScoped<RegisterWorkspaceUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
 builder.Services.AddScoped<RefreshTokenUseCase>();
@@ -139,6 +178,13 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+if (hangfireEnabled)
+    app.MapHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = [],
+        AsyncAuthorization = [new HangfireDashboardAuthFilter(app.Services.GetRequiredService<IDataProtectionProvider>())],
+        IsReadOnlyFunc = _ => false
+    });
 app.UseRateLimiter();
 
 app.MapControllers();

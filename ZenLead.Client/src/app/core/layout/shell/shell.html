@@ -6,7 +6,12 @@
   <span class="spacer"></span>
   <span class="workspace-name">{{ workspaceName }}</span>
   <button mat-icon-button type="button" [matMenuTriggerFor]="account" aria-label="Account"><mat-icon>account_circle</mat-icon></button>
-  <mat-menu #account="matMenu"><button mat-menu-item type="button" (click)="logout()">Log out</button></mat-menu>
+  <mat-menu #account="matMenu">
+    @if (canOpenDashboard) {
+      <button mat-menu-item type="button" (click)="openJobDashboard()">Job dashboard</button>
+    }
+    <button mat-menu-item type="button" (click)="logout()">Log out</button>
+  </mat-menu>
 </mat-toolbar>
 
 <mat-sidenav-container class="shell-container">

@@ -25,6 +25,8 @@ public class ZenLeadDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, G
     public DbSet<Lead> Leads => Set<Lead>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
+    public DbSet<TargetProfile> TargetProfiles => Set<TargetProfile>();
+    public DbSet<LeadDiscoveryRun> DiscoveryRuns => Set<LeadDiscoveryRun>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

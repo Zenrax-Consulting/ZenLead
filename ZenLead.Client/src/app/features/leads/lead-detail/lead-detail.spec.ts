@@ -7,6 +7,8 @@ import { LeadSelectionService } from '../lead-selection.service';
 import { LeadDetail } from './lead-detail';
 import { LeadsService } from '../leads.service';
 import { Lead } from '../leads.models';
+import { ProfileDraftService } from '../profiles/profile-draft.service';
+import { ProfilesService } from '../profiles/profiles.service';
 
 const lead: Lead = {
   id: 'l1', name: 'Jane', email: 'jane@acme.com', title: 'CTO', status: 'New', createdAt: '2026-10-07T00:00:00Z',
@@ -22,7 +24,8 @@ describe('LeadDetail', () => {
     const route = { snapshot: { paramMap: { get: () => 'l1' } } } as unknown as ActivatedRoute;
     const component = new LeadDetail(
       route, service as LeadsService, { markForCheck: vi.fn() } as unknown as ChangeDetectorRef,
-      new FormBuilder(), dialog as unknown as MatDialog, { navigate } as unknown as Router, new LeadSelectionService());
+      new FormBuilder(), dialog as unknown as MatDialog, { navigate } as unknown as Router, new LeadSelectionService(),
+      {} as ProfilesService, new ProfileDraftService());
     component.ngOnInit();
     return component;
   };

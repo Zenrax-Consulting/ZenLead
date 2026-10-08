@@ -25,6 +25,10 @@ public class LeadRepository(ZenLeadDbContext db) : ILeadRepository
         return new PagedResult<Lead>(items, total, q.Page, q.PageSize);
     }
 
+    public async Task<IReadOnlyList<Lead>> GetByIdsAsync(Guid workspaceId, IReadOnlyCollection<Guid> ids, CancellationToken ct = default)
+        => await db.Leads.AsNoTracking().Include(l => l.Company)
+            .Where(l => l.WorkspaceId == workspaceId && ids.Contains(l.Id)).ToListAsync(ct);
+
     public async Task<IReadOnlyList<Guid>> ListIdsAsync(Guid workspaceId, LeadQuery q, int max, CancellationToken ct = default)
         => await ApplySort(ApplyFilters(db.Leads.AsNoTracking().Where(l => l.WorkspaceId == workspaceId), q), q.Sort)
             .Select(l => l.Id).Take(max).ToListAsync(ct);

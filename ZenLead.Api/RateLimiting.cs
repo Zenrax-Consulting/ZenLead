@@ -8,6 +8,9 @@ public static class RateLimiting
     public const string ComposePolicy = "compose";
     public const int ComposePermitsPerMinute = 10;
 
+    public const string DiscoveryPolicy = "discovery";
+    public const int DiscoveryPermitsPerMinute = 5;
+
     public const string AuthPolicy = "auth";
     public const int AuthPermitsPerMinute = 20;
 
@@ -18,6 +21,17 @@ public static class RateLimiting
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = ComposePermitsPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+
+    /// <summary>One bucket per workspace so starting discovery runs cannot burn the shared provider credits.</summary>
+    public static RateLimitPartition<string> DiscoveryPartition(HttpContext context)
+        => RateLimitPartition.GetFixedWindowLimiter(
+            context.User.FindFirstValue("workspace_id") ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = DiscoveryPermitsPerMinute,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             });

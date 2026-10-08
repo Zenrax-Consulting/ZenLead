@@ -1,0 +1,40 @@
+<h2 mat-dialog-title>Find leads: {{ data.profile.name }}</h2>
+
+<mat-dialog-content>
+  <ng-container *ngIf="!run">
+    <p>
+      {{ data.credits.remaining }} of {{ data.credits.cap }} discovery credits left this month.
+      <span *ngIf="data.credits.providerRemaining !== null">Provider reports {{ data.credits.providerRemaining }} remaining.</span>
+    </p>
+    <p *ngIf="capped" class="error" role="alert">Monthly discovery credit cap reached. Try again next month.</p>
+    <mat-form-field appearance="outline">
+      <mat-label>Maximum new leads</mat-label>
+      <input matInput type="number" min="1" [max]="data.credits.maxLeadsPerRun" [formControl]="maxControl">
+      <mat-hint>1 to {{ data.credits.maxLeadsPerRun }}</mat-hint>
+      <mat-error>Enter a number between 1 and {{ data.credits.maxLeadsPerRun }}.</mat-error>
+    </mat-form-field>
+    <p *ngIf="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+  </ng-container>
+
+  <ng-container *ngIf="run">
+    <div class="status-row">
+      <mat-spinner *ngIf="inProgress" diameter="20"></mat-spinner>
+      <span class="badge" [ngClass]="'badge-' + run.status.toLowerCase()">{{ statusLabel }}</span>
+    </div>
+    <dl class="counts" aria-live="polite">
+      <dt>Found</dt><dd>{{ run.foundCount }}</dd>
+      <dt>Imported</dt><dd>{{ run.importedCount }}</dd>
+      <dt>Duplicates</dt><dd>{{ run.skippedDuplicateCount }}</dd>
+      <dt>Suppressed</dt><dd>{{ run.skippedSuppressedCount }}</dd>
+      <dt>No email</dt><dd>{{ run.noEmailCount }}</dd>
+      <dt>Credits used</dt><dd>{{ run.creditsUsed }}</dd>
+    </dl>
+    <p *ngIf="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+  </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button [mat-dialog-close]="run">{{ finished ? 'Close' : run ? 'Close (keeps running)' : 'Cancel' }}</button>
+  <button mat-raised-button color="primary" *ngIf="!run" (click)="start()" [disabled]="maxControl.invalid || starting || capped">Start</button>
+  <button mat-raised-button color="primary" *ngIf="finished && run && run.importedCount > 0" (click)="viewImported()">View imported leads</button>
+</mat-dialog-actions>

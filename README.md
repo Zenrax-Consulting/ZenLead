@@ -24,6 +24,8 @@ dotnet user-secrets set "OpenAI:ApiKey" "<your OpenAI key>" --project ZenLead.Ap
 
 Optional overrides: `OpenAI:Model` (default `gpt-4o`), `OpenAI:PricePer1KInputUsd` and `OpenAI:PricePer1KOutputUsd` (used for the spend estimate), and `OpenAI:WarmUpOnStartup` (default `false`; when `true`, makes one 1-token completion after startup so the first compose request does not pay connection setup. Measured gain was within noise, so it is off by default).
 
+Lead discovery (F14) settings: `LeadSource:Provider` (`Fake` default in Development; `Pdl` required outside it, with `LeadSource:Pdl:ApiKey`), `LeadSource:MonthlyCreditCap` (default 500, per workspace per UTC month, in the provider's credits), `LeadSource:MaxLeadsPerRun` (100) and `LeadSource:PageSize` (25). Background jobs use Hangfire in the same SQL Server database (`HangFire` schema, created on first start); set `Hangfire:Enabled=false` to boot without it. The job dashboard at `/hangfire` is reachable only through the "Job dashboard" account-menu item for emails listed in `Hangfire:AdminEmails` (`dotnet user-secrets set "Hangfire:AdminEmails:0" "you@example.com" --project ZenLead.Api`).
+
 The API refuses to start, with a message naming each missing setting, if any required value is absent or the signing key is shorter than 32 bytes.
 
 Create the database:

@@ -154,7 +154,7 @@ describe('LeadsList', () => {
     expect(selection.lastTotal).toBe(7);
   });
 
-  it('hides the discovery/campaign actions while their features are off', async () => {
+  it('shows the discovery action but hides the campaign action while campaigns are off', async () => {
     const fixture = await setup();
     http.expectOne(isList).flush(page([lead('1')]));
     TestBed.inject(LeadSelectionService).toggle('1');
@@ -163,7 +163,7 @@ describe('LeadsList', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('1 selected');
-    expect(text).not.toContain('Create target profile');
+    expect(text).toContain('Create target profile');
     expect(text).not.toContain('Add to campaign');
   });
 });

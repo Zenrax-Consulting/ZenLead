@@ -75,6 +75,9 @@
     <p class="muted">Status history will appear here once campaigns are running.</p>
   </mat-card>
 
+  <button mat-stroked-button *ngIf="features.discovery" (click)="createProfileFromLead()">Create target profile from this lead</button>
+  <p *ngIf="profileError" class="compose-error" role="alert">{{ profileError }}</p>
+
   <button mat-raised-button color="primary" (click)="generateDraft()" [disabled]="composeState === 'loading'">
     Generate draft
   </button>
