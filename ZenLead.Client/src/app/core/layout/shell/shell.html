@@ -1,0 +1,24 @@
+<mat-toolbar color="primary" class="shell-toolbar">
+  @if (isMobile) {
+    <button mat-icon-button type="button" (click)="nav.toggle()" aria-label="Toggle navigation"><mat-icon>menu</mat-icon></button>
+  }
+  <a class="app-name" routerLink="/leads">ZenLead</a>
+  <span class="spacer"></span>
+  <span class="workspace-name">{{ workspaceName }}</span>
+  <button mat-icon-button type="button" [matMenuTriggerFor]="account" aria-label="Account"><mat-icon>account_circle</mat-icon></button>
+  <mat-menu #account="matMenu"><button mat-menu-item type="button" (click)="logout()">Log out</button></mat-menu>
+</mat-toolbar>
+
+<mat-sidenav-container class="shell-container">
+  <mat-sidenav #nav [mode]="isMobile ? 'over' : 'side'" [opened]="!isMobile">
+    <mat-nav-list>
+      @for (item of navItems; track item.link) {
+        <a mat-list-item [routerLink]="item.link" routerLinkActive="active" (click)="isMobile && nav.close()">
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.label }}</span>
+        </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content><router-outlet></router-outlet></mat-sidenav-content>
+</mat-sidenav-container>

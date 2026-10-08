@@ -2,16 +2,26 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { Register } from './features/auth/register/register';
 import { Login } from './features/auth/login/login';
-import { LeadsList } from './features/leads/leads-list/leads-list';
-import { LeadDetail } from './features/leads/lead-detail/lead-detail';
 import { authGuard } from './core/auth/auth.guard';
+import { Shell } from './core/layout/shell/shell';
+import { ComingSoon } from './core/placeholder/coming-soon';
 
 const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
-  { path: 'register', component: Register },
+  { path: '', redirectTo: 'leads', pathMatch: 'full' },
   { path: 'login', component: Login },
-  { path: 'leads', component: LeadsList, canActivate: [authGuard] },
-  { path: 'leads/:id', component: LeadDetail, canActivate: [authGuard] }
+  { path: 'register', component: Register },
+  {
+    path: '',
+    component: Shell,
+    canActivate: [authGuard],
+    children: [
+      { path: 'leads', loadChildren: () => import('./features/leads/leads-module').then(m => m.LeadsModule) },
+      { path: 'campaigns', component: ComingSoon, data: { title: 'Campaigns', sprint: 3 } },
+      { path: 'inbox', component: ComingSoon, data: { title: 'Inbox', sprint: 4 } },
+      { path: 'analytics', component: ComingSoon, data: { title: 'Analytics', sprint: 5 } }
+    ]
+  },
+  { path: '**', redirectTo: 'leads' }
 ];
 
 @NgModule({

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { AppModule } from '../../../app-module';
+import { LeadsModule } from '../leads-module';
 import { LeadsList } from './leads-list';
 
 // Regression: the app is zoneless, so async state changes only render if the component schedules a check.
@@ -11,7 +11,7 @@ describe('LeadsList rendering (zoneless)', () => {
   beforeEach(async () => {
     localStorage.clear();
     await TestBed.configureTestingModule({
-      imports: [AppModule],
+      imports: [LeadsModule],
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
     }).compileComponents();
   });
