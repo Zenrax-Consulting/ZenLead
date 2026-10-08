@@ -90,7 +90,20 @@ public class LeadDiscoveryRunConfiguration : IEntityTypeConfiguration<LeadDiscov
     }
 }
 
-public class AiUsageLogConfiguration : IEntityTypeConfiguration<AiUsageLog>
+public class CsvImportBatchConfiguration : IEntityTypeConfiguration<CsvImportBatch>
+{
+    public void Configure(EntityTypeBuilder<CsvImportBatch> builder)
+    {
+        builder.Property(b => b.FileName).HasMaxLength(260);
+        builder.Property(b => b.BlobPath).HasMaxLength(300);
+        builder.Property(b => b.Delimiter).HasMaxLength(8);
+        builder.Property(b => b.FailureReason).HasMaxLength(500);
+        builder.HasIndex(b => new { b.WorkspaceId, b.CreatedAt });
+        builder.HasOne<Workspace>().WithMany().HasForeignKey(b => b.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class AiUsageLogConfiguration: IEntityTypeConfiguration<AiUsageLog>
 {
     public void Configure(EntityTypeBuilder<AiUsageLog> builder)
     {
