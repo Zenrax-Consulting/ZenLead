@@ -105,4 +105,4 @@ When a feature's PR touches these, run the earlier feature's tests too.
 | Sender identity | **`info@zenraxconsultancy.com`** (root domain). Consequence: SendGrid domain authentication is done on `zenraxconsultancy.com`, outreach shares the root domain's reputation, and the existing DMARC/SPF must be checked, not replaced ([17](17-sendgrid-dns.md)). Moving to a sending subdomain later is a config + DNS change |
 | Inbound reply parsing | **Parsed fields** by default; raw MIME + MimeKit is built behind `Inbound:ParseMode=RawMime` and can be switched on without code changes ([25](25-inbound-webhook.md)) |
 | Azure SQL tier | **Free serverless offer** first, Basic as the Bicep-parameter fallback if Hangfire polling exhausts the allowance ([30](30-azure-cicd.md)) |
-| `Sending:RecipientAllowList` during UAT | Not answered — the docs keep it **enabled for the UAT window** as a safety net ([31](31-uat-gate2.md)); say if you want it dropped |
+| UAT must not email real prospects | **Required.** Fail-closed `Sending:Mode=Restricted` + recipient allow-list; `Live` only after the Gate 2 decision ([23](23-sending-engine.md), [31](31-uat-gate2.md)) |

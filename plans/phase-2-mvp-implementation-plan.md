@@ -276,6 +276,7 @@ First deployment of the app. Everything before it runs on the developer machine 
 - **PBI 30.7 — Azure-dependent hardening moved from F29**: Application Insights alerts (failed Hangfire jobs, 5xx rate, webhook failures, daily send failures); Azure SQL backup/PITR verified with a test restore; Blob lifecycle rule (delete `imports/` after 30 days) verified.
 
 ### Feature 31 — UAT & Gate 2 Readiness (branch: `chore/uat-gate2`)
+- **UAT safety rule (owner requirement):** UAT never emails real prospects. Production runs `Sending:Mode=Restricted` with a recipient allow-list of tester-controlled mailboxes (fail-closed: empty list sends nothing); `Mode=Live` is a go-live action after the Gate 2 decision (see F23 and F31 docs).
 - **PBI 31.1** UAT script = Gate 2 loop: super admin creates the Zenrax workspace (admin email set) → register (pick the Zenrax workspace; the admin approves by email; password reset checked once) → discover leads from a target profile and/or import a CSV → build campaign (with AI step) → activate → receive email → reply → see classified thread → read analytics. ≥2 Zenrax users (owner + one colleague) each run it on **production** Azure with their own mailbox in the shared Zenrax workspace; log bugs in a UAT sheet (`docs/uat-results.md`), triage P0/P1 fixed in-sprint, rest to backlog.
 - **PBI 31.2** Smoke path written as a one-page checklist re-run before each release (parent plan §9).
 - **PBI 31.3** Cost audit: Azure + SendGrid + OpenAI actuals vs. the re-baselined target (see §1a: ≈ $35–50/month incl. SendGrid, plus OpenAI usage); project to steady state.
@@ -346,6 +347,7 @@ Must-have xUnit coverage: CSV parse/dedup; tenant isolation and registration app
 | Risk | Mitigation |
 |---|---|
 | DNS/MX propagation or SendGrid domain verification delays | Feature 17 in week 4; keep a fallback of testing with SendGrid single-sender verification so Sprint 3 isn't blocked |
+| UAT or dev accidentally emails real prospects (imported/discovered leads exist in the DB) | Fail-closed `Sending:Mode=Restricted` + recipient allow-list (F23); `Live` must be set explicitly (startup requires the setting in Production, F30) |
 | New domain/IP has poor deliverability; test emails land in spam | Warm-up volume caps per workspace, SPF/DKIM/DMARC set, unsubscribe link, plain-text part; internal UAT uses small volumes |
 | Double-sends from Hangfire retries/overlapping runs | Insert-before-send + `DisableConcurrentExecution` on the sender job + DB-level unique constraint on `(EnrollmentId, StepId)` for `EmailMessage` |
 | Strangers register to spam the admin's inbox or probe workspace names | Approval needed before any access; per-IP/per-email limits and a pending-request cap per workspace (F20.3); workspace picker returns only id+name, rate-limited; revisit the public picker before onboarding other organisations |
