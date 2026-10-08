@@ -37,6 +37,9 @@ public class LeadConfiguration : IEntityTypeConfiguration<Lead>
         builder.HasIndex(l => l.WorkspaceId);
         builder.HasIndex(l => new { l.WorkspaceId, l.Email }).IsUnique();     // includes soft-deleted rows on purpose
         builder.HasIndex(l => new { l.WorkspaceId, l.SourceRunId });
+        builder.HasIndex(l => new { l.WorkspaceId, l.CreatedAt });
+        builder.HasIndex(l => new { l.WorkspaceId, l.Status });
+        builder.HasIndex(l => new { l.WorkspaceId, l.CompanyId });
         builder.HasOne<Workspace>().WithMany().HasForeignKey(l => l.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(l => l.Company).WithMany().HasForeignKey(l => l.CompanyId).OnDelete(DeleteBehavior.Restrict);
     }

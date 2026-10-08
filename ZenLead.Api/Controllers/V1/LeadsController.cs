@@ -19,14 +19,18 @@ public class LeadsController(
     LeadIngestionService ingestion,
     ILeadIngestionStore ingestionStore,
     IValidator<CreateLeadRequest> createValidator,
-    IValidator<UpdateLeadRequest> updateValidator) : ControllerBase
+    IValidator<UpdateLeadRequest> updateValidator,
+    IValidator<LeadQuery> queryValidator) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<LeadResponse>>> List(CancellationToken ct)
+    public async Task<ActionResult<PagedResult<LeadResponse>>> List([FromQuery] LeadQuery query, CancellationToken ct)
     {
         if (this.WorkspaceId() is not { } workspaceId) return Unauthorized();
-        var result = await leads.ListByWorkspaceAsync(workspaceId, ct);
-        return Ok(result.Select(ToResponse));
+        var validation = await queryValidator.ValidateAsync(query, ct);
+        if (!validation.IsValid) return ValidationProblem(validation.ToModelState());
+
+        var page = await leads.SearchAsync(workspaceId, query, ct);
+        return Ok(new PagedResult<LeadResponse>(page.Items.Select(ToResponse).ToList(), page.Total, page.Page, page.PageSize));
     }
 
     [HttpPost]

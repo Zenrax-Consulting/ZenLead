@@ -2,6 +2,7 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
+import { LeadSelectionService } from '../../../features/leads/lead-selection.service';
 import { WorkspaceService } from '../workspace.service';
 
 @Component({
@@ -26,7 +27,8 @@ export class Shell implements OnInit {
     private router: Router,
     private workspace: WorkspaceService,
     private breakpoints: BreakpointObserver,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private selection: LeadSelectionService
   ) {}
 
   ngOnInit(): void {
@@ -39,6 +41,7 @@ export class Shell implements OnInit {
 
   logout(): void {
     this.auth.logout();
+    this.selection.clear();
     this.router.navigate(['/login']);
   }
 }

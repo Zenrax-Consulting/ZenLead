@@ -1,2 +1,14 @@
-.add-lead-form { display: flex; gap: 12px; align-items: baseline; }
+.list-header { display: flex; justify-content: space-between; align-items: center; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; }
+.filters .search { flex: 1 1 260px; }
+.selection-bar { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
 .leads-error { color: #b00020; }
+.empty-state { padding: 24px 0; }
+.table-wrap { overflow-x: auto; }
+.muted { opacity: 0.7; }
+.badge { display: inline-flex; align-items: center; gap: 2px; margin-left: 8px; padding: 0 8px 0 4px; border-radius: 12px; font-size: 12px; border: 1px solid currentColor; }
+.badge mat-icon { font-size: 14px; width: 14px; height: 14px; }
+.badge-verified { color: #1b6e2d; }
+.badge-risky { color: #8a5a00; }
+.badge-invalid { color: #b00020; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

@@ -1,3 +1,4 @@
+using ZenLead.Application.Dtos.Leads;
 using ZenLead.Application.Abstractions;
 using ZenLead.Domain.Entities;
 
@@ -30,8 +31,14 @@ public class FakeLeadRepositoryForAi : ILeadRepository
     public Task<Lead?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => Task.FromResult(_leads.GetValueOrDefault(id));
 
-    public Task<IReadOnlyList<Lead>> ListByWorkspaceAsync(Guid workspaceId, CancellationToken ct = default)
-        => Task.FromResult<IReadOnlyList<Lead>>(_leads.Values.Where(l => l.WorkspaceId == workspaceId).ToList());
+    public Task<PagedResult<Lead>> SearchAsync(Guid workspaceId, LeadQuery query, CancellationToken ct = default)
+    {
+        var all = _leads.Values.Where(l => l.WorkspaceId == workspaceId).ToList();
+        return Task.FromResult(new PagedResult<Lead>(all.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList(), all.Count, query.Page, query.PageSize));
+    }
+
+    public Task<IReadOnlyList<Guid>> ListIdsAsync(Guid workspaceId, LeadQuery query, int max, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Guid>>(_leads.Values.Where(l => l.WorkspaceId == workspaceId).Select(l => l.Id).Take(max).ToList());
 
     public Task UpdateAsync(Lead lead, CancellationToken ct = default) => Task.CompletedTask;
 

@@ -10,6 +10,7 @@ using ZenLead.Application.Abstractions;
 using ZenLead.Application.UseCases.Ai;
 using ZenLead.Application.Validation.Ai;
 using ZenLead.Application.Validation.Leads;
+using ZenLead.Application.Dtos.Leads;
 using ZenLead.Tests.Application.Ai;
 
 namespace ZenLead.Tests.Api;
@@ -83,10 +84,10 @@ public class MissingWorkspaceClaimTests
     {
         var store = new ZenLead.Tests.Application.Leads.FakeLeadIngestionStore();
         var controller = new LeadsController(new FakeLeadRepository(), new ZenLead.Application.Leads.LeadIngestionService(store), store,
-            new CreateLeadRequestValidator(), new UpdateLeadRequestValidator());
+            new CreateLeadRequestValidator(), new UpdateLeadRequestValidator(), new LeadQueryValidator());
         SetUser(controller, claimValue is null ? [] : [new Claim("workspace_id", claimValue)]);
 
-        Assert.IsType<UnauthorizedResult>((await controller.List(CancellationToken.None)).Result);
+        Assert.IsType<UnauthorizedResult>((await controller.List(new LeadQuery(), CancellationToken.None)).Result);
         Assert.IsType<UnauthorizedResult>((await controller.GetById(Guid.NewGuid(), CancellationToken.None)).Result);
     }
 

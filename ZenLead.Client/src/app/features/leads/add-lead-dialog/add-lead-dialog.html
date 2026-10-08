@@ -1,0 +1,30 @@
+<h2 mat-dialog-title>Add lead</h2>
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content class="dialog-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name">
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Email</mat-label>
+      <input matInput type="email" formControlName="email">
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Title</mat-label>
+      <input matInput formControlName="title">
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Company name</mat-label>
+      <input matInput formControlName="companyName">
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Company domain</mat-label>
+      <input matInput formControlName="companyDomain">
+    </mat-form-field>
+    <p *ngIf="errorMessage" class="dialog-error" role="alert">{{ errorMessage }}</p>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || submitting">Add lead</button>
+  </mat-dialog-actions>
+</form>

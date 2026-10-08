@@ -1,10 +1,79 @@
-<a routerLink="/leads" class="back-link">← Back to leads</a>
+<button mat-button class="back-link" (click)="backToList()">← Back to leads</button>
 
 <p *ngIf="loadError">Lead not found.</p>
 
 <ng-container *ngIf="lead">
-  <h1>{{ lead.name }}</h1>
-  <p>{{ lead.email }} <span *ngIf="lead.title">· {{ lead.title }}</span></p>
+  <div class="detail-header">
+    <h1>{{ lead.name }}</h1>
+    <span class="chip">{{ lead.status }}</span>
+    <span class="chip" *ngIf="lead.emailVerificationStatus !== 'Unverified'" [ngClass]="'chip-' + lead.emailVerificationStatus.toLowerCase()">
+      <mat-icon aria-hidden="true">{{ lead.emailVerificationStatus === 'Verified' ? 'check_circle' : lead.emailVerificationStatus === 'Risky' ? 'warning' : 'cancel' }}</mat-icon>{{ lead.emailVerificationStatus }}
+    </span>
+    <span class="spacer"></span>
+    <button mat-stroked-button *ngIf="!editing" (click)="startEdit()">Edit</button>
+    <button mat-stroked-button color="warn" *ngIf="!editing" (click)="confirmDelete()">Delete</button>
+  </div>
+  <p *ngIf="deleteError" class="compose-error">{{ deleteError }}</p>
+
+  <mat-card class="info-card" *ngIf="!editing">
+    <dl>
+      <dt>Email</dt><dd>{{ lead.email }}</dd>
+      <dt>Title</dt><dd>{{ lead.title || '—' }}</dd>
+      <dt>Company</dt>
+      <dd>
+        <ng-container *ngIf="lead.company; else noCompany">
+          {{ lead.company.name }}
+          <span class="muted" *ngIf="lead.company.domain">· {{ lead.company.domain }}</span>
+          <span class="muted" *ngIf="lead.company.industry">· {{ lead.company.industry }}</span>
+          <span class="muted" *ngIf="lead.company.country">· {{ lead.company.country }}</span>
+        </ng-container>
+        <ng-template #noCompany>—</ng-template>
+      </dd>
+      <dt>Source</dt>
+      <dd>
+        {{ sourceLabel }}
+        <a *ngIf="lead.sourceRunId" class="source-link" [routerLink]="['/leads']" [queryParams]="{ sourceRunId: lead.sourceRunId }">View leads from this run</a>
+      </dd>
+      <dt>Created</dt><dd>{{ lead.createdAt | date: 'medium' }}</dd>
+    </dl>
+  </mat-card>
+
+  <mat-card class="info-card" *ngIf="editing">
+    <form [formGroup]="form" (ngSubmit)="save()" class="edit-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name">
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Title</mat-label>
+        <input matInput formControlName="title">
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option *ngFor="let s of statusOptions" [value]="s">{{ s }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Company name</mat-label>
+        <input matInput formControlName="companyName">
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Company domain</mat-label>
+        <input matInput formControlName="companyDomain">
+      </mat-form-field>
+      <p *ngIf="saveError" class="compose-error" role="alert">{{ saveError }}</p>
+      <div class="edit-actions">
+        <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">Save</button>
+      </div>
+    </form>
+  </mat-card>
+
+  <mat-card class="info-card">
+    <h2>Status history</h2>
+    <p class="muted">Status history will appear here once campaigns are running.</p>
+  </mat-card>
 
   <button mat-raised-button color="primary" (click)="generateDraft()" [disabled]="composeState === 'loading'">
     Generate draft

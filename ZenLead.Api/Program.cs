@@ -21,7 +21,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 StartupConfiguration.ThrowIfInvalid(builder.Configuration); // fail fast with a clear message, not a NullReferenceException
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
 {
@@ -93,6 +94,7 @@ builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 builder.Services.AddScoped<ILeadRepository, LeadRepository>();
+builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<ILeadIngestionStore, LeadIngestionStore>();
 builder.Services.AddScoped<LeadIngestionService>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();

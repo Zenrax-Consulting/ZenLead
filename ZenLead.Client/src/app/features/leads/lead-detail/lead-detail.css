@@ -1,0 +1,16 @@
+.detail-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+.chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 10px; border-radius: 12px; font-size: 13px; border: 1px solid currentColor; }
+.chip mat-icon { font-size: 14px; width: 14px; height: 14px; }
+.chip-verified { color: #1b6e2d; }
+.chip-risky { color: #8a5a00; }
+.chip-invalid { color: #b00020; }
+.info-card { margin: 16px 0; padding: 16px; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 24px; margin: 0; }
+dt { font-weight: 500; }
+dd { margin: 0; }
+.muted { opacity: 0.7; }
+.source-link { margin-left: 8px; }
+.edit-form { display: flex; flex-direction: column; max-width: 480px; }
+.edit-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.compose-error { color: #b00020; }
