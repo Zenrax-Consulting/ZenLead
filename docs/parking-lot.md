@@ -72,3 +72,17 @@ Scheduled/recurring runs, auto-enrolment of discovered leads, a standalone email
 ### Housekeeping
 - [ ] Open the PR for `feature/lead-discovery` into `master`.
 - [ ] Update the "current state" section in `plans/` and `CLAUDE.md` project state to include F14.
+
+## Feature 15 — CSV import backend
+
+### Not verified
+- [ ] Run the plan's Verification end to end with Azurite and the API: messy 5-10k row file (`;` variant, Latin-1 export, duplicates, an unsubscribed lead), `start`, poll `status` to Completed, counts reconcile, job visible at `/hangfire`, errors file opens in Excel with no formulas executing, same file again imports 0.
+- [ ] Kill the API mid-import and restart, to confirm the job resumes from the checkpoint and the final count equals the file's valid unique rows.
+- [ ] Run `AZURITE=1 dotnet test ZenLead.Tests --filter Category=Azurite` against a real Azurite; confirms `BlobClient.OpenReadAsync` returns a seekable stream (the reader copes either way by buffering).
+
+### Known gaps / follow-ups
+- [ ] No startup check for `Storage:ConnectionString` / `Storage:AccountUri` outside Development; with neither set it falls back to the Azurite connection string. Decide whether `StartupConfiguration` should fail fast in production (F30).
+- [ ] A crash between ingesting a batch and saving its counters means the retry counts that batch as duplicates, so `ImportedCount` is undercounted (same as F14).
+- [ ] A stray quote in an unquoted field (e.g. `5" pipe`) is reported as "Malformed quoting" rather than imported; tolerance can be loosened if real files need it.
+- [ ] Old blobs are never deleted; relies on the F30 lifecycle rule.
+- [ ] F16: port the `ColumnGuesser` synonym table to the wizard; add the "Import CSV" CTA (see F13 follow-up).
