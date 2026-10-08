@@ -66,6 +66,30 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
     }
 }
 
+public class TargetProfileConfiguration : IEntityTypeConfiguration<TargetProfile>
+{
+    public void Configure(EntityTypeBuilder<TargetProfile> builder)
+    {
+        builder.Property(p => p.Name).HasMaxLength(200);
+        builder.HasIndex(p => new { p.WorkspaceId, p.Name });
+        builder.HasOne<Workspace>().WithMany().HasForeignKey(p => p.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class LeadDiscoveryRunConfiguration : IEntityTypeConfiguration<LeadDiscoveryRun>
+{
+    public void Configure(EntityTypeBuilder<LeadDiscoveryRun> builder)
+    {
+        builder.Property(r => r.Provider).HasMaxLength(50);
+        builder.Property(r => r.FailureReason).HasMaxLength(500);
+        builder.Property(r => r.Cursor).HasMaxLength(200);
+        builder.HasIndex(r => new { r.WorkspaceId, r.CreatedAt });
+        builder.HasIndex(r => new { r.WorkspaceId, r.Status });
+        builder.HasOne<Workspace>().WithMany().HasForeignKey(r => r.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<TargetProfile>().WithMany().HasForeignKey(r => r.TargetProfileId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
 public class AiUsageLogConfiguration : IEntityTypeConfiguration<AiUsageLog>
 {
     public void Configure(EntityTypeBuilder<AiUsageLog> builder)

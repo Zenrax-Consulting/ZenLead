@@ -10,6 +10,8 @@ public interface ILeadRepository
     Task<PagedResult<Lead>> SearchAsync(Guid workspaceId, LeadQuery query, CancellationToken ct = default);
     /// <summary>Ids of every lead matching the filter (paging ignored), capped at <paramref name="max"/>.</summary>
     Task<IReadOnlyList<Guid>> ListIdsAsync(Guid workspaceId, LeadQuery query, int max, CancellationToken ct = default);
+    /// <summary>Leads of this workspace among <paramref name="ids"/> (includes Company). Ids from other workspaces simply don't resolve.</summary>
+    Task<IReadOnlyList<Lead>> GetByIdsAsync(Guid workspaceId, IReadOnlyCollection<Guid> ids, CancellationToken ct = default);
     Task UpdateAsync(Lead lead, CancellationToken ct = default);
     Task SoftDeleteAsync(Lead lead, CancellationToken ct = default);
 }

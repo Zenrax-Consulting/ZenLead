@@ -1,6 +1,9 @@
 <div class="list-header">
   <h1>Leads</h1>
-  <button mat-raised-button color="primary" (click)="openAddLead()">Add lead</button>
+  <span class="header-actions">
+    <a mat-button routerLink="/leads/profiles" *ngIf="features.discovery">Target profiles</a>
+    <button mat-raised-button color="primary" (click)="openAddLead()">Add lead</button>
+  </span>
 </div>
 
 <div class="filters">
@@ -48,7 +51,8 @@
 <div class="selection-bar" *ngIf="selection.count > 0">
   <span>{{ selection.count }} selected</span>
   <button mat-button (click)="selection.clear()">Clear</button>
-  <button mat-stroked-button *ngIf="features.discovery">Create target profile</button>
+  <mat-checkbox *ngIf="features.discovery && repliedSelected" [checked]="onlyReplied" (change)="onlyReplied = $event.checked">Only leads that replied</mat-checkbox>
+  <button mat-stroked-button *ngIf="features.discovery" (click)="createProfileFromSelection()" [disabled]="creatingProfile">Create target profile</button>
   <button mat-stroked-button *ngIf="features.campaigns">Add to campaign</button>
 </div>
 

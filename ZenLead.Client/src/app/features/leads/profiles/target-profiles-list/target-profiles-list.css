@@ -1,0 +1,10 @@
+.list-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+.credits { margin: 16px 0; max-width: 480px; }
+.error, .error-box { color: var(--mat-sys-error, #b3261e); }
+.empty-state { padding: 24px 0; }
+table { width: 100%; }
+.actions { white-space: nowrap; text-align: right; }
+.runs ul { list-style: none; padding: 0; }
+.runs li { display: flex; gap: 16px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.25); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

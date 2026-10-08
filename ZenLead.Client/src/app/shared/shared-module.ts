@@ -22,12 +22,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 const MATERIAL = [
   MatButtonModule, MatCardModule, MatFormFieldModule, MatInputModule, MatTableModule,
   MatProgressSpinnerModule, MatSidenavModule, MatToolbarModule, MatListModule, MatIconModule, MatMenuModule,
   MatPaginatorModule, MatSortModule, MatSelectModule, MatAutocompleteModule, MatCheckboxModule,
-  MatChipsModule, MatDialogModule, MatProgressBarModule, MatTooltipModule
+  MatChipsModule, MatDialogModule, MatProgressBarModule, MatTooltipModule, MatSnackBarModule
 ];
 
 @NgModule({

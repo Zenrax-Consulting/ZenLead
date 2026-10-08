@@ -49,6 +49,31 @@ public class StartupConfigurationTests
         Assert.Contains(problems, p => p.Contains(key));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Fake")]
+    [InlineData("Apollo")]
+    public void Validate_OutsideDevelopment_RejectsFakeUnknownOrMissingProvider(string? provider)
+    {
+        var values = Valid();
+        values["LeadSource:Provider"] = provider;
+
+        Assert.Contains(StartupConfiguration.Validate(Config(values), isDevelopment: false), p => p.Contains("LeadSource:Provider"));
+        Assert.Empty(StartupConfiguration.Validate(Config(values), isDevelopment: true));
+    }
+
+    [Fact]
+    public void Validate_PdlWithoutKey_IsRejectedOutsideDevelopment()
+    {
+        var values = Valid();
+        values["LeadSource:Provider"] = "Pdl";
+
+        Assert.Contains(StartupConfiguration.Validate(Config(values), isDevelopment: false), p => p.Contains("LeadSource:Pdl:ApiKey"));
+
+        values["LeadSource:Pdl:ApiKey"] = "key";
+        Assert.Empty(StartupConfiguration.Validate(Config(values), isDevelopment: false));
+    }
+
     [Fact]
     public void Validate_ShortSigningKey_IsRejected()
     {

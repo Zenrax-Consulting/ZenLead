@@ -1,0 +1,66 @@
+<div class="list-header">
+  <h1>Target profiles</h1>
+  <span class="spacer"></span>
+  <button mat-button routerLink="/leads">← Leads</button>
+  <button mat-raised-button color="primary" routerLink="/leads/profiles/new">New profile</button>
+</div>
+
+<mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+
+<div *ngIf="errorMessage" class="error-box">
+  <p>{{ errorMessage }}</p>
+  <button mat-stroked-button (click)="load()">Retry</button>
+</div>
+<p *ngIf="actionError" class="error" role="alert">{{ actionError }}</p>
+
+<section *ngIf="credits" class="credits" aria-label="Discovery credits">
+  <mat-progress-bar mode="determinate" [value]="usedPercent" [color]="nearCap ? 'warn' : 'primary'"></mat-progress-bar>
+  <p>
+    {{ credits.used }} / {{ credits.cap }} discovery credits used this month
+    <strong *ngIf="nearCap">— {{ credits.remaining > 0 ? 'nearly at the cap' : 'cap reached' }}</strong>
+  </p>
+</section>
+
+<div *ngIf="!loading && !errorMessage && profiles.length === 0" class="empty-state">
+  <p>No target profiles yet. Create one, or start from a lead on the leads list.</p>
+</div>
+
+<table mat-table [dataSource]="profiles" *ngIf="profiles.length > 0">
+  <ng-container matColumnDef="name">
+    <th mat-header-cell *matHeaderCellDef>Name</th>
+    <td mat-cell *matCellDef="let p"><a [routerLink]="['/leads/profiles', p.id]">{{ p.name }}</a></td>
+  </ng-container>
+  <ng-container matColumnDef="criteria">
+    <th mat-header-cell *matHeaderCellDef>Criteria</th>
+    <td mat-cell *matCellDef="let p">
+      <mat-chip-set aria-label="Criteria"><mat-chip *ngFor="let c of chips(p.criteria)">{{ c }}</mat-chip></mat-chip-set>
+    </td>
+  </ng-container>
+  <ng-container matColumnDef="createdAt">
+    <th mat-header-cell *matHeaderCellDef>Created</th>
+    <td mat-cell *matCellDef="let p">{{ p.createdAt | date: 'mediumDate' }}</td>
+  </ng-container>
+  <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef><span class="visually-hidden">Actions</span></th>
+    <td mat-cell *matCellDef="let p" class="actions">
+      <button mat-button [routerLink]="['/leads/profiles', p.id]">Edit</button>
+      <button mat-button color="primary" (click)="run(p)">Run</button>
+      <button mat-button color="warn" (click)="confirmDelete(p)">Delete</button>
+    </td>
+  </ng-container>
+  <tr mat-header-row *matHeaderRowDef="columns"></tr>
+  <tr mat-row *matRowDef="let row; columns: columns"></tr>
+</table>
+
+<section *ngIf="runs.length > 0" class="runs">
+  <h2>Latest runs</h2>
+  <ul>
+    <li *ngFor="let r of runs">
+      <span>{{ r.createdAt | date: 'short' }}</span>
+      <span>{{ profileName(r) }}</span>
+      <span>{{ r.status === 'CapReached' ? 'Cap reached' : r.status }}<ng-container *ngIf="r.status === 'Failed' && r.failureReason"> — {{ r.failureReason }}</ng-container></span>
+      <span>{{ r.importedCount }} imported</span>
+      <a *ngIf="r.importedCount > 0" [routerLink]="['/leads']" [queryParams]="{ sourceRunId: r.id }">View leads</a>
+    </li>
+  </ul>
+</section>

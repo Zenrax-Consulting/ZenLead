@@ -1,0 +1,8 @@
+.profile-form { display: flex; flex-direction: column; max-width: 640px; }
+.size-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.size-row mat-form-field { flex: 1 1 180px; }
+.banner { padding: 8px 12px; border-left: 4px solid currentColor; background: rgba(128, 128, 128, 0.12); }
+.field-error { color: var(--mat-sys-error, #b3261e); margin: 0 0 8px; }
+.field-hint { opacity: 0.75; margin: 0 0 8px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; }
+.back-link { margin-left: -8px; }

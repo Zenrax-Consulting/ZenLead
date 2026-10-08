@@ -1,0 +1,7 @@
+.status-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.badge { padding: 2px 10px; border-radius: 12px; background: rgba(128, 128, 128, 0.2); font-weight: 500; }
+.counts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+.counts dt { opacity: 0.75; }
+.counts dd { margin: 0; font-variant-numeric: tabular-nums; }
+.error { color: var(--mat-sys-error, #b3261e); }
+mat-form-field { width: 100%; }

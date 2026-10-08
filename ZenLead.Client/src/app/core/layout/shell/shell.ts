@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 import { LeadSelectionService } from '../../../features/leads/lead-selection.service';
+import { OpsService } from '../ops.service';
 import { WorkspaceService } from '../workspace.service';
 
 @Component({
@@ -14,6 +15,7 @@ import { WorkspaceService } from '../workspace.service';
 export class Shell implements OnInit {
   workspaceName: string | null = null;
   isMobile = false;
+  canOpenDashboard = false;
 
   readonly navItems = [
     { label: 'Leads', icon: 'people', link: '/leads' },
@@ -28,7 +30,8 @@ export class Shell implements OnInit {
     private workspace: WorkspaceService,
     private breakpoints: BreakpointObserver,
     private cdr: ChangeDetectorRef,
-    private selection: LeadSelectionService
+    private selection: LeadSelectionService,
+    private ops: OpsService
   ) {}
 
   ngOnInit(): void {
@@ -36,7 +39,15 @@ export class Shell implements OnInit {
       next: w => { this.workspaceName = w.name; this.cdr.markForCheck(); },
       error: () => {}
     });
+    this.ops.status().subscribe({
+      next: s => { this.canOpenDashboard = s.canOpenDashboard; this.cdr.markForCheck(); },
+      error: () => {}
+    });
     this.breakpoints.observe('(max-width: 800px)').subscribe(r => { this.isMobile = r.matches; this.cdr.markForCheck(); });
+  }
+
+  openJobDashboard(): void {
+    this.ops.openDashboard().subscribe({ error: () => {} });
   }
 
   logout(): void {

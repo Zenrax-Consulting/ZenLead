@@ -7,6 +7,9 @@ import { LeadSelectionService } from '../lead-selection.service';
 import { allowedStatuses } from '../lead-status';
 import { ComposedEmail, Lead } from '../leads.models';
 import { LeadsService } from '../leads.service';
+import { ProfileDraftService } from '../profiles/profile-draft.service';
+import { ProfilesService } from '../profiles/profiles.service';
+import { environment } from '../../../../environments/environment';
 
 type ComposeState = 'idle' | 'loading' | 'error' | 'done';
 
@@ -37,7 +40,9 @@ export class LeadDetail implements OnInit {
     private fb: FormBuilder,
     private dialog: MatDialog,
     private router: Router,
-    private selection: LeadSelectionService
+    private selection: LeadSelectionService,
+    private profiles: ProfilesService,
+    private drafts: ProfileDraftService
   ) {
     this.form = fb.group({
       name: ['', Validators.required],
@@ -80,6 +85,18 @@ export class LeadDetail implements OnInit {
         this.composeErrorMessage = LeadDetail.composeErrorFor(err.status);
         this.cdr.markForCheck();
       }
+    });
+  }
+
+  readonly features = environment.features;
+  profileError: string | null = null;
+
+  createProfileFromLead(): void {
+    if (!this.lead) return;
+    this.profileError = null;
+    this.profiles.suggestFromLeads([this.lead.id]).subscribe({
+      next: draft => { this.drafts.set(draft); this.router.navigate(['/leads/profiles/new']); },
+      error: () => { this.profileError = 'Failed to create a target profile from this lead.'; this.cdr.markForCheck(); }
     });
   }
 

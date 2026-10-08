@@ -8,6 +8,7 @@ import { BehaviorSubject, of } from 'rxjs';
 import { Shell } from './shell';
 import { AppModule } from '../../../app-module';
 import { AuthService } from '../../auth/auth.service';
+import { OpsService } from '../ops.service';
 import { WorkspaceService } from '../workspace.service';
 
 describe('Shell', () => {
@@ -21,6 +22,7 @@ describe('Shell', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         { provide: AuthService, useValue: auth },
+        { provide: OpsService, useValue: { status: () => of({ canOpenDashboard: false }), openDashboard: () => of(undefined) } },
         { provide: WorkspaceService, useValue: { current: () => of({ id: 'w1', name: 'Acme Inc' }) } },
         { provide: BreakpointObserver, useValue: { observe: () => matches } }
       ]

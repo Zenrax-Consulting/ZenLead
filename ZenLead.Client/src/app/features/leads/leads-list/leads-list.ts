@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { ActivatedRoute, Params, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
 import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -13,6 +14,8 @@ import {
   CompanySummary, LEAD_SOURCES, LEAD_STATUSES, Lead, LeadQuery, LeadSource, LeadStatus, PagedResult
 } from '../leads.models';
 import { LeadsService } from '../leads.service';
+import { ProfileDraftService } from '../profiles/profile-draft.service';
+import { ProfilesService } from '../profiles/profiles.service';
 
 const DEFAULT_SORT = '-createdAt';
 const SORTABLE = ['name', 'email', 'company', 'status', 'createdAt'];
@@ -69,7 +72,10 @@ export class LeadsList implements OnInit, OnDestroy {
     private companies: CompaniesService,
     public selection: LeadSelectionService,
     private dialog: MatDialog,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private profiles: ProfilesService,
+    private drafts: ProfileDraftService,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -187,6 +193,31 @@ export class LeadsList implements OnInit, OnDestroy {
   get someOnPageSelected(): boolean { return !this.allOnPageSelected && this.leads.some(l => this.selection.isSelected(l.id)); }
 
   toggleAllOnPage(checked: boolean): void { this.selection.setMany(this.leads.map(l => l.id), checked); }
+
+  // ---- target profile from selection (F14) ----
+
+  onlyReplied = false;
+  creatingProfile = false;
+
+  /** Statuses are only known for the current page, so the option appears when a selected lead on this page has replied. */
+  get repliedSelected(): boolean { return this.leads.some(l => l.status === 'Replied' && this.selection.isSelected(l.id)); }
+
+  createProfileFromSelection(): void {
+    if (this.creatingProfile || this.selection.count === 0) return;
+    this.creatingProfile = true;
+    this.profiles.suggestFromLeads(this.selection.selected, this.onlyReplied && this.repliedSelected).subscribe({
+      next: draft => {
+        this.creatingProfile = false;
+        this.drafts.set(draft);
+        this.router.navigate(['/leads/profiles/new']);
+      },
+      error: err => {
+        this.creatingProfile = false;
+        this.snackBar.open(err.status === 400 ? (err.error?.message ?? 'Could not build a profile from those leads.') : 'Failed to create a target profile.', 'OK', { duration: 6000 });
+        this.cdr.markForCheck();
+      }
+    });
+  }
 
   // ---- add lead ----
 
