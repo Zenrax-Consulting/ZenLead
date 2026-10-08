@@ -23,7 +23,7 @@ public class AuthController(
     {
         var validation = await registerValidator.ValidateAsync(request, ct);
         if (!validation.IsValid)
-            return ValidationProblem(ToModelState(validation));
+            return ValidationProblem(validation.ToModelState());
 
         try
         {
@@ -47,7 +47,7 @@ public class AuthController(
     {
         var validation = await loginValidator.ValidateAsync(request, ct);
         if (!validation.IsValid)
-            return ValidationProblem(ToModelState(validation));
+            return ValidationProblem(validation.ToModelState());
 
         var result = await login.ExecuteAsync(request, ct);
         return result is null ? Unauthorized() : Ok(result);
@@ -61,13 +61,5 @@ public class AuthController(
 
         var result = await refreshToken.ExecuteAsync(request, ct);
         return result is null ? Unauthorized() : Ok(result);
-    }
-
-    private ModelStateDictionary ToModelState(FluentValidation.Results.ValidationResult validation)
-    {
-        var modelState = new ModelStateDictionary();
-        foreach (var error in validation.Errors)
-            modelState.AddModelError(error.PropertyName, error.ErrorMessage);
-        return modelState;
     }
 }

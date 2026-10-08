@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ZenLead.Domain.Entities;
 using ZenLead.Infrastructure.Identity;
 using ZenLead.Infrastructure.Persistence;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Infrastructure.Identity;
 
@@ -15,7 +16,7 @@ public sealed class RefreshTokenServiceTests : IDisposable
     private readonly string _path = Path.Combine(Path.GetTempPath(), $"zenlead-tests-{Guid.NewGuid():N}.db");
 
     private ZenLeadDbContext NewDb()
-        => new(new DbContextOptionsBuilder<ZenLeadDbContext>().UseSqlite($"Data Source={_path}").Options);
+        => new(new DbContextOptionsBuilder<ZenLeadDbContext>().UseSqlite($"Data Source={_path}").Options, new FakeCurrentWorkspace());
 
     private async Task<Guid> SeedUserAsync()
     {

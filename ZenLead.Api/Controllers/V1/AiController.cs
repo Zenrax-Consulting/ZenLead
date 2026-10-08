@@ -28,12 +28,7 @@ public class AiController(
 
         var validation = await validator.ValidateAsync(composeRequest, ct);
         if (!validation.IsValid)
-        {
-            var modelState = new ModelStateDictionary();
-            foreach (var error in validation.Errors)
-                modelState.AddModelError(error.PropertyName, error.ErrorMessage);
-            return ValidationProblem(modelState);
-        }
+            return ValidationProblem(validation.ToModelState());
 
         try
         {

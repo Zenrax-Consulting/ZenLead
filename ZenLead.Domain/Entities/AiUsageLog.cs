@@ -1,6 +1,6 @@
 namespace ZenLead.Domain.Entities;
 
-public class AiUsageLog
+public class AiUsageLog : ITenantEntity
 {
     public Guid Id { get; set; }
     public Guid WorkspaceId { get; set; }

@@ -1,6 +1,7 @@
 namespace ZenLead.Application.Abstractions;
 
-public record EmailComposeContext(string LeadName, string LeadEmail, string? LeadTitle, string? AdditionalContext);
+public record EmailComposeContext(string LeadName, string LeadEmail, string? LeadTitle, string? AdditionalContext,
+    string? CompanyName = null, string? CompanyIndustry = null, string? CompanyCountry = null);
 public record ComposedEmail(string Subject, string Body, int TokensUsed, int PromptTokens = 0, int CompletionTokens = 0);
 
 public interface IEmailComposer

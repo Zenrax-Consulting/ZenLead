@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using ZenLead.Application.Abstractions;
 using ZenLead.Infrastructure.Ai;
 using ZenLead.Infrastructure.Persistence;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Infrastructure.Ai;
 
@@ -17,7 +18,7 @@ public class EfTokenUsageTrackerTests
         var dbName = Guid.NewGuid().ToString();
         var mine = Guid.NewGuid();
 
-        using (var db = new ZenLeadDbContext(Options(dbName)))
+        using (var db = new ZenLeadDbContext(Options(dbName), new FakeCurrentWorkspace()))
         {
             var first = new EfTokenUsageTracker(db, NullLogger<EfTokenUsageTracker>.Instance);
             await first.RecordAsync(new AiUsageEntry(mine, "gpt-4o", 100, 50, 0.25m));
@@ -25,7 +26,7 @@ public class EfTokenUsageTrackerTests
             await first.RecordAsync(new AiUsageEntry(Guid.NewGuid(), "gpt-4o", 999, 999, 9m));
         }
 
-        using var db2 = new ZenLeadDbContext(Options(dbName)); // simulates a process restart
+        using var db2 = new ZenLeadDbContext(Options(dbName), new FakeCurrentWorkspace(mine)); // simulates a process restart
         var summary = await new EfTokenUsageTracker(db2, NullLogger<EfTokenUsageTracker>.Instance).GetSummaryAsync(mine);
 
         Assert.Equal(2, summary.Calls);

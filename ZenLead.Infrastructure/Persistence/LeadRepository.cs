@@ -14,8 +14,20 @@ public class LeadRepository(ZenLeadDbContext db) : ILeadRepository
     }
 
     public Task<Lead?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => db.Leads.FirstOrDefaultAsync(l => l.Id == id, ct);
+        => db.Leads.Include(l => l.Company).FirstOrDefaultAsync(l => l.Id == id, ct);
 
     public async Task<IReadOnlyList<Lead>> ListByWorkspaceAsync(Guid workspaceId, CancellationToken ct = default)
-        => await db.Leads.Where(l => l.WorkspaceId == workspaceId).ToListAsync(ct);
+        => await db.Leads.Include(l => l.Company).Where(l => l.WorkspaceId == workspaceId).OrderByDescending(l => l.CreatedAt).ToListAsync(ct);
+
+    public async Task UpdateAsync(Lead lead, CancellationToken ct = default)
+    {
+        lead.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);                     // lead is tracked (loaded via GetByIdAsync in the same scope)
+    }
+
+    public async Task SoftDeleteAsync(Lead lead, CancellationToken ct = default)
+    {
+        lead.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+    }
 }
