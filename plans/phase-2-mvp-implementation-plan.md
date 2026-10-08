@@ -21,7 +21,7 @@ Built and merged in Phase 1 (Features 1–10):
 **Carry-in checklist (resolve before/at Sprint 1):**
 - [ ] Gate 1 outcome recorded and its follow-up fixes triaged into Sprint 1 backlog.
 - [ ] `phase-1` "current state" and `CLAUDE.md` "Project state" updated to reflect reality.
-- [x] Domain: `zenraxconsultancy.com` already owned (GoDaddy DNS). App + sending identity live on `leads.zenraxconsultancy.com`; inbound replies on `reply.leads.zenraxconsultancy.com` (see §1b).
+- [x] Domain: `zenraxconsultancy.com` already owned (GoDaddy DNS). App lives on `leads.zenraxconsultancy.com`; sending identity is `info@zenraxconsultancy.com` (root domain, owner decision 2026-10-08); inbound replies on `reply.leads.zenraxconsultancy.com` (see §1b).
 - [ ] Confirm team size (2 vs 3 devs) — drives the parallelism in §6.
 
 ---
@@ -38,7 +38,7 @@ Built and merged in Phase 1 (Features 1–10):
 | Secrets | `user-secrets` for all development until F30; Azure Key Vault via managed identity wired in F30 (code reads config the same way, so the swap is a config-source change) | Parent plan §7/§9. Costs cents/month at this scale (§1a); keeps secrets out of app settings and deploy config. |
 | Logging | Serilog → Application Insights sink from the first deploy | Parent plan §9. |
 | Blob staging | CSV uploaded to blob storage (`imports/{workspaceId}/{batchId}.csv`) behind `IBlobStorage`, parsed by a Hangfire job; **Azurite locally throughout Phase 2**, Azure Blob wired in F30 | Keeps large uploads off request threads. |
-| Lead discovery provider | **Undecided: Apollo.io API vs People Data Labs API**, behind `ILeadSource` (Application). Build against `FakeLeadSource` first; decide before the F14 provider class. | Swappable like `IEmailComposer`. Apollo API needs Professional+ (not Basic); PDL is ~$98/mo for 350 records, pay per match. Verify prices on vendor pages and check each vendor's terms for storing/using results before committing. |
+| Lead discovery provider | **People Data Labs (PDL)** for now (owner decision 2026-10-08), behind `ILeadSource` (Application) with a provider registry so Apollo.io or another vendor is a one-class swap. Build against `FakeLeadSource` first. | Swappable like `IEmailComposer`. Apollo API needs Professional+ (not Basic); PDL is ~$98/mo for 350 records, pay per match. Verify prices on vendor pages and check each vendor's terms for storing/using results before committing. |
 | Template syntax | Simple `{{firstName}}`, `{{company}}`, `{{title}}` token replacement (no Liquid/Razor) | Enough for MVP; avoids template-injection surface. |
 | Email send idempotency | `EmailMessage` row inserted (status `Queued`) **before** calling SendGrid; enrollment advanced in the same transaction as the sent-marking | Prevents double-sends on Hangfire retry. |
 | Open tracking | SendGrid open pixel via Event Webhook; treat opens as approximate (Apple MPP) | Report honestly in analytics UI. |
@@ -74,10 +74,10 @@ Prices are USD, list price, US regions, checked 2026-10-07. Rows marked *est.* a
 |---|---|---|---|
 | App (App Service custom domain) | `leads` | CNAME | `<app>.azurewebsites.net` |
 | App domain ownership | `asuid.leads` | TXT | verification id shown by App Service |
-| SendGrid domain authentication (DKIM/return-path) | records SendGrid generates for `leads.zenraxconsultancy.com` (e.g. `s1._domainkey.leads`, `em1234.leads`) | CNAME | per SendGrid |
+| SendGrid domain authentication (DKIM/return-path) | records SendGrid generates for the **root** domain `zenraxconsultancy.com` (e.g. `s1._domainkey`, `em1234`) — sender is `info@zenraxconsultancy.com` | CNAME | per SendGrid |
 | Inbound replies (Inbound Parse) | `reply.leads` | MX (priority 10) | `mx.sendgrid.net` |
 
-Rules: a name with a CNAME (`leads`) cannot also hold MX/TXT, so inbound uses the **`reply.leads`** child name, not `leads` itself. MX on a subdomain does not affect the root domain's mail (Microsoft 365/Google/etc.). App Service managed certificates are free on B1 and above, so HTTPS on `leads.` costs nothing. Using a dedicated subdomain isolates cold-outreach reputation from the root domain; set DMARC at the root (`_dmarc`) with `sp=` covering subdomains, and do not send outreach from the root domain.
+Rules: a name with a CNAME (`leads`) cannot also hold MX/TXT, so inbound uses the **`reply.leads`** child name, not `leads` itself. MX on a subdomain does not affect the root domain's mail (Microsoft 365/Google/etc.). App Service managed certificates are free on B1 and above, so HTTPS on `leads.` costs nothing. **Owner decision (2026-10-08): outreach is sent from `info@zenraxconsultancy.com` on the root domain**, so the subdomain reputation isolation originally planned is not in place — cold-campaign complaints/bounces can affect the company's normal mail. Mitigate with low starting volumes, warm-up caps, DMARC monitoring (`p=none` first; do not replace an existing root DMARC/SPF), and keep the option to move to a `leads.` sending subdomain later (see `phase-2-features/17-sendgrid-dns.md`).
 
 ### 1c. Local development environment (until Feature 30)
 
@@ -116,7 +116,7 @@ Goal: the product's core loop exists first — **discover, manage and monitor le
 - **PBI 13.2** Lead detail: show company, source (manual/CSV/discovery + link to the run), email verification status, status history placeholder, edit/delete; bulk-select (for target profiles now, enrollment in Sprint 3).
 
 ### Feature 14 — Automated Lead Discovery (branch: `feature/lead-discovery`)
-Finds new leads that match a **Target Profile** — a saved description of who we want to reach (not a person). A profile is either written from scratch or built from a lead we already have. **Provider not yet chosen (Apollo.io API vs People Data Labs API)** — everything provider-specific lives behind `ILeadSource`, so the choice only affects one Infrastructure class. Every discovered lead goes through the shared `LeadIngestionService` (F11.4); it never bypasses dedupe.
+Finds new leads that match a **Target Profile** — a saved description of who we want to reach (not a person). A profile is either written from scratch or built from a lead we already have. **Provider: People Data Labs for now** — everything provider-specific lives behind `ILeadSource` (selected by `LeadSource:Provider`), so switching to Apollo.io or another vendor only means adding one Infrastructure class. Every discovered lead goes through the shared `LeadIngestionService` (F11.4); it never bypasses dedupe.
 
 Terms: a **lead** is always a person we might email (created by hand, CSV, or discovery — see `Lead.Source`). A **Target Profile** is search criteria. A **discovery run** executes a profile against the provider and produces leads.
 - **PBI 14.0 — Hangfire setup** (first background-job feature): SQL Server storage (LocalDB locally), dashboard at `/hangfire` restricted to `Hangfire:AdminEmails`, retry policy (3 attempts, exponential), dead-letter visibility. Reused by every later job (CSV, sender, classification).
@@ -146,7 +146,7 @@ Highest-risk file-handling feature; test-first. Leads enter through the shared i
 - **PBI 16.2** Targeted Angular tests (wizard mapping auto-guess logic).
 
 ### Feature 17 — SendGrid Domain & Inbound DNS Kickoff (branch: `chore/sendgrid-dns` — mostly non-code)
-- **PBI 17.1** SendGrid account, API key (user-secrets until F30), domain authentication (SPF/DKIM CNAMEs) for `leads.zenraxconsultancy.com` (records added at GoDaddy; see §1b).
+- **PBI 17.1** SendGrid account, API key (user-secrets until F30), domain authentication (DKIM/return-path CNAMEs) for `zenraxconsultancy.com` (records added at GoDaddy; see §1b).
 - **PBI 17.2** Create inbound subdomain (`reply.leads.zenraxconsultancy.com`), **MX record → `mx.sendgrid.net`**, configure Inbound Parse destination URL placeholder. Record DNS TTL/propagation status in `docs/`. *Do this in week 4; Sprint 4 depends on it.*
 - **PBI 17.3** Decide and document sender identity model (one verified sender for Zenrax; per-workspace senders deferred) — needed for `Campaign.FromSenderId`.
 
@@ -361,7 +361,7 @@ Must-have xUnit coverage: CSV parse/dedup; tenant isolation and registration app
 | Azure cost drift above single-org budget | Budget alert (F30.5), B1 plan + Basic/free SQL, App Insights ingestion cap, weekly check in UAT |
 | Capacity: 5 sprints is tight | Stretch items (AI reply suggestion, soft-delete UI, charts polish) are first to cut; F23, F25, F29.3 are not |
 | Discovery provider cost/quality: credits burn fast, emails are stale or unverified, bounces hurt the new sending domain | Monthly credit cap + per-run cap (F14.6); provider verification flag stored and `Invalid` blocked from enrollment (F14.7); review imported leads before enrolling; provider cost shown in Gate 2 cost audit |
-| Provider terms restrict storing/using discovered data or API access tier | Read Apollo/PDL terms before choosing; `ILeadSource` keeps the swap cheap; fake source means Sprint 2 isn't blocked on the decision |
+| Provider terms restrict storing/using discovered data or API access tier | Read PDL's terms before the first real run; `ILeadSource` keeps a swap to Apollo/others cheap; fake source means development isn't blocked |
 | CSV scale: large files time out/OOM | Streaming parse + batched commits + file/row caps from day one |
 
 ## 14. Explicitly out of scope for Phase 2 (don't build yet)

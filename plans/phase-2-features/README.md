@@ -66,7 +66,7 @@ Decisions these docs make that differ from (or add to) wording in [phase-2-mvp-i
 
 | # | Parent plan says | These docs do | Where |
 |---|---|---|---|
-| 1 | `Campaign.FromSenderId` (PBI 22.1/17.3) | One configured sender; `Campaign.FromName` optional; no `SenderIdentity` table | [17](17-sendgrid-dns.md), [22](22-campaigns-backend.md) |
+| 1 | `Campaign.FromSenderId` (PBI 22.1/17.3) | One configured sender, `info@zenraxconsultancy.com` on the **root domain** (so SendGrid authenticates the root domain, not `leads.`); `Campaign.FromName` optional; no `SenderIdentity` table | [17](17-sendgrid-dns.md), [22](22-campaigns-backend.md) |
 | 2 | `IEmailSender.SendCampaignEmailAsync` (PBI 23.1) | Single `SendAsync(OutboundEmail)` with optional campaign fields | [18](18-email-sender.md) |
 | 3 | New `AiGenerationLog` table (PBI 23.3) | The Phase 1 `AiUsageLog` table already exists — **extended** (purpose, campaign, enrollment), not replaced | [23](23-sending-engine.md) |
 | 4 | Data model lists 13 new tables | Also adds `AuditLogEntry` (F19), `SuppressedEmail` (F23), `InboundQuarantine` (F25), `ProcessedWebhookEvent` (F28) | [19](19-super-admin-workspaces.md), [23](23-sending-engine.md), [25](25-inbound-webhook.md), [28](28-analytics.md) |
@@ -97,12 +97,12 @@ When a feature's PR touches these, run the earlier feature's tests too.
 | F29 | Logging in Phase 1 `EmailComposer`, `proxy`-adjacent CSP/headers, F19 authorization test, F14/F18 ops | Hardening sweep |
 | F30 | `Program.cs` config sources, `EfUnitOfWork`, `StartupConfiguration`, `index.html` (self-hosted icon font), `CLAUDE.md` publish description | Production-only paths |
 
-## Decisions still needed from the project owner
+## Decisions (owner, 2026-10-08)
 
-| Decision | Needed by | Default assumed in the docs |
-|---|---|---|
-| Lead provider: Apollo.io vs People Data Labs (parent §1) | Before the F14 provider class (Sprint 1) | `FakeLeadSource` until decided |
-| Sender identity model (F17 §6): single Zenrax sender, `outreach@leads.zenraxconsultancy.com` | Before F22 | Confirmed-as-proposed |
-| Inbound Parse mode: parsed fields vs raw MIME (+ MimeKit) | After the first real replies in F25 | Parsed fields |
-| Azure SQL: free serverless offer vs Basic | F30.6 (decided by a week of vCore-seconds data) | Free offer first |
-| `Sending:RecipientAllowList` during UAT | F31.0 | Enabled in production for the UAT window |
+| Decision | Outcome |
+|---|---|
+| Lead provider | **People Data Labs (PDL)** first; `ILeadSource` + a provider registry keyed by `LeadSource:Provider` keeps Apollo.io or any other vendor a one-class swap ([14](14-lead-discovery.md)) |
+| Sender identity | **`info@zenraxconsultancy.com`** (root domain). Consequence: SendGrid domain authentication is done on `zenraxconsultancy.com`, outreach shares the root domain's reputation, and the existing DMARC/SPF must be checked, not replaced ([17](17-sendgrid-dns.md)). Moving to a sending subdomain later is a config + DNS change |
+| Inbound reply parsing | **Parsed fields** by default; raw MIME + MimeKit is built behind `Inbound:ParseMode=RawMime` and can be switched on without code changes ([25](25-inbound-webhook.md)) |
+| Azure SQL tier | **Free serverless offer** first, Basic as the Bicep-parameter fallback if Hangfire polling exhausts the allowance ([30](30-azure-cicd.md)) |
+| `Sending:RecipientAllowList` during UAT | Not answered — the docs keep it **enabled for the UAT window** as a safety net ([31](31-uat-gate2.md)); say if you want it dropped |

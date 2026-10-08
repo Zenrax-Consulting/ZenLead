@@ -58,7 +58,7 @@ Each step: **Action → Expected result → Evidence**. IDs are stable (`UAT-3.4
 | 4.4 | Activate | Estimated AI cost shown; status Active; (if the domain flag is off, the specific problem is explained) |
 | **5 Delivery** | | |
 | 5.1 | Step 1 arrives in every prospect mailbox | Within ~2 min of activation; record **inbox vs spam** per provider |
-| 5.2 | View the raw headers of one message per provider | DKIM `pass` for `leads.zenraxconsultancy.com`, SPF/DMARC aligned, `List-Unsubscribe` + `List-Unsubscribe-Post`, `Reply-To: r-<guid>@reply.leads…`, unsubscribe link in the footer |
+| 5.2 | View the raw headers of one message per provider | DKIM `pass` for `zenraxconsultancy.com`, SPF/DMARC aligned, `List-Unsubscribe` + `List-Unsubscribe-Post`, `Reply-To: r-<guid>@reply.leads…`, unsubscribe link in the footer |
 | 5.3 | Follow-up steps fire on schedule; the AI-personalised step reads sensibly and still has the footer | No duplicate sends; one email per lead per step |
 | 5.4 | One prospect clicks the unsubscribe link, confirms; Gmail's one-click *Unsubscribe* is used on another | Lead `Unsubscribed`; sequence stops; later enrolment attempts skipped as suppressed |
 | **6 Replies** | | |

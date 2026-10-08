@@ -53,7 +53,7 @@ public interface IEmailSender
 public class EmailOptions
 {
     public string Provider { get; set; } = "Log";                  // "Log" | "SendGrid"
-    public string FromAddress { get; set; } = "outreach@leads.zenraxconsultancy.com";
+    public string FromAddress { get; set; } = "info@zenraxconsultancy.com";
     public string FromName { get; set; } = "Zenrax";
     public bool DomainVerified { get; set; }
     public string InboundDomain { get; set; } = "reply.leads.zenraxconsultancy.com";
@@ -203,5 +203,5 @@ Campaign sending logic and caps (F23), bounce/complaint handling (F28), HTML tem
 ## Verification
 1. `dotnet ef migrations add AddWorkspaceTimeZone …`; `dotnet test`.
 2. With `Email:Provider=Log`: call `POST /api/v1/ops/test-email` (signed in as an address in `Hangfire:AdminEmails`) → the message appears in the API console.
-3. Switch user-secrets to `Email:Provider=SendGrid` + the F17 key: call it again → the email arrives in your inbox (check *Headers*: DKIM `pass` for `leads.zenraxconsultancy.com`, no click-tracking rewritten links). Record the real `Message-ID` vs the returned `X-Message-Id` in `docs/sendgrid-dns-status.md` (feeds the F25 threading decision).
+3. Switch user-secrets to `Email:Provider=SendGrid` + the F17 key: call it again → the email arrives in your inbox (check *Headers*: DKIM `pass` for `zenraxconsultancy.com`, no click-tracking rewritten links). Record the real `Message-ID` vs the returned `X-Message-Id` in `docs/sendgrid-dns-status.md` (feeds the F25 threading decision).
 4. A non-ops user gets 403 from `test-email`.
