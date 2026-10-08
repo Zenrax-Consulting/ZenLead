@@ -19,8 +19,13 @@ public class FakeLeadRepository : ILeadRepository
     public bool Exists(Guid id) => _leads.ContainsKey(id);
     public Task<Lead> CreateAsync(Lead lead, CancellationToken ct = default) { _leads[lead.Id] = lead; return Task.FromResult(lead); }
     public Task<Lead?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(_leads.GetValueOrDefault(id));
-    public Task<IReadOnlyList<Lead>> ListByWorkspaceAsync(Guid workspaceId, CancellationToken ct = default)
-        => Task.FromResult<IReadOnlyList<Lead>>(_leads.Values.Where(l => l.WorkspaceId == workspaceId).ToList());
+    public Task<PagedResult<Lead>> SearchAsync(Guid workspaceId, LeadQuery query, CancellationToken ct = default)
+    {
+        var all = _leads.Values.Where(l => l.WorkspaceId == workspaceId).ToList();
+        return Task.FromResult(new PagedResult<Lead>(all.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList(), all.Count, query.Page, query.PageSize));
+    }
+    public Task<IReadOnlyList<Guid>> ListIdsAsync(Guid workspaceId, LeadQuery query, int max, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Guid>>(_leads.Values.Where(l => l.WorkspaceId == workspaceId).Select(l => l.Id).Take(max).ToList());
     public Task UpdateAsync(Lead lead, CancellationToken ct = default) => Task.CompletedTask;
     public Task SoftDeleteAsync(Lead lead, CancellationToken ct = default) { _leads.Remove(lead.Id); return Task.CompletedTask; }
 }
@@ -31,7 +36,7 @@ public class LeadsControllerTests
     {
         var store = new FakeLeadIngestionStore { OnInserted = repo.Seed };
         var controller = new LeadsController(repo, new LeadIngestionService(store), store,
-            new CreateLeadRequestValidator(), new UpdateLeadRequestValidator());
+            new CreateLeadRequestValidator(), new UpdateLeadRequestValidator(), new LeadQueryValidator());
         var identity = new ClaimsIdentity([new Claim("workspace_id", callerWorkspaceId.ToString())], "test");
         controller.ControllerContext = new ControllerContext
         {
@@ -140,5 +145,32 @@ public class LeadsControllerTests
 
         Assert.IsType<CreatedAtActionResult>(first.Result);
         Assert.IsType<ConflictObjectResult>(second.Result);
+    }
+
+    [Fact]
+    public async Task List_ReturnsPagedShape_ScopedToCallersWorkspace()
+    {
+        var ws = Guid.NewGuid();
+        var repo = new FakeLeadRepository();
+        repo.Seed(NewLead(ws));
+        repo.Seed(NewLead(Guid.NewGuid()));
+        var controller = BuildController(repo, ws);
+
+        var result = await controller.List(new LeadQuery(), CancellationToken.None);
+
+        var page = Assert.IsType<PagedResult<LeadResponse>>(Assert.IsType<OkObjectResult>(result.Result).Value);
+        Assert.Equal(1, page.Total);
+        Assert.Single(page.Items);
+    }
+
+    [Fact]
+    public async Task List_InvalidQuery_ReturnsValidationProblem()
+    {
+        var controller = BuildController(new FakeLeadRepository(), Guid.NewGuid());
+
+        var result = await controller.List(new LeadQuery(PageSize: 1000), CancellationToken.None);
+
+        Assert.IsType<ObjectResult>(result.Result);
+        Assert.NotEqual(200, ((ObjectResult)result.Result!).StatusCode);
     }
 }

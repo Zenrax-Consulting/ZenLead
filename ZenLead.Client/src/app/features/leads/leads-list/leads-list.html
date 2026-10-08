@@ -1,41 +1,127 @@
-<h1>Leads</h1>
+<div class="list-header">
+  <h1>Leads</h1>
+  <button mat-raised-button color="primary" (click)="openAddLead()">Add lead</button>
+</div>
 
-<form [formGroup]="form" (ngSubmit)="submit()" class="add-lead-form">
-  <mat-form-field appearance="outline">
-    <mat-label>Name</mat-label>
-    <input matInput formControlName="name">
+<div class="filters">
+  <mat-form-field appearance="outline" class="search">
+    <mat-label>Search name, email or company</mat-label>
+    <input matInput [formControl]="searchControl" maxlength="100">
   </mat-form-field>
+
   <mat-form-field appearance="outline">
-    <mat-label>Email</mat-label>
-    <input matInput type="email" formControlName="email">
+    <mat-label>Status</mat-label>
+    <mat-select [value]="query.status ?? null" (selectionChange)="onStatus($event.value)">
+      <mat-option [value]="null">Any status</mat-option>
+      <mat-option *ngFor="let s of statuses" [value]="s">{{ s }}</mat-option>
+    </mat-select>
   </mat-form-field>
+
   <mat-form-field appearance="outline">
-    <mat-label>Title</mat-label>
-    <input matInput formControlName="title">
+    <mat-label>Source</mat-label>
+    <mat-select [value]="query.source ?? null" (selectionChange)="onSource($event.value)">
+      <mat-option [value]="null">Any source</mat-option>
+      <mat-option *ngFor="let s of sources" [value]="s">{{ s }}</mat-option>
+    </mat-select>
   </mat-form-field>
-  <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || submitting">
-    Add lead
-  </button>
-</form>
 
-<p *ngIf="errorMessage" class="leads-error">{{ errorMessage }}</p>
-<p *ngIf="loading">Loading…</p>
-<p *ngIf="!loading && !errorMessage && leads.length === 0" class="empty-state">No leads yet — add your first one above.</p>
+  <mat-form-field appearance="outline">
+    <mat-label>Company</mat-label>
+    <input matInput [formControl]="companyControl" [matAutocomplete]="companyAuto">
+    <mat-autocomplete #companyAuto="matAutocomplete" [displayWith]="companyLabel" (optionSelected)="onCompanySelected($event.option.value)">
+      <mat-option *ngFor="let c of companyOptions" [value]="c">{{ c.name }}<span *ngIf="c.domain" class="muted"> · {{ c.domain }}</span></mat-option>
+    </mat-autocomplete>
+  </mat-form-field>
+</div>
 
-<table mat-table [dataSource]="leads" *ngIf="!loading">
-  <ng-container matColumnDef="name">
-    <th mat-header-cell *matHeaderCellDef>Name</th>
-    <td mat-cell *matCellDef="let lead"><a [routerLink]="['/leads', lead.id]">{{ lead.name }}</a></td>
-  </ng-container>
-  <ng-container matColumnDef="email">
-    <th mat-header-cell *matHeaderCellDef>Email</th>
-    <td mat-cell *matCellDef="let lead">{{ lead.email }}</td>
-  </ng-container>
-  <ng-container matColumnDef="status">
-    <th mat-header-cell *matHeaderCellDef>Status</th>
-    <td mat-cell *matCellDef="let lead">{{ lead.status }}</td>
-  </ng-container>
+<mat-chip-set *ngIf="query.companyId || query.sourceRunId" aria-label="Active filters">
+  <mat-chip *ngIf="query.companyId" (removed)="clearCompany()">
+    Company: {{ activeCompany?.name ?? '…' }}
+    <button matChipRemove aria-label="Remove company filter"><mat-icon>cancel</mat-icon></button>
+  </mat-chip>
+  <mat-chip *ngIf="query.sourceRunId" (removed)="clearSourceRun()">
+    Discovery run {{ query.sourceRunId.substring(0, 8) }}…
+    <button matChipRemove aria-label="Remove discovery run filter"><mat-icon>cancel</mat-icon></button>
+  </mat-chip>
+</mat-chip-set>
 
-  <tr mat-header-row *matHeaderRowDef="['name', 'email', 'status']"></tr>
-  <tr mat-row *matRowDef="let row; columns: ['name', 'email', 'status']"></tr>
-</table>
+<div class="selection-bar" *ngIf="selection.count > 0">
+  <span>{{ selection.count }} selected</span>
+  <button mat-button (click)="selection.clear()">Clear</button>
+  <button mat-stroked-button *ngIf="features.discovery">Create target profile</button>
+  <button mat-stroked-button *ngIf="features.campaigns">Add to campaign</button>
+</div>
+
+<mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+<p *ngIf="loading" class="visually-hidden">Loading…</p>
+
+<div *ngIf="errorMessage" class="leads-error">
+  <p>{{ errorMessage }}</p>
+  <button mat-stroked-button (click)="load()">Retry</button>
+</div>
+
+<div *ngIf="!loading && !errorMessage && total === 0" class="empty-state">
+  <ng-container *ngIf="hasFilters; else noLeads">
+    <p>No leads match the current filters.</p>
+    <button mat-stroked-button (click)="clearFilters()">Clear filters</button>
+  </ng-container>
+  <ng-template #noLeads>
+    <p>No leads yet — add your first one.</p>
+    <button mat-raised-button color="primary" (click)="openAddLead()">Add lead</button>
+  </ng-template>
+</div>
+
+<div class="table-wrap" *ngIf="result && total > 0">
+  <table mat-table [dataSource]="leads" matSort [matSortActive]="sortActive" [matSortDirection]="sortDirection" (matSortChange)="onSort($event)">
+    <ng-container matColumnDef="select">
+      <th mat-header-cell *matHeaderCellDef>
+        <mat-checkbox aria-label="Select all leads on this page"
+                      [checked]="allOnPageSelected" [indeterminate]="someOnPageSelected"
+                      (change)="toggleAllOnPage($event.checked)"></mat-checkbox>
+      </th>
+      <td mat-cell *matCellDef="let lead">
+        <mat-checkbox [attr.aria-label]="'Select ' + lead.name" [checked]="selection.isSelected(lead.id)" (change)="selection.toggle(lead.id)"></mat-checkbox>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="name">
+      <th mat-header-cell mat-sort-header="name" *matHeaderCellDef>Name</th>
+      <td mat-cell *matCellDef="let lead"><a [routerLink]="['/leads', lead.id]">{{ lead.name }}</a></td>
+    </ng-container>
+    <ng-container matColumnDef="email">
+      <th mat-header-cell mat-sort-header="email" *matHeaderCellDef>Email</th>
+      <td mat-cell *matCellDef="let lead">
+        {{ lead.email }}
+        <span class="badge" [ngClass]="'badge-' + lead.emailVerificationStatus.toLowerCase()" *ngIf="lead.emailVerificationStatus !== 'Unverified'">
+          <mat-icon aria-hidden="true">{{ lead.emailVerificationStatus === 'Verified' ? 'check_circle' : lead.emailVerificationStatus === 'Risky' ? 'warning' : 'cancel' }}</mat-icon>{{ lead.emailVerificationStatus }}
+        </span>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="company">
+      <th mat-header-cell mat-sort-header="company" *matHeaderCellDef>Company</th>
+      <td mat-cell *matCellDef="let lead">{{ lead.company?.name }}</td>
+    </ng-container>
+    <ng-container matColumnDef="title">
+      <th mat-header-cell *matHeaderCellDef>Title</th>
+      <td mat-cell *matCellDef="let lead">{{ lead.title }}</td>
+    </ng-container>
+    <ng-container matColumnDef="source">
+      <th mat-header-cell *matHeaderCellDef>Source</th>
+      <td mat-cell *matCellDef="let lead">{{ lead.source }}</td>
+    </ng-container>
+    <ng-container matColumnDef="status">
+      <th mat-header-cell mat-sort-header="status" *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let lead">{{ lead.status }}</td>
+    </ng-container>
+    <ng-container matColumnDef="createdAt">
+      <th mat-header-cell mat-sort-header="createdAt" *matHeaderCellDef>Created</th>
+      <td mat-cell *matCellDef="let lead">{{ lead.createdAt | date: 'mediumDate' }}</td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+  </table>
+</div>
+
+<mat-paginator *ngIf="result && total > 0"
+               [length]="total" [pageIndex]="query.page - 1" [pageSize]="query.pageSize"
+               [pageSizeOptions]="[25, 50, 100]" (page)="onPage($event)" showFirstLastButtons></mat-paginator>
