@@ -4,5 +4,6 @@ namespace ZenLead.Application.Abstractions;
 public interface IJobScheduler
 {
     void EnqueueDiscoveryRun(Guid runId, Guid workspaceId);
-    // F15 adds EnqueueCsvImport; F23 registers the recurring sender in Infrastructure; F26 adds EnqueueReplyClassification.
+    void EnqueueCsvImport(Guid batchId, Guid workspaceId);
+    // F23 registers the recurring sender in Infrastructure; F26 adds EnqueueReplyClassification.
 }

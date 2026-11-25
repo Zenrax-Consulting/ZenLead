@@ -13,6 +13,11 @@ using ZenLead.Application.Abstractions;
 using ZenLead.Application.Discovery;
 using ZenLead.Application.Leads;
 using ZenLead.Application.UseCases.Discovery;
+using ZenLead.Application.UseCases.Leads.Import;
+using Azure.Identity;
+using Azure.Storage.Blobs;
+using ZenLead.Infrastructure.Csv;
+using ZenLead.Infrastructure.Storage;
 using ZenLead.Application.UseCases.Ai;
 using ZenLead.Application.UseCases.Auth;
 using ZenLead.Api;
@@ -89,6 +94,7 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy(RateLimiting.ComposePolicy, RateLimiting.ComposePartition);
     options.AddPolicy(RateLimiting.DiscoveryPolicy, RateLimiting.DiscoveryPartition);
+    options.AddPolicy(RateLimiting.UploadPolicy, RateLimiting.UploadPartition);
     options.AddPolicy(RateLimiting.AuthPolicy, RateLimiting.AuthPartition);
     options.OnRejected = (context, _) =>
     {
@@ -142,6 +148,19 @@ builder.Services.AddScoped<IDiscoveryRunRepository, DiscoveryRunRepository>();
 builder.Services.AddScoped<StartDiscoveryRunUseCase>();
 builder.Services.AddScoped<ProcessDiscoveryRunUseCase>();
 builder.Services.AddScoped<ProcessLeadDiscoveryJob>();
+
+// CSV import (F15): files live in blob storage (Azurite locally); parsing is behind ICsvRowReader
+builder.Services.AddSingleton(_ =>
+    builder.Configuration["Storage:AccountUri"] is { Length: > 0 } uri
+        ? new BlobServiceClient(new Uri(uri), new DefaultAzureCredential())
+        : new BlobServiceClient(builder.Configuration["Storage:ConnectionString"] ?? "UseDevelopmentStorage=true"));
+builder.Services.AddScoped<IBlobStorage, AzureBlobStorage>();
+builder.Services.AddSingleton<ICsvRowReader, CsvHelperRowReader>();
+builder.Services.AddScoped<ICsvImportRepository, CsvImportRepository>();
+builder.Services.AddScoped<CreateCsvImportUseCase>();
+builder.Services.AddScoped<StartCsvImportUseCase>();
+builder.Services.AddScoped<ProcessCsvImportUseCase>();
+builder.Services.AddScoped<ProcessCsvImportJob>();
 
 // background jobs; the switch lets endpoint tests boot without SQL Server
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
