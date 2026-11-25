@@ -35,3 +35,14 @@ Authorization: Bearer <paste access token>
 Content-Type: application/json
 
 { "leadId": "<paste lead id>", "context": "Met at a SaaS conference last week" }
+
+### Send a test email to your own address (ops users only: Hangfire:AdminEmails)
+POST {{ZenLead.Api_HostAddress}}/api/v1/ops/test-email
+Authorization: Bearer <paste access token>
+
+### Set the workspace time zone (IANA id)
+PUT {{ZenLead.Api_HostAddress}}/api/v1/workspaces/current/time-zone
+Authorization: Bearer <paste access token>
+Content-Type: application/json
+
+{ "timeZone": "Asia/Dubai" }

@@ -42,6 +42,13 @@ public class FakeWorkspaceRepository : IWorkspaceRepository
 
     public Task<Workspace?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => Task.FromResult(Created.FirstOrDefault(w => w.Id == id));
+
+    public Task<bool> UpdateTimeZoneAsync(Guid id, string timeZone, CancellationToken ct = default)
+    {
+        var workspace = Created.FirstOrDefault(w => w.Id == id);
+        if (workspace is not null) workspace.TimeZone = timeZone;
+        return Task.FromResult(workspace is not null);
+    }
 }
 
 public class FakeUnitOfWork : IUnitOfWork

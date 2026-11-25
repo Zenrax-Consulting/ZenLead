@@ -25,6 +25,8 @@ public static class StartupConfiguration
                 problems.Add("Missing configuration 'LeadSource:Pdl:ApiKey'. Set it with: dotnet user-secrets set \"LeadSource:Pdl:ApiKey\" \"<value>\" --project ZenLead.Api");
         }
 
+        problems.AddRange(ValidateEmail(configuration, isDevelopment));
+
         foreach (var key in RequiredKeys)
             if (string.IsNullOrWhiteSpace(configuration[key]))
                 problems.Add($"Missing configuration '{key}'. Set it with: dotnet user-secrets set \"{key}\" \"<value>\" --project ZenLead.Api");
@@ -34,6 +36,24 @@ public static class StartupConfiguration
             problems.Add($"'Jwt:SigningKey' must be at least {MinSigningKeyBytes} bytes long.");
 
         return problems;
+    }
+
+    /// <summary>
+    /// SendGrid needs its API key; outside Development the provider must be SendGrid, because the "Log" fallback
+    /// would write password-reset and approval links to the server log instead of sending them.
+    /// </summary>
+    public static IEnumerable<string> ValidateEmail(IConfiguration configuration, bool isDevelopment)
+    {
+        var provider = configuration["Email:Provider"];
+        var isSendGrid = string.Equals(provider, "SendGrid", StringComparison.OrdinalIgnoreCase);
+        var isLog = string.IsNullOrWhiteSpace(provider) || string.Equals(provider, "Log", StringComparison.OrdinalIgnoreCase);
+
+        if (!isSendGrid && !isLog)
+            yield return $"Unknown 'Email:Provider' '{provider}'. Known: Log, SendGrid.";
+        else if (isLog && !isDevelopment)
+            yield return "'Email:Provider' must be 'SendGrid' outside Development; the 'Log' provider would write account emails to the log instead of sending them.";
+        else if (isSendGrid && string.IsNullOrWhiteSpace(configuration["SendGrid:ApiKey"]))
+            yield return "Missing configuration 'SendGrid:ApiKey' (required when 'Email:Provider' is 'SendGrid'). Set it with: dotnet user-secrets set \"SendGrid:ApiKey\" \"<value>\" --project ZenLead.Api";
     }
 
     public static void ThrowIfInvalid(IConfiguration configuration, bool isDevelopment = true)

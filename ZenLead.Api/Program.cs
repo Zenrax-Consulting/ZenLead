@@ -27,6 +27,9 @@ using ZenLead.Infrastructure.Identity;
 using ZenLead.Infrastructure.Jobs;
 using ZenLead.Infrastructure.LeadSources;
 using ZenLead.Infrastructure.Persistence;
+using SendGrid;
+using ZenLead.Application.Email;
+using ZenLead.Infrastructure.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -161,6 +164,15 @@ builder.Services.AddScoped<CreateCsvImportUseCase>();
 builder.Services.AddScoped<StartCsvImportUseCase>();
 builder.Services.AddScoped<ProcessCsvImportUseCase>();
 builder.Services.AddScoped<ProcessCsvImportJob>();
+
+// transactional email (F18): "Log" (dev default, writes to the console) or "SendGrid"; startup rejects "Log" outside Development
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+if (string.Equals(builder.Configuration["Email:Provider"], EmailOptions.SendGridProvider, StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<ISendGridClient>(_ => new SendGridClient(new SendGridClientOptions { ApiKey = builder.Configuration["SendGrid:ApiKey"] }));
+    builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();
+}
+else builder.Services.AddScoped<IEmailSender, LogEmailSender>();
 
 // background jobs; the switch lets endpoint tests boot without SQL Server
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);

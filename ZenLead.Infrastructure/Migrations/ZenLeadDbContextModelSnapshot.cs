@@ -535,6 +535,13 @@ namespace ZenLead.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasDefaultValue("UTC");
+
                     b.HasKey("Id");
 
                     b.ToTable("Workspaces");
