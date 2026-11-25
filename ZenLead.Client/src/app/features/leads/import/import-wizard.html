@@ -1,0 +1,151 @@
+<div class="wizard-header">
+  <a mat-button routerLink="/leads"><mat-icon>arrow_back</mat-icon> Leads</a>
+  <h1>Import leads from CSV</h1>
+</div>
+
+<mat-progress-bar *ngIf="resuming" mode="indeterminate"></mat-progress-bar>
+
+<mat-stepper linear #stepper class="import-stepper" (selectionChange)="onStepperChange($event.selectedIndex)">
+
+  <!-- 1. Upload -->
+  <mat-step label="Upload" [editable]="step < Step.Progress">
+    <div class="drop-zone" [class.dragging]="dragging"
+         (dragover)="onDragOver($event)" (dragleave)="dragging = false" (drop)="onDrop($event)">
+      <mat-icon class="drop-icon" aria-hidden="true">upload_file</mat-icon>
+      <p>Drag a CSV file here, or</p>
+      <input type="file" accept=".csv,text/csv" hidden #picker
+             (change)="onFileChosen(picker.files?.item(0) ?? null); picker.value = ''">
+      <button mat-raised-button color="primary" type="button" (click)="picker.click()" [disabled]="uploading">Choose file</button>
+      <p class="hint">CSV, up to 10 MB / 50,000 rows. Duplicates, invalid emails and unsubscribed contacts are skipped.</p>
+      <div *ngIf="file" class="file-info">
+        <mat-spinner *ngIf="uploading" diameter="20"></mat-spinner>
+        <span>{{ file.name }} · {{ file.size / 1024 | number: '1.0-0' }} KB</span>
+        <span *ngIf="uploading" class="muted">Uploading…</span>
+      </div>
+    </div>
+    <p *ngIf="error && step === Step.Upload" class="error" role="alert">{{ error }}</p>
+  </mat-step>
+
+  <!-- 2. Map columns -->
+  <mat-step label="Map columns" [editable]="step < Step.Progress">
+    <ng-container *ngIf="upload">
+      <div class="map-header">
+        <p>Choose which column in <strong>{{ file?.name }}</strong> fills each lead field.</p>
+        <button mat-stroked-button type="button" (click)="autoDetect()"><mat-icon>auto_fix_high</mat-icon> Auto-detect</button>
+      </div>
+
+      <div class="mapping-grid">
+        <ng-container *ngFor="let f of fields">
+          <label [attr.for]="'map-' + f.key" class="field-label">
+            {{ f.label }}<span *ngIf="f.required" class="required"> (required)</span>
+          </label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-select [id]="'map-' + f.key" [value]="mapping[f.key] ?? null" (selectionChange)="setMapping(f.key, $event.value)"
+                        [attr.aria-label]="f.label + ' column'">
+              <mat-option [value]="null">— don't import —</mat-option>
+              <mat-option *ngFor="let h of headers" [value]="h">{{ h }}</mat-option>
+            </mat-select>
+            <mat-hint *ngIf="sampleFor(mapping[f.key]) as sample">e.g. {{ sample }}</mat-hint>
+          </mat-form-field>
+        </ng-container>
+      </div>
+
+      <div class="mapping-errors" role="alert">
+        <p *ngIf="!emailMapped" class="error">Map a column to Email — leads can't be imported without one.</p>
+        <p *ngIf="nameConflict" class="error">Map either Full name or First / Last name, not both.</p>
+        <p *ngFor="let h of duplicateHeaders" class="error">Column "{{ h }}" is mapped to more than one field.</p>
+      </div>
+
+      <h3>Preview</h3>
+      <div class="table-wrap" *ngIf="mappedFields.length > 0; else noPreview">
+        <table class="preview">
+          <thead><tr><th *ngFor="let f of mappedFields">{{ f.label }}</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of previewRows">
+              <td *ngFor="let f of mappedFields">{{ cell(row, mapping[f.key]) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noPreview><p class="muted">Map at least one column to see a preview.</p></ng-template>
+
+      <div class="step-actions">
+        <button mat-button type="button" (click)="goTo(Step.Upload)">Back</button>
+        <button mat-raised-button color="primary" type="button" (click)="continueFromMapping()" [disabled]="!canContinueFromMapping">Continue</button>
+      </div>
+    </ng-container>
+  </mat-step>
+
+  <!-- 3. Review -->
+  <mat-step label="Review" [editable]="step < Step.Progress">
+    <ng-container *ngIf="upload">
+      <p><strong>{{ upload.rowCount | number }}</strong> rows in <strong>{{ file?.name }}</strong> will be processed.</p>
+      <dl class="review-list">
+        <ng-container *ngFor="let f of mappedFields">
+          <dt>{{ f.label }}</dt><dd>{{ mapping[f.key] }}</dd>
+        </ng-container>
+      </dl>
+      <ul class="rules">
+        <li>Rows whose email already belongs to a lead in this workspace are skipped as duplicates.</li>
+        <li>Unsubscribed or bounced contacts are skipped.</li>
+        <li>Rows with a missing or invalid email are skipped and listed in the issues file.</li>
+      </ul>
+      <p *ngIf="error && step === Step.Review" class="error" role="alert">{{ error }}</p>
+      <div class="step-actions">
+        <button mat-button type="button" (click)="goTo(Step.Map)" [disabled]="starting">Back</button>
+        <button mat-raised-button color="primary" type="button" (click)="confirm()" [disabled]="starting">
+          {{ starting ? 'Starting…' : 'Start import' }}
+        </button>
+      </div>
+    </ng-container>
+  </mat-step>
+
+  <!-- 4. Progress -->
+  <mat-step label="Progress" [editable]="false">
+    <ng-container *ngIf="status">
+      <mat-progress-bar mode="determinate" [value]="status.percent" aria-label="Import progress"></mat-progress-bar>
+      <p aria-live="polite">Processed {{ status.processedRowCount | number }} of {{ status.rowCount | number }} rows ({{ status.percent }}%).</p>
+      <dl class="counts">
+        <dt>Imported</dt><dd>{{ status.importedCount | number }}</dd>
+        <dt>Duplicates</dt><dd>{{ status.skippedDuplicateCount | number }}</dd>
+        <dt>Unsubscribed / bounced</dt><dd>{{ status.skippedSuppressedCount | number }}</dd>
+        <dt>Invalid</dt><dd>{{ status.errorCount | number }}</dd>
+      </dl>
+      <p class="muted">You can leave this page; the import continues. <a routerLink="/leads">Back to leads</a></p>
+      <div *ngIf="pollError" class="error" role="alert">
+        <p>{{ pollError }}</p>
+        <button mat-stroked-button type="button" (click)="startPolling(status.id)">Retry</button>
+      </div>
+    </ng-container>
+  </mat-step>
+
+  <!-- 5. Result -->
+  <mat-step label="Result" [editable]="false">
+    <ng-container *ngIf="status">
+      <ng-container *ngIf="status.status === 'Completed'; else failed">
+        <p>Finished importing <strong>{{ status.fileName }}</strong>.</p>
+        <div class="big-numbers">
+          <div class="big"><span class="value">{{ status.importedCount | number }}</span><span class="label">Imported</span></div>
+          <div class="big"><span class="value">{{ status.skippedDuplicateCount | number }}</span><span class="label">Duplicates</span></div>
+          <div class="big"><span class="value">{{ status.skippedSuppressedCount | number }}</span><span class="label">Unsubscribed / bounced skipped</span></div>
+          <div class="big"><span class="value">{{ status.errorCount | number }}</span><span class="label">Invalid</span></div>
+        </div>
+        <p *ngIf="error && step === Step.Result" class="error" role="alert">{{ error }}</p>
+        <div class="step-actions">
+          <button mat-stroked-button type="button" *ngIf="issues > 0" (click)="downloadErrors()" class="download-issues">
+            <mat-icon>download</mat-icon> Download issues CSV
+          </button>
+          <button mat-button type="button" (click)="startOver()">Import another file</button>
+          <a mat-raised-button color="primary" *ngIf="status.importedCount > 0"
+             routerLink="/leads" [queryParams]="{ source: 'Csv', sourceRunId: status.id }">View imported leads</a>
+        </div>
+      </ng-container>
+      <ng-template #failed>
+        <p class="error" role="alert">The import failed: {{ status.failureReason ?? 'unknown error' }}</p>
+        <div class="step-actions">
+          <button mat-raised-button color="primary" type="button" (click)="startOver()">Try again</button>
+        </div>
+      </ng-template>
+    </ng-container>
+  </mat-step>
+</mat-stepper>

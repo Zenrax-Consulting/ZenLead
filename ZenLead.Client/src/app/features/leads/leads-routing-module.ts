@@ -4,10 +4,12 @@ import { LeadsList } from './leads-list/leads-list';
 import { LeadDetail } from './lead-detail/lead-detail';
 import { TargetProfilesList } from './profiles/target-profiles-list/target-profiles-list';
 import { TargetProfileEdit } from './profiles/target-profile-edit/target-profile-edit';
+import { ImportWizard } from './import/import-wizard';
 
-// Literal routes (/leads/import, /leads/profiles) must be declared before ':id' when they land.
+// Literal routes (/leads/import, /leads/profiles) must be declared before ':id'.
 const routes: Routes = [
   { path: '', component: LeadsList },
+  { path: 'import', component: ImportWizard },
   { path: 'profiles', component: TargetProfilesList },
   { path: 'profiles/new', component: TargetProfileEdit },
   { path: 'profiles/:id', component: TargetProfileEdit },

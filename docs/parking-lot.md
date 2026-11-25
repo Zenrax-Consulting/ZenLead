@@ -36,7 +36,7 @@ Items below come from the plan's Verification and "Not in this feature" sections
 - [ ] Select leads across two pages, open a lead, go back: selection is intact.
 
 ### Follow-ups owned by later features
-- [ ] F16: add the "Import CSV" button/CTA on the list and empty state.
+- [x] F16: add the "Import CSV" button/CTA on the list and empty state.
 - [ ] F24: fill the "Add to campaign" selection-bar action and flip `features.campaigns`.
 - [ ] F29.5: re-measure name search (`LIKE '%x%'` scans); move to a full-text index only if it is too slow.
 - [ ] Status history card is a placeholder until F25 events exist.
@@ -85,4 +85,19 @@ Scheduled/recurring runs, auto-enrolment of discovered leads, a standalone email
 - [ ] A crash between ingesting a batch and saving its counters means the retry counts that batch as duplicates, so `ImportedCount` is undercounted (same as F14).
 - [ ] A stray quote in an unquoted field (e.g. `5" pipe`) is reported as "Malformed quoting" rather than imported; tolerance can be loosened if real files need it.
 - [ ] Old blobs are never deleted; relies on the F30 lifecycle rule.
-- [ ] F16: port the `ColumnGuesser` synonym table to the wizard; add the "Import CSV" CTA (see F13 follow-up).
+- [x] F16: port the `ColumnGuesser` synonym table to the wizard; add the "Import CSV" CTA (see F13 follow-up).
+
+## Feature 16 — Import wizard
+
+### Not verified
+- [ ] Run the plan's manual Verification against the running API + Azurite: 10k-row `;` file → mapping auto-filled, missing-email error blocks Continue, start → bar advances, leave to `/leads` and come back with browser Back (`?batch=` resumes), result counts match the server, issues CSV downloads and opens cleanly, **View imported leads** shows only that batch's rows.
+- [ ] Look at the stepper in the browser: drag-and-drop, header states while going back from Map/Review, and the layout on a narrow screen.
+
+### Known gaps / follow-ups
+- [ ] Initial bundle was already over the 1 MB error budget on `master` (by ~1 kB) because `SharedModule` (every Material module) is imported eagerly by `AppModule`. F16 raised the error budget to 1.1 MB and kept `MatStepperModule` in `LeadsModule` (lazy). Proper fix: give the shell its own small module list and stop importing `SharedModule` in `AppModule`, then put the budget back to 1 MB.
+- [ ] Resuming an `Uploaded` (never started) batch asks the user to upload the file again; resuming at the mapping step would need a "get headers" endpoint.
+- [ ] Only component logic is unit-tested (constructed without TestBed, as in the run-discovery dialog); there is no template-render test for the stepper.
+- [ ] A 409 on start (batch already started, e.g. double submit in two tabs) shows the message but doesn't jump to the progress step.
+
+### Explicitly out of scope (per the plan)
+Saved mapping templates, re-mapping a started import, Excel files, an import history list, drag-reordering of columns.

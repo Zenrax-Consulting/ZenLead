@@ -2,6 +2,7 @@
   <h1>Leads</h1>
   <span class="header-actions">
     <a mat-button routerLink="/leads/profiles" *ngIf="features.discovery">Target profiles</a>
+    <a mat-stroked-button routerLink="/leads/import">Import CSV</a>
     <button mat-raised-button color="primary" (click)="openAddLead()">Add lead</button>
   </span>
 </div>
@@ -43,8 +44,8 @@
     <button matChipRemove aria-label="Remove company filter"><mat-icon>cancel</mat-icon></button>
   </mat-chip>
   <mat-chip *ngIf="query.sourceRunId" (removed)="clearSourceRun()">
-    Discovery run {{ query.sourceRunId.substring(0, 8) }}…
-    <button matChipRemove aria-label="Remove discovery run filter"><mat-icon>cancel</mat-icon></button>
+    {{ query.source === 'Csv' ? 'CSV import' : 'Discovery run' }} {{ query.sourceRunId.substring(0, 8) }}…
+    <button matChipRemove [attr.aria-label]="query.source === 'Csv' ? 'Remove CSV import filter' : 'Remove discovery run filter'"><mat-icon>cancel</mat-icon></button>
   </mat-chip>
 </mat-chip-set>
 
@@ -70,8 +71,11 @@
     <button mat-stroked-button (click)="clearFilters()">Clear filters</button>
   </ng-container>
   <ng-template #noLeads>
-    <p>No leads yet — add your first one.</p>
-    <button mat-raised-button color="primary" (click)="openAddLead()">Add lead</button>
+    <p>No leads yet — add your first one or import a CSV.</p>
+    <span class="header-actions">
+      <button mat-raised-button color="primary" (click)="openAddLead()">Add lead</button>
+      <a mat-stroked-button routerLink="/leads/import">Import CSV</a>
+    </span>
   </ng-template>
 </div>
 
