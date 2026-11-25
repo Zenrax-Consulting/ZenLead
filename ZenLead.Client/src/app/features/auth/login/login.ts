@@ -28,7 +28,7 @@ export class Login {
     this.errorMessage = null;
 
     this.auth.login(this.form.getRawValue()).subscribe({
-      next: () => this.router.navigate(['/leads']),
+      next: () => this.router.navigate([this.auth.homeRoute()]),
       error: () => {
         this.submitting = false;
         this.errorMessage = 'Invalid email or password.';

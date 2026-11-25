@@ -6,6 +6,15 @@ import { LeadSelectionService } from '../../../features/leads/lead-selection.ser
 import { OpsService } from '../ops.service';
 import { WorkspaceService } from '../workspace.service';
 
+const TENANT_NAV = [
+  { label: 'Leads', icon: 'people', link: '/leads' },
+  { label: 'Campaigns', icon: 'campaign', link: '/campaigns' },
+  { label: 'Inbox', icon: 'inbox', link: '/inbox' },
+  { label: 'Analytics', icon: 'insights', link: '/analytics' }
+];
+
+const ADMIN_NAV = [{ label: 'Workspaces', icon: 'domain', link: '/admin/workspaces' }];
+
 @Component({
   selector: 'app-shell',
   standalone: false,
@@ -17,12 +26,9 @@ export class Shell implements OnInit {
   isMobile = false;
   canOpenDashboard = false;
 
-  readonly navItems = [
-    { label: 'Leads', icon: 'people', link: '/leads' },
-    { label: 'Campaigns', icon: 'campaign', link: '/campaigns' },
-    { label: 'Inbox', icon: 'inbox', link: '/inbox' },
-    { label: 'Analytics', icon: 'insights', link: '/analytics' }
-  ];
+  isSuperAdmin = false;
+  homeLink = '/leads';
+  navItems: { label: string; icon: string; link: string }[] = TENANT_NAV;
 
   constructor(
     private auth: AuthService,
@@ -35,10 +41,18 @@ export class Shell implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.workspace.current().subscribe({
-      next: w => { this.workspaceName = w.name; this.cdr.markForCheck(); },
-      error: () => {}
-    });
+    // UI hint only: the API rejects tenant calls from the super admin anyway (403), so don't make them
+    this.isSuperAdmin = this.auth.isSuperAdmin();
+    this.homeLink = this.auth.homeRoute();
+    if (this.isSuperAdmin) {
+      this.navItems = ADMIN_NAV;
+      this.workspaceName = 'Platform admin';
+    } else {
+      this.workspace.current().subscribe({
+        next: w => { this.workspaceName = w.name; this.cdr.markForCheck(); },
+        error: () => {}
+      });
+    }
     this.ops.status().subscribe({
       next: s => { this.canOpenDashboard = s.canOpenDashboard; this.cdr.markForCheck(); },
       error: () => {}

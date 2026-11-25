@@ -6,8 +6,8 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { Login } from './login';
 
 describe('Login', () => {
-  const build = (login: AuthService['login']) => {
-    const auth = { login } as unknown as AuthService;
+  const build = (login: AuthService['login'], home = '/leads') => {
+    const auth = { login, homeRoute: () => home } as unknown as AuthService;
     const router = { navigate: vi.fn().mockResolvedValue(true) } as unknown as Router;
     const component = new Login(new FormBuilder(), auth, router, { markForCheck: vi.fn() } as unknown as ChangeDetectorRef);
     return { component, router };
@@ -29,6 +29,15 @@ describe('Login', () => {
     component.submit();
 
     expect(router.navigate).toHaveBeenCalledWith(['/leads']);
+  });
+
+  it('sends the super admin to the admin area on success', () => {
+    const { component, router } = build(vi.fn().mockReturnValue(of({ accessToken: 'a', refreshToken: 'r' })), '/admin/workspaces');
+    component.form.setValue({ email: 'root@zenlead.test', password: 'Passw0rd!' });
+
+    component.submit();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/admin/workspaces']);
   });
 
   it('shows an error and re-enables the form on failure', () => {

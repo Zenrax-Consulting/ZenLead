@@ -2,7 +2,7 @@
   @if (isMobile) {
     <button mat-icon-button type="button" (click)="nav.toggle()" aria-label="Toggle navigation"><mat-icon>menu</mat-icon></button>
   }
-  <a class="app-name" routerLink="/leads">ZenLead</a>
+  <a class="app-name" [routerLink]="homeLink">ZenLead</a>
   <span class="spacer"></span>
   <span class="workspace-name">{{ workspaceName }}</span>
   <button mat-icon-button type="button" [matMenuTriggerFor]="account" aria-label="Account"><mat-icon>account_circle</mat-icon></button>

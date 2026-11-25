@@ -33,6 +33,10 @@ public class AuthController(
         {
             return Conflict(new { message = ex.Message });
         }
+        catch (WorkspaceNameTakenException ex)          // workspace names are unique since F19; F20 removes workspace creation here
+        {
+            return Conflict(new { message = ex.Message });
+        }
         catch (RegistrationFailedException ex)
         {
             var modelState = new ModelStateDictionary();

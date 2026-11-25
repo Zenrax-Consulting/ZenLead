@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, of, tap } from 'rxjs';
 import { AuthResponse, LoginRequest, RegisterRequest } from './auth.models';
+import { Claims, decodeClaims } from './jwt-claims';
 
 const REFRESH_TOKEN_KEY = 'zenlead_refresh_token';
 
@@ -17,6 +18,20 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return this.accessToken !== null;
+  }
+
+  /** Decoded access-token claims — UI hints only; the API enforces access. */
+  claims(): Claims | null {
+    return decodeClaims(this.accessToken);
+  }
+
+  isSuperAdmin(): boolean {
+    return this.claims()?.role === 'SuperAdmin';
+  }
+
+  /** Where a signed-in user belongs: the platform admin area for the super admin, the leads list for everyone else. */
+  homeRoute(): string {
+    return this.isSuperAdmin() ? '/admin/workspaces' : '/leads';
   }
 
   register(request: RegisterRequest): Observable<AuthResponse> {

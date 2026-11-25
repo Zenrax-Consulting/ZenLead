@@ -1,6 +1,9 @@
+using ZenLead.Domain.Enums;
+
 namespace ZenLead.Application.Abstractions;
 
 public interface IJwtTokenGenerator
 {
-    string GenerateAccessToken(Guid userId, Guid workspaceId, string email);
+    /// <summary>No <c>workspace_id</c> claim when <paramref name="workspaceId"/> is null; a <c>role</c> claim only for a platform role.</summary>
+    string GenerateAccessToken(Guid userId, Guid? workspaceId, string email, PlatformRole role = PlatformRole.None);
 }

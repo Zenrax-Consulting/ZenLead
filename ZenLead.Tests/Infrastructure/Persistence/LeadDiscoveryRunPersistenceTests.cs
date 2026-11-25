@@ -10,7 +10,7 @@ public class LeadDiscoveryRunPersistenceTests
     private static readonly DateTime Oct1 = new(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private static void Workspaces(ZenLeadDbContext ctx, params Guid[] ids)
-        => ctx.Workspaces.AddRange(ids.Select(id => new Workspace { Id = id, Name = "W", CreatedAt = DateTime.UtcNow }));
+        => ctx.Workspaces.AddRange(ids.Select(id => new Workspace { Id = id, Name = $"W-{id}", CreatedAt = DateTime.UtcNow }));
 
     private static LeadDiscoveryRun Run(Guid ws, DateTime createdAt, int credits, DiscoveryRunStatus status = DiscoveryRunStatus.Completed) => new()
     {

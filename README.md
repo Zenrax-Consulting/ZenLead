@@ -29,6 +29,15 @@ Optional overrides: `OpenAI:Model` (default `gpt-4o`), `OpenAI:PricePer1KInputUs
 
 Lead discovery (F14) settings: `LeadSource:Provider` (`Fake` default in Development; `Pdl` required outside it, with `LeadSource:Pdl:ApiKey`), `LeadSource:MonthlyCreditCap` (default 500, per workspace per UTC month, in the provider's credits), `LeadSource:MaxLeadsPerRun` (100) and `LeadSource:PageSize` (25). Background jobs use Hangfire in the same SQL Server database (`HangFire` schema, created on first start); set `Hangfire:Enabled=false` to boot without it. The job dashboard at `/hangfire` is reachable only through the "Job dashboard" account-menu item for emails listed in `Hangfire:AdminEmails` (`dotnet user-secrets set "Hangfire:AdminEmails:0" "you@example.com" --project ZenLead.Api`).
 
+Super admin (F19): the platform account that creates workspaces (and nothing else; it gets 403 on every tenant endpoint). It is created at startup from two secrets that **you choose and share with no one** — there are no defaults anywhere in the repo:
+
+```
+dotnet user-secrets set "SuperAdmin:Email" "<your super admin email>" --project ZenLead.Api
+dotnet user-secrets set "SuperAdmin:Password" "<at least 12 characters, upper/lower/digit/symbol, not containing the email name>" --project ZenLead.Api
+```
+
+Seeding is idempotent: once the account exists, changing `SuperAdmin:Password` does **not** change its password. Without the two keys the app logs a warning in Development and refuses to start in Production (until the account exists). The super admin signs in on the normal login page and lands on *Workspaces*; creating the first workspace (e.g. "Zenrax" with its admin email) happens there. After 5 wrong passwords any account is locked for 15 minutes. `App:PublicBaseUrl` (the SPA's public origin, used for links in emails) is set to `https://localhost:52618` in `appsettings.Development.json` and is required outside Development.
+
 CSV import (F15) stores uploaded files in blob storage. Locally that is Azurite (`Storage:ConnectionString` is `UseDevelopmentStorage=true` in `appsettings.Development.json`; not a secret). Install and start it before uploading:
 
 ```
