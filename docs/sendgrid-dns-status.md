@@ -6,13 +6,13 @@ Tracks Feature 17 (SendGrid domain & inbound DNS kickoff). Runbook: `plans/phase
 
 | Item | Value | Date | Status |
 |---|---|---|---|
-| SendGrid plan / trial end | not created yet (plan must include Inbound Parse + Event Webhook) | — | pending |
-| API key (restricted, Mail Send) | not created yet | — | pending |
+| SendGrid plan / trial end | 60-day free trial, ends 2027-01-24 (paid plan needed after that) | 2026-11-26 | ✔ active |
+| API key (restricted, Mail Send) | created, stored in user-secrets | 2026-11-26 | ✔ |
 | Domain auth `zenraxconsultancy.com` (root) | em####/s1/s2 CNAMEs not added yet | — | pending |
 | MX `reply.leads` → mx.sendgrid.net | prio 10, not added yet | — | pending |
 | Inbound Parse host | reply.leads.zenraxconsultancy.com → placeholder (`https://example.invalid/api/v1/webhooks/sendgrid/inbound?secret=PLACEHOLDER`), raw MIME off | — | pending |
 | DMARC (root) | not checked yet | — | pending |
-| Tracking settings | click off, subscription off, open on | — | pending |
+| Tracking settings | click off, subscription off, open on | 2026-11-26 | ✔ |
 | Sender identity | see decision below | 2026-11-26 | ✔ |
 
 ## Sender identity decision (PBI 17.3)
@@ -33,3 +33,4 @@ None. (If domain verification drags, Single Sender Verification with an owner-co
 ## Log
 
 - 2026-11-26 — Status doc created; sender identity recorded; `Email` defaults added to `appsettings.json`. Manual SendGrid/GoDaddy steps not started.
+- 2026-11-26 — SendGrid account created (trial ends 2027-01-24); restricted Mail Send key stored in user-secrets; tracking set (click off, subscription off, open on).
