@@ -518,6 +518,45 @@ namespace ZenLead.Infrastructure.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("ZenLead.Domain.Entities.RegistrationApproval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Decision")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("RegistrationApprovals");
+                });
+
             modelBuilder.Entity("ZenLead.Domain.Entities.TargetProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -601,6 +640,9 @@ namespace ZenLead.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -642,6 +684,9 @@ namespace ZenLead.Infrastructure.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
@@ -663,6 +708,8 @@ namespace ZenLead.Infrastructure.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.HasIndex("WorkspaceId");
+
+                    b.HasIndex("WorkspaceId", "Status");
 
                     b.ToTable("AspNetUsers", null, t =>
                         {
@@ -779,6 +826,15 @@ namespace ZenLead.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("ZenLead.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("ZenLead.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ZenLead.Domain.Entities.RegistrationApproval", b =>
                 {
                     b.HasOne("ZenLead.Infrastructure.Persistence.AppUser", null)
                         .WithMany()

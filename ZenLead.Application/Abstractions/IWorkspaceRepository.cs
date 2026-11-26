@@ -1,4 +1,5 @@
 using ZenLead.Application.Dtos.Admin;
+using ZenLead.Application.Dtos.Auth;
 using ZenLead.Domain.Entities;
 
 namespace ZenLead.Application.Abstractions;
@@ -17,6 +18,9 @@ public interface IWorkspaceRepository
 
     /// <summary>Platform view for the super admin: reads only Workspaces and a user count — never tenant tables.</summary>
     Task<IReadOnlyList<WorkspaceAdminResponse>> ListWithUserCountsAsync(CancellationToken ct = default);
+
+    /// <summary>Anonymous registration picker (F20): name contains <paramref name="q"/> (wildcards literal), ordered by name; id and name only.</summary>
+    Task<IReadOnlyList<WorkspaceOption>> SearchByNameAsync(string? q, int max, CancellationToken ct = default);
 }
 
 public class WorkspaceNameTakenException() : InvalidOperationException("A workspace with that name already exists.");

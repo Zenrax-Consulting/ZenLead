@@ -17,6 +17,21 @@ public static class RateLimiting
     public const string AuthPolicy = "auth";
     public const int AuthPermitsPerMinute = 20;
 
+    /// <summary>Registration requests (F20): 5 per 10 minutes per IP by default; override with RateLimits:RegisterPermitLimit.</summary>
+    public const string RegisterPolicy = "register";
+    public const int RegisterPermitsPerWindow = 5;
+    public static readonly TimeSpan RegisterWindow = TimeSpan.FromMinutes(10);
+
+    /// <summary>Anonymous workspace picker (F20): 30 per minute per IP by default; override with RateLimits:PickerPermitLimit.</summary>
+    public const string PickerPolicy = "picker";
+    public const int PickerPermitsPerMinute = 30;
+
+    /// <summary>Per-client-IP fixed window, for anonymous endpoints.</summary>
+    public static RateLimitPartition<string> PerIpPartition(HttpContext context, int permitLimit, TimeSpan window)
+        => RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = permitLimit, Window = window, QueueLimit = 0 });
+
     /// <summary>One fixed-window bucket per workspace, so one tenant can't burn the shared OpenAI budget.</summary>
     public static RateLimitPartition<string> ComposePartition(HttpContext context)
         => RateLimitPartition.GetFixedWindowLimiter(
@@ -52,12 +67,8 @@ public static class RateLimiting
 
     /// <summary>Per-client-IP bucket for login / register / refresh, to blunt credential guessing.</summary>
     public static RateLimitPartition<string> AuthPartition(HttpContext context)
-        => RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = AuthPermitsPerMinute,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            });
+        => AuthPartition(context, AuthPermitsPerMinute);
+
+    public static RateLimitPartition<string> AuthPartition(HttpContext context, int permitsPerMinute)
+        => PerIpPartition(context, permitsPerMinute, TimeSpan.FromMinutes(1));
 }

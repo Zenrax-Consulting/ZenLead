@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ZenLead.Application.Abstractions;
 using ZenLead.Application.Dtos.Admin;
+using ZenLead.Application.Dtos.Auth;
 using ZenLead.Domain.Entities;
 
 namespace ZenLead.Infrastructure.Persistence;
@@ -51,4 +52,18 @@ public class WorkspaceRepository(ZenLeadDbContext db) : IWorkspaceRepository
             .ToListAsync(ct);
         return rows.Select(r => new WorkspaceAdminResponse(r.Id, r.Name, r.AdminEmail, r.TimeZone, r.UserCount, r.CreatedAt)).ToList();
     }
+
+    public async Task<IReadOnlyList<WorkspaceOption>> SearchByNameAsync(string? q, int max, CancellationToken ct = default)
+    {
+        var query = db.Workspaces.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var like = $"%{EscapeLike(q.Trim())}%";
+            query = query.Where(w => EF.Functions.Like(w.Name, like, "\\"));
+        }
+        // project id + name only: the anonymous picker must never see AdminEmail
+        return await query.OrderBy(w => w.Name).Take(max).Select(w => new WorkspaceOption(w.Id, w.Name)).ToListAsync(ct);
+    }
+
+    private static string EscapeLike(string s) => s.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_").Replace("[", "\\[");
 }

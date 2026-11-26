@@ -1,10 +1,20 @@
 @ZenLead.Api_HostAddress = http://localhost:5114
 
-### Register (copy accessToken/refreshToken from the response)
+### Find a workspace (anonymous registration picker; id + name only)
+GET {{ZenLead.Api_HostAddress}}/api/v1/workspaces?q=zen
+
+### Request access (202, no tokens; the approval link is printed by the Log email sender)
 POST {{ZenLead.Api_HostAddress}}/api/v1/auth/register
 Content-Type: application/json
 
-{ "workspaceName": "Acme", "email": "owner@acme.test", "password": "Passw0rd!", "displayName": "Owner" }
+{ "workspaceId": "00000000-0000-0000-0000-000000000000", "email": "owner@acme.test", "password": "Passw0rd!", "displayName": "Owner" }
+
+### Approval link: info (never changes state), then approve or reject
+@approvalToken = paste-token-from-email
+GET {{ZenLead.Api_HostAddress}}/api/v1/auth/approvals/{{approvalToken}}
+
+###
+POST {{ZenLead.Api_HostAddress}}/api/v1/auth/approvals/{{approvalToken}}/approve
 
 ### Login
 POST {{ZenLead.Api_HostAddress}}/api/v1/auth/login

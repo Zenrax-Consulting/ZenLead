@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ZenLead.Application.Abstractions;
+using ZenLead.Application.Security;
 using ZenLead.Domain.Entities;
 using ZenLead.Infrastructure.Persistence;
 
@@ -49,6 +49,14 @@ public class RefreshTokenService(ZenLeadDbContext db) : IRefreshTokenService
         return new RefreshResult(true, existing.UserId, newRaw, null);
     }
 
+    public async Task RevokeAllAsync(Guid userId, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        await db.RefreshTokens
+            .Where(t => t.UserId == userId && t.RevokedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, now), ct);
+    }
+
     private static RefreshToken NewToken(Guid userId, string hash, DateTime now) => new()
     {
         Id = Guid.NewGuid(),
@@ -65,6 +73,5 @@ public class RefreshTokenService(ZenLeadDbContext db) : IRefreshTokenService
         return (raw, Hash(raw));
     }
 
-    private static string Hash(string raw)
-        => Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(raw)));
+    private static string Hash(string raw) => TokenHasher.Hash(raw);
 }

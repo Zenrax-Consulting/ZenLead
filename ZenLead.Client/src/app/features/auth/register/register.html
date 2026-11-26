@@ -1,9 +1,18 @@
 <mat-card class="auth-card">
-  <mat-card-title>Create your workspace</mat-card-title>
+  <mat-card-title>Request access</mat-card-title>
   <form [formGroup]="form" (ngSubmit)="submit()">
     <mat-form-field appearance="outline">
-      <mat-label>Workspace name</mat-label>
-      <input matInput formControlName="workspaceName">
+      <mat-label>Workspace</mat-label>
+      <input matInput formControlName="workspace" [matAutocomplete]="workspaceAuto" autocomplete="off">
+      <mat-autocomplete #workspaceAuto="matAutocomplete" [displayWith]="displayWith">
+        @for (option of options; track option.id) {
+          <mat-option [value]="option">{{ option.name }}</mat-option>
+        }
+      </mat-autocomplete>
+      <mat-hint>Start typing your organisation's name</mat-hint>
+      @if (workspaceCtrl.touched && workspaceCtrl.hasError('requiredOption')) {
+        <mat-error>Choose a workspace from the list.</mat-error>
+      }
     </mat-form-field>
     <mat-form-field appearance="outline">
       <mat-label>Your name</mat-label>
@@ -21,7 +30,7 @@
       <p class="auth-error">{{ errorMessage }}</p>
     }
     <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || submitting">
-      Register
+      Request access
     </button>
   </form>
   <p class="auth-switch">Already have an account? <a routerLink="/login">Log in</a></p>

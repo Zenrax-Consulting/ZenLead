@@ -43,7 +43,7 @@ public class SuperAdminSeeder(UserManager<AppUser> users, IOptions<SuperAdminOpt
         var user = new AppUser
         {
             UserName = email, Email = email, EmailConfirmed = true, DisplayName = "Platform admin",
-            PlatformRole = PlatformRole.SuperAdmin, WorkspaceId = null
+            PlatformRole = PlatformRole.SuperAdmin, WorkspaceId = null, Status = AppUserStatus.Active
         };
         var result = await users.CreateAsync(user, o.Password);
         if (!result.Succeeded)

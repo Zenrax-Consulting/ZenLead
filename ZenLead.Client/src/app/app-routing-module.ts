@@ -2,6 +2,8 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { Register } from './features/auth/register/register';
 import { Login } from './features/auth/login/login';
+import { RegisterPending } from './features/auth/register-pending/register-pending';
+import { Approve } from './features/auth/approve/approve';
 import { superAdminGuard, tenantGuard } from './core/auth/auth.guard';
 import { Shell } from './core/layout/shell/shell';
 import { ComingSoon } from './core/placeholder/coming-soon';
@@ -10,6 +12,8 @@ const routes: Routes = [
   { path: '', redirectTo: 'leads', pathMatch: 'full' },
   { path: 'login', component: Login },
   { path: 'register', component: Register },
+  { path: 'register/pending', component: RegisterPending },
+  { path: 'approve', component: Approve },          // public: the token in the link is the credential
   {
     path: '',
     component: Shell,

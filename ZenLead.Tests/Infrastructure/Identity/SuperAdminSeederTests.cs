@@ -45,6 +45,7 @@ public class SuperAdminSeederTests
         Assert.Equal(Email, admin.Email);
         Assert.Null(admin.WorkspaceId);
         Assert.True(admin.EmailConfirmed);
+        Assert.Equal(AppUserStatus.Active, admin.Status);              // F20: users default to pending; the seeder opts in explicitly
         Assert.True(await host.RunAsync(sp => sp.GetRequiredService<UserManager<AppUser>>().CheckPasswordAsync(admin, password)));
     }
 
@@ -140,7 +141,7 @@ public class SuperAdminSeederTests
             var ws = new Workspace { Id = Guid.NewGuid(), Name = "Acme", CreatedAt = DateTime.UtcNow };
             db.Workspaces.Add(ws);
             await db.SaveChangesAsync();
-            await sp.GetRequiredService<IIdentityService>().CreateUserAsync(ws.Id, email, StrongPassword(), "Member");
+            await sp.GetRequiredService<IIdentityService>().CreateUserAsync(ws.Id, email, StrongPassword(), "Member", AppUserStatus.Active);
         });
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SeedAsync(host));

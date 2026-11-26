@@ -122,7 +122,8 @@ public class TenantIsolationTests : IDisposable
         using var ctx = _db.CreateContext(null);
 
         var offenders = ctx.Model.GetEntityTypes()
-            .Where(t => t.ClrType != typeof(AppUser) && t.FindProperty("WorkspaceId") is not null)
+            // RegistrationApproval (F20) is read by an anonymous endpoint where the token is the credential; it is scoped by token hash
+            .Where(t => t.ClrType != typeof(AppUser) && t.ClrType != typeof(RegistrationApproval) && t.FindProperty("WorkspaceId") is not null)
             .Where(t => !typeof(ITenantEntity).IsAssignableFrom(t.ClrType))
             .Select(t => t.ClrType.Name)
             .ToList();

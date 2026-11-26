@@ -66,10 +66,22 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
     {
         builder.Property(u => u.DisplayName).HasMaxLength(200);
         builder.HasIndex(u => u.WorkspaceId);
+        builder.HasIndex(u => new { u.WorkspaceId, u.Status });          // pending-request cap (F20)
         builder.HasOne<Workspace>().WithMany().HasForeignKey(u => u.WorkspaceId).IsRequired(false).OnDelete(DeleteBehavior.Restrict);
         // a normal user can never exist without a workspace, even through a buggy code path
         builder.ToTable(t => t.HasCheckConstraint("CK_AspNetUsers_WorkspaceOrSuperAdmin",
             $"[WorkspaceId] IS NOT NULL OR [PlatformRole] = {(int)PlatformRole.SuperAdmin}"));
+    }
+}
+
+public class RegistrationApprovalConfiguration : IEntityTypeConfiguration<RegistrationApproval>
+{
+    public void Configure(EntityTypeBuilder<RegistrationApproval> builder)
+    {
+        builder.Property(a => a.TokenHash).HasMaxLength(64); // Base64 SHA-256 = 44 chars
+        builder.HasIndex(a => a.TokenHash).IsUnique();
+        builder.HasIndex(a => new { a.UserId, a.CreatedAt });
+        builder.HasOne<AppUser>().WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

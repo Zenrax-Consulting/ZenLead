@@ -34,10 +34,9 @@ export class AuthService {
     return this.isSuperAdmin() ? '/admin/workspaces' : '/leads';
   }
 
-  register(request: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>('/api/v1/auth/register', request).pipe(
-      tap(response => this.storeSession(response))
-    );
+  /** Asks to join a workspace. Answers 202 with no tokens: the account stays unusable until the workspace admin approves it. */
+  register(request: RegisterRequest): Observable<void> {
+    return this.http.post<void>('/api/v1/auth/register', request);
   }
 
   login(request: LoginRequest): Observable<AuthResponse> {
