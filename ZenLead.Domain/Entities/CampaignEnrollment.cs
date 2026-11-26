@@ -14,5 +14,6 @@ public class CampaignEnrollment : ITenantEntity
     public DateTime EnrolledAt { get; set; }
     public DateTime? LastSentAt { get; set; }
     public string? FailureReason { get; set; }
+    public int SendAttempts { get; set; }                     // consecutive retryable provider failures for the current step (F23)
     public Lead? Lead { get; set; }
 }

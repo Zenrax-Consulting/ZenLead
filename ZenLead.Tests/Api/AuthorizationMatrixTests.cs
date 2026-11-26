@@ -29,7 +29,10 @@ public class AuthorizationMatrixTests(ApiFactory factory) : IClassFixture<ApiFac
         "POST api/v1/auth/approvals/{token}/reject",
         // F21: forgot/reset password (anonymous; the reset token is the credential)
         "POST api/v1/auth/forgot-password",
-        "POST api/v1/auth/reset-password"
+        "POST api/v1/auth/reset-password",
+        // F23: unsubscribe page (read-only GET) and the RFC 8058 one-click POST; the signed token is the credential
+        "GET api/v1/unsubscribe/{token}",
+        "POST api/v1/unsubscribe/{token}"
     ];
 
     private static readonly HashSet<string?> KnownPolicies = [null, Policies.AnyUser, Policies.SuperAdminOnly];

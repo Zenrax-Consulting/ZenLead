@@ -33,7 +33,14 @@ public class NullWorkspaceTests : IDisposable
             Steps = [new CampaignStep { Id = Guid.NewGuid(), WorkspaceId = _ws, Order = 1, SubjectTemplate = "s", BodyTemplate = "b" }]
         };
         ctx.Campaigns.Add(campaign);
-        ctx.CampaignEnrollments.Add(new CampaignEnrollment { Id = Guid.NewGuid(), WorkspaceId = _ws, CampaignId = campaign.Id, LeadId = lead.Id, EnrolledAt = now });
+        var enrollment = new CampaignEnrollment { Id = Guid.NewGuid(), WorkspaceId = _ws, CampaignId = campaign.Id, LeadId = lead.Id, EnrolledAt = now };
+        ctx.CampaignEnrollments.Add(enrollment);
+        ctx.EmailMessages.Add(new EmailMessage
+        {
+            Id = Guid.NewGuid(), WorkspaceId = _ws, CampaignId = campaign.Id, EnrollmentId = enrollment.Id, StepId = campaign.Steps[0].Id,
+            LeadId = lead.Id, Subject = "s", Body = "b", QueuedAt = now
+        });
+        ctx.SuppressedEmails.Add(new SuppressedEmail { Id = Guid.NewGuid(), WorkspaceId = _ws, Email = "gone@x.com", CreatedAt = now });
         ctx.SaveChanges();
     }
 

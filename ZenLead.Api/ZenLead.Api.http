@@ -133,3 +133,16 @@ Authorization: Bearer <paste access token>
 ### Campaigns: pause
 POST {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/pause
 Authorization: Bearer <paste access token>
+
+### AI: token usage and this month's budget (F23.3) — budget.state is Ok | Warning | Exceeded
+GET {{ZenLead.Api_HostAddress}}/api/v1/ai/token-usage
+Authorization: Bearer <paste access token>
+
+### Unsubscribe (public, F23): what the landing page shows — read-only, never changes anything
+GET {{ZenLead.Api_HostAddress}}/api/v1/unsubscribe/<token from an email footer>
+
+### Unsubscribe (public, F23): confirm — also the RFC 8058 one-click target of the List-Unsubscribe header (204; bad token 404)
+POST {{ZenLead.Api_HostAddress}}/api/v1/unsubscribe/<token from an email footer>
+Content-Type: application/x-www-form-urlencoded
+
+List-Unsubscribe=One-Click

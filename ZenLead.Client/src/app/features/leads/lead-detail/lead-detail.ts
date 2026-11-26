@@ -10,6 +10,7 @@ import { LeadsService } from '../leads.service';
 import { ProfileDraftService } from '../profiles/profile-draft.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { environment } from '../../../../environments/environment';
+import { AiUsageService } from '../../../core/ai/ai-usage.service';
 
 type ComposeState = 'idle' | 'loading' | 'error' | 'done';
 
@@ -26,6 +27,8 @@ export class LeadDetail implements OnInit {
   draft: ComposedEmail | null = null;
   composeState: ComposeState = 'idle';
   composeErrorMessage: string | null = null;
+  /** The workspace's monthly AI budget is used up: drafts are disabled until it resets. */
+  aiBudgetExceeded = false;
 
   editing = false;
   saving = false;
@@ -42,7 +45,8 @@ export class LeadDetail implements OnInit {
     private router: Router,
     private selection: LeadSelectionService,
     private profiles: ProfilesService,
-    private drafts: ProfileDraftService
+    private drafts: ProfileDraftService,
+    private aiUsage: AiUsageService
   ) {
     this.form = fb.group({
       name: ['', Validators.required],
@@ -74,15 +78,21 @@ export class LeadDetail implements OnInit {
   }
 
   generateDraft(): void {
-    if (!this.lead) return;
+    if (!this.lead || this.aiBudgetExceeded) return;
     this.composeState = 'loading';
     this.composeErrorMessage = null;
 
     this.leadsService.composeEmail(this.lead.id).subscribe({
-      next: draft => { this.draft = draft; this.composeState = 'done'; this.cdr.markForCheck(); },
+      next: draft => { this.draft = draft; this.composeState = 'done'; this.aiUsage.refresh(); this.cdr.markForCheck(); },
       error: err => {
         this.composeState = 'error';
-        this.composeErrorMessage = LeadDetail.composeErrorFor(err.status);
+        if (err.status === 429 && err.error?.code === 'ai_budget_exceeded') {
+          this.aiBudgetExceeded = true;
+          this.composeErrorMessage = err.error.message ?? "This workspace's monthly AI budget has been used.";
+          this.aiUsage.refresh();
+        } else {
+          this.composeErrorMessage = LeadDetail.composeErrorFor(err.status);
+        }
         this.cdr.markForCheck();
       }
     });

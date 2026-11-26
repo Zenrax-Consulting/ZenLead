@@ -1,0 +1,6 @@
+@if (message) {
+  <div class="ai-budget-banner" [class.exceeded]="budget?.state === 'Exceeded'" role="status">
+    <mat-icon>{{ budget?.state === 'Exceeded' ? 'block' : 'warning' }}</mat-icon>
+    <span>{{ message }}</span>
+  </div>
+}

@@ -19,7 +19,11 @@ public class EfTokenUsageTracker(ZenLeadDbContext db, ILogger<EfTokenUsageTracke
             PromptTokens = entry.PromptTokens,
             CompletionTokens = entry.CompletionTokens,
             EstimatedCostUsd = entry.EstimatedCostUsd,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Purpose = entry.Purpose,
+            CampaignId = entry.CampaignId,
+            EnrollmentId = entry.EnrollmentId,
+            Succeeded = entry.Succeeded
         });
         await db.SaveChangesAsync(ct);
         logger.LogInformation("AI usage recorded: {Prompt}+{Completion} tokens, ~${Cost} for workspace {WorkspaceId}",

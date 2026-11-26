@@ -63,6 +63,11 @@ public class LeadRepository(ZenLeadDbContext db) : ILeadRepository
 
     private static string EscapeLike(string s) => s.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_").Replace("[", "\\[");
 
+    public Task<Lead?> GetForJobAsync(Guid workspaceId, Guid leadId, CancellationToken ct = default)
+        => db.Leads.IgnoreQueryFilters([ZenLeadDbContext.TenantFilter, ZenLeadDbContext.SoftDeleteFilter])
+            .Where(l => l.WorkspaceId == workspaceId).Include(l => l.Company)
+            .FirstOrDefaultAsync(l => l.Id == leadId, ct);
+
     public async Task UpdateAsync(Lead lead, CancellationToken ct = default)
     {
         lead.UpdatedAt = DateTime.UtcNow;

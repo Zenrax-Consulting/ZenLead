@@ -159,11 +159,17 @@ namespace ZenLead.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("CompletionTokens")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("EnrollmentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("EstimatedCostUsd")
                         .HasPrecision(18, 6)
@@ -177,12 +183,22 @@ namespace ZenLead.Infrastructure.Migrations
                     b.Property<int>("PromptTokens")
                         .HasColumnType("int");
 
+                    b.Property<int>("Purpose")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Succeeded")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<Guid>("WorkspaceId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("WorkspaceId");
+
+                    b.HasIndex("WorkspaceId", "CreatedAt");
 
                     b.ToTable("AiUsageLogs");
                 });
@@ -303,6 +319,9 @@ namespace ZenLead.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("NextStepOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SendAttempts")
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
@@ -481,6 +500,83 @@ namespace ZenLead.Infrastructure.Migrations
                     b.HasIndex("WorkspaceId", "CreatedAt");
 
                     b.ToTable("CsvImportBatches");
+                });
+
+            modelBuilder.Entity("ZenLead.Domain.Entities.EmailMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("BouncedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("LeadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("OpenedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("QueuedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SmtpMessageId")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StepId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<bool>("UsedAi")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProviderMessageId");
+
+                    b.HasIndex("EnrollmentId", "StepId")
+                        .IsUnique();
+
+                    b.HasIndex("WorkspaceId", "QueuedAt");
+
+                    b.HasIndex("WorkspaceId", "CampaignId", "SentAt");
+
+                    b.ToTable("EmailMessages");
                 });
 
             modelBuilder.Entity("ZenLead.Domain.Entities.Lead", b =>
@@ -736,6 +832,37 @@ namespace ZenLead.Infrastructure.Migrations
                     b.HasIndex("UserId", "CreatedAt");
 
                     b.ToTable("RegistrationApprovals");
+                });
+
+            modelBuilder.Entity("ZenLead.Domain.Entities.SuppressedEmail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("SourceLeadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkspaceId", "Email")
+                        .IsUnique();
+
+                    b.ToTable("SuppressedEmails");
                 });
 
             modelBuilder.Entity("ZenLead.Domain.Entities.TargetProfile", b =>
@@ -1023,6 +1150,21 @@ namespace ZenLead.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ZenLead.Domain.Entities.EmailMessage", b =>
+                {
+                    b.HasOne("ZenLead.Domain.Entities.CampaignEnrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZenLead.Domain.Entities.Workspace", null)
+                        .WithMany()
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ZenLead.Domain.Entities.Lead", b =>
                 {
                     b.HasOne("ZenLead.Domain.Entities.Company", "Company")
@@ -1077,6 +1219,15 @@ namespace ZenLead.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ZenLead.Domain.Entities.SuppressedEmail", b =>
+                {
+                    b.HasOne("ZenLead.Domain.Entities.Workspace", null)
+                        .WithMany()
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

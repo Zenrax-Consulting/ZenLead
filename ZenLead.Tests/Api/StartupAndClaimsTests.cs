@@ -12,6 +12,7 @@ using ZenLead.Application.Validation.Ai;
 using ZenLead.Application.Validation.Leads;
 using ZenLead.Application.Dtos.Leads;
 using ZenLead.Tests.Application.Ai;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Api;
 
@@ -62,6 +63,23 @@ public class StartupConfigurationTests
 
         Assert.Contains(StartupConfiguration.Validate(Config(values), isDevelopment: false), p => p.Contains("LeadSource:Provider"));
         Assert.Empty(StartupConfiguration.Validate(Config(values), isDevelopment: true));
+    }
+
+    [Theory]
+    [InlineData("Lve", false)]
+    [InlineData("Production", false)]
+    [InlineData("Restricted", true)]
+    [InlineData("live", true)]
+    [InlineData(null, true)]
+    public void Validate_UnknownSendingMode_FailsStartup(string? mode, bool ok)
+    {
+        var values = Valid();
+        values["Sending:Mode"] = mode;
+
+        var problems = StartupConfiguration.Validate(Config(values));
+
+        if (ok) Assert.DoesNotContain(problems, p => p.Contains("Sending:Mode"));
+        else Assert.Contains(problems, p => p.Contains("Sending:Mode"));
     }
 
     [Fact]
@@ -167,7 +185,7 @@ public class MissingWorkspaceClaimTests
     public async Task LeadsController_MissingOrMalformedWorkspaceClaim_Returns401(string? claimValue)
     {
         var store = new ZenLead.Tests.Application.Leads.FakeLeadIngestionStore();
-        var controller = new LeadsController(new FakeLeadRepository(), new ZenLead.Application.Leads.LeadIngestionService(store), store,
+        var controller = new LeadsController(new FakeLeadRepository(), new ZenLead.Application.Leads.LeadIngestionService(store, new FakeSuppressionList()), store,
             new CreateLeadRequestValidator(), new UpdateLeadRequestValidator(), new LeadQueryValidator());
         SetUser(controller, claimValue is null ? [] : [new Claim("workspace_id", claimValue)]);
 
@@ -179,8 +197,8 @@ public class MissingWorkspaceClaimTests
     public async Task AiController_MissingWorkspaceClaim_Returns401()
     {
         var usage = new FakeTokenUsageTracker();
-        var useCase = new ComposeEmailUseCase(new FakeLeadRepositoryForAi(), new FakeEmailComposer(), usage, new AiPricing());
-        var controller = new AiController(useCase, new ComposeEmailRequestValidator(), usage);
+        var useCase = new ComposeEmailUseCase(new FakeLeadRepositoryForAi(), new FakeEmailComposer(), usage, new AiPricing(), new FakeAiBudget());
+        var controller = new AiController(useCase, new ComposeEmailRequestValidator(), usage, new FakeAiBudget());
         SetUser(controller);
 
         Assert.IsType<UnauthorizedResult>((await controller.ComposeEmail(new ComposeEmailApiRequest(Guid.NewGuid(), null), CancellationToken.None)).Result);

@@ -74,6 +74,14 @@ public class CampaignEnrollmentRepository(ZenLeadDbContext db) : ICampaignEnroll
         return new PagedResult<CampaignEnrollment>(items, total, page, pageSize);
     }
 
+    public async Task<int> StopAllForLeadAsync(Guid workspaceId, Guid leadId, EnrollmentRules.StopEvent stop, CancellationToken ct = default)
+    {
+        var live = await db.CampaignEnrollments.ForWorkspace(workspaceId)
+            .Where(e => e.LeadId == leadId && (e.Status == EnrollmentStatus.Active || e.Status == EnrollmentStatus.Paused))
+            .ToListAsync(ct);
+        return live.Count(e => EnrollmentRules.ApplyStop(e, stop));
+    }
+
     public async Task<EnrollmentCounts> CountsAsync(Guid campaignId, CancellationToken ct = default)
     {
         var byStatus = await db.CampaignEnrollments.AsNoTracking().Where(e => e.CampaignId == campaignId)

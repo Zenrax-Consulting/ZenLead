@@ -1,6 +1,7 @@
 using ZenLead.Application.Leads;
 using ZenLead.Domain.Entities;
 using ZenLead.Domain.Enums;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Application.Leads;
 
@@ -10,7 +11,8 @@ public class LeadIngestionServiceTests
     private readonly FakeLeadIngestionStore _store = new();
     private readonly Guid _ws = Guid.NewGuid();
 
-    private LeadIngestionService Sut => new(_store);
+    private readonly FakeSuppressionList _suppression = new();
+    private LeadIngestionService Sut => new(_store, _suppression);
 
     private static CandidateLead Row(string? email, string? name = "Jane", string? company = null, string? domain = null,
         string? industry = null, string? country = null, EmailVerificationStatus v = EmailVerificationStatus.Unverified)
@@ -162,5 +164,19 @@ public class LeadIngestionServiceTests
         Assert.Equal(LeadSource.Discovery, lead.Source);
         Assert.Equal(run, lead.SourceRunId);
         Assert.Equal(LeadStatus.New, lead.Status);
+    }
+
+    [Fact]
+    public async Task Address_on_the_suppression_list_is_reported_suppressed_and_not_inserted()
+    {
+        _suppression.Add(_ws, "gone@acme.com");
+        _suppression.Add(Guid.NewGuid(), "other-tenant@acme.com");             // another workspace's list doesn't apply
+
+        var summary = await Sut.IngestAsync(_ws, [Row("Gone@Acme.com"), Row("other-tenant@acme.com")], Src);
+
+        Assert.Equal(IngestionOutcome.Suppressed, summary.Rows[0].Outcome);
+        Assert.Equal("On suppression list", summary.Rows[0].Reason);
+        Assert.Equal(IngestionOutcome.Imported, summary.Rows[1].Outcome);
+        Assert.Equal(["other-tenant@acme.com"], _store.Leads.Select(l => l.Email));
     }
 }

@@ -43,7 +43,8 @@ public sealed class CampaignHarness : IDisposable
 
         public CampaignsUseCase Manage => new(Campaigns, Enrollments, Leads, Workspaces, h.Clock);
         public CampaignStepsUseCase Steps => new(Campaigns, Enrollments, new EfUnitOfWork(Db));
-        public EnrollLeadsUseCase Enroll => new(Campaigns, Enrollments, Leads, Workspaces, h.Clock);
+        public SuppressionList Suppression { get; } = new(db, h.Clock);
+        public EnrollLeadsUseCase Enroll => new(Campaigns, Enrollments, Leads, Workspaces, Suppression, h.Clock);
         public ActivateCampaignUseCase Activate => new(Campaigns, Enrollments, Workspaces, new EfUnitOfWork(Db), Options.Create(h.Email), h.Clock);
         public PauseCampaignUseCase Pause => new(Campaigns);
     }

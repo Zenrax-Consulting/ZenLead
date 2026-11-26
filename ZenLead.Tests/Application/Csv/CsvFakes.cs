@@ -7,6 +7,7 @@ using ZenLead.Domain.Entities;
 using ZenLead.Infrastructure.Csv;
 using ZenLead.Tests.Application.Discovery;
 using ZenLead.Tests.Application.Leads;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Application.Csv;
 
@@ -82,7 +83,7 @@ public class CsvImportHarness
 
     public CreateCsvImportUseCase Create => new(Blobs, Reader, Batches, TimeProvider.System);
     public StartCsvImportUseCase Start => new(Blobs, Reader, Batches, Scheduler, TimeProvider.System);
-    public ProcessCsvImportUseCase Process => new(Batches, Blobs, Reader, new LeadIngestionService(IngestionStore), TimeProvider.System);
+    public ProcessCsvImportUseCase Process => new(Batches, Blobs, Reader, new LeadIngestionService(IngestionStore, new FakeSuppressionList()), TimeProvider.System);
 
     public static ColumnMapping DefaultMapping { get; } = new(null, "First", "Last", "Email", "Title", "Company", null, null, null, null);
 

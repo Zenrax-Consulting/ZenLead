@@ -160,4 +160,23 @@ public class EnrollLeadsUseCaseTests : IDisposable
         Assert.Equal(CampaignOutcomeKind.NotFound, (await Enroll(theirs.Id, [lead.Id])).Kind);
         Assert.Empty(await _h.EnrollmentsOf(theirs.Id));
     }
+
+    [Fact]
+    public async Task Address_on_the_suppression_list_is_skipped_as_suppressed()
+    {
+        var campaign = await _h.AddCampaignAsync(steps: Step());
+        var ok = await _h.AddLeadAsync("Jane Doe");
+        var listed = await _h.AddLeadAsync("Listed Lead");
+        await _h.Run(async s =>
+        {
+            await s.Suppression.AddAsync(_h.WorkspaceA, listed.Email, SuppressionReason.SpamReport, null, CancellationToken.None);
+            return 0;
+        });
+
+        var result = (await Enroll(campaign.Id, [ok.Id, listed.Id])).Value!;
+
+        Assert.Equal(1, result.Enrolled);
+        Assert.Equal(1, result.SkippedSuppressed);
+        Assert.Equal([ok.Id], (await _h.EnrollmentsOf(campaign.Id)).Select(e => e.LeadId));
+    }
 }

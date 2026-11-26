@@ -37,6 +37,8 @@ using ZenLead.Domain.Enums;
 using ZenLead.Application.Auth;
 using ZenLead.Application.UseCases.Campaigns;
 using ZenLead.Infrastructure.Security;
+using ZenLead.Application.Sending;
+using ZenLead.Application.UseCases.Sending;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -118,11 +120,13 @@ builder.Services.AddRateLimiter(options =>
     var authPermits = builder.Configuration.GetValue("RateLimits:AuthPermitLimit", RateLimiting.AuthPermitsPerMinute);
     var registerPermits = builder.Configuration.GetValue("RateLimits:RegisterPermitLimit", RateLimiting.RegisterPermitsPerWindow);
     var pickerPermits = builder.Configuration.GetValue("RateLimits:PickerPermitLimit", RateLimiting.PickerPermitsPerMinute);
+    var unsubscribePermits = builder.Configuration.GetValue("RateLimits:UnsubscribePermitLimit", RateLimiting.UnsubscribePermitsPerMinute);
     options.AddPolicy(RateLimiting.AuthPolicy, ctx => RateLimiting.AuthPartition(ctx, authPermits));
     options.AddPolicy(RateLimiting.RegisterPolicy, ctx => RateLimiting.PerIpPartition(ctx, registerPermits, RateLimiting.RegisterWindow));
     options.AddPolicy(RateLimiting.PickerPolicy, ctx => RateLimiting.PerIpPartition(ctx, pickerPermits, TimeSpan.FromMinutes(1)));
     var forgotPermits = builder.Configuration.GetValue("RateLimits:ForgotPermitLimit", RateLimiting.ForgotPermitsPerWindow);
     options.AddPolicy(RateLimiting.ForgotPolicy, ctx => RateLimiting.PerIpPartition(ctx, forgotPermits, RateLimiting.ForgotWindow));
+    options.AddPolicy(RateLimiting.UnsubscribePolicy, ctx => RateLimiting.PerIpPartition(ctx, unsubscribePermits, TimeSpan.FromMinutes(1)));
     options.OnRejected = (context, _) =>
     {
         context.HttpContext.Response.Headers.RetryAfter = "60";
@@ -216,6 +220,16 @@ builder.Services.AddScoped<EnrollLeadsUseCase>();
 builder.Services.AddScoped<ActivateCampaignUseCase>();
 builder.Services.AddScoped<PauseCampaignUseCase>();
 
+// sending engine (F23): the campaign sender, suppression list, public unsubscribe and the monthly AI soft cap
+builder.Services.Configure<SendingOptions>(builder.Configuration.GetSection(SendingOptions.SectionName));
+builder.Services.Configure<AiBudgetOptions>(builder.Configuration.GetSection(AiBudgetOptions.SectionName));
+builder.Services.AddScoped<ISenderStore, SenderStore>();
+builder.Services.AddScoped<ISuppressionList, SuppressionList>();
+builder.Services.AddScoped<IAiBudget, EfAiBudget>();
+builder.Services.AddScoped<SendDueEmailsUseCase>();
+builder.Services.AddScoped<UnsubscribeUseCase>();
+builder.Services.AddScoped<CampaignSenderJob>();
+
 // background jobs; the switch lets endpoint tests boot without SQL Server
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
 if (hangfireEnabled)
@@ -248,6 +262,18 @@ builder.Services.AddScoped<ChangePasswordUseCase>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
 var app = builder.Build();
+
+// loud on purpose: Restricted (the default) only ever mails the allow-list; Live mails real prospects
+var sendingOptions = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<SendingOptions>>().Value;
+app.Logger.LogWarning("Campaign sending mode: {Mode}{Detail}", sendingOptions.Mode, sendingOptions.Mode == SendingMode.Live
+    ? " - campaign email goes to real recipients."
+    : $" - only {sendingOptions.RecipientAllowList.Length} allow-listed address/domain entr(y/ies) can receive campaign email (an empty list mails nobody).");
+
+if (hangfireEnabled && sendingOptions.Enabled)
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<CampaignSenderJob>(CampaignSenderJob.RecurringJobId, j => j.ExecuteAsync(CancellationToken.None), Cron.Minutely());
+else if (hangfireEnabled)
+    app.Services.GetRequiredService<IRecurringJobManager>().RemoveIfExists(CampaignSenderJob.RecurringJobId);
 
 // endpoint tests set Seed:SuperAdmin=false and seed explicitly
 if (app.Configuration.GetValue("Seed:SuperAdmin", true))

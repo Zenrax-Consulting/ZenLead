@@ -43,3 +43,32 @@ public class CampaignEnrollmentConfiguration : IEntityTypeConfiguration<Campaign
         builder.HasOne(e => e.Lead).WithMany().HasForeignKey(e => e.LeadId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+public class EmailMessageConfiguration : IEntityTypeConfiguration<EmailMessage>
+{
+    public void Configure(EntityTypeBuilder<EmailMessage> builder)
+    {
+        builder.Property(m => m.Subject).HasMaxLength(300);
+        builder.Property(m => m.Body);                                          // nvarchar(max)
+        builder.Property(m => m.Error).HasMaxLength(500);
+        builder.Property(m => m.ProviderMessageId).HasMaxLength(200);
+        builder.Property(m => m.SmtpMessageId).HasMaxLength(500);
+        builder.HasIndex(m => new { m.EnrollmentId, m.StepId }).IsUnique();    // the double-send guard (F23)
+        builder.HasIndex(m => new { m.WorkspaceId, m.CampaignId, m.SentAt });   // per-campaign stats (F28)
+        builder.HasIndex(m => new { m.WorkspaceId, m.QueuedAt });               // the daily caps
+        builder.HasIndex(m => m.ProviderMessageId);
+        builder.HasOne<Workspace>().WithMany().HasForeignKey(m => m.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+        // history survives: an enrollment with sent mail can't be hard-deleted
+        builder.HasOne<CampaignEnrollment>().WithMany().HasForeignKey(m => m.EnrollmentId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SuppressedEmailConfiguration : IEntityTypeConfiguration<SuppressedEmail>
+{
+    public void Configure(EntityTypeBuilder<SuppressedEmail> builder)
+    {
+        builder.Property(s => s.Email).HasMaxLength(256);
+        builder.HasIndex(s => new { s.WorkspaceId, s.Email }).IsUnique();
+        builder.HasOne<Workspace>().WithMany().HasForeignKey(s => s.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+    }
+}

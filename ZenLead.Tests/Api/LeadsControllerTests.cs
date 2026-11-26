@@ -9,6 +9,7 @@ using ZenLead.Application.Validation.Leads;
 using ZenLead.Domain.Entities;
 using ZenLead.Domain.Enums;
 using ZenLead.Tests.Application.Leads;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Api;
 
@@ -28,6 +29,8 @@ public class FakeLeadRepository : ILeadRepository
         => Task.FromResult<IReadOnlyList<Lead>>(_leads.Values.Where(l => l.WorkspaceId == workspaceId && ids.Contains(l.Id)).ToList());
     public Task<IReadOnlyList<Guid>> ListIdsAsync(Guid workspaceId, LeadQuery query, int max, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Guid>>(_leads.Values.Where(l => l.WorkspaceId == workspaceId).Select(l => l.Id).Take(max).ToList());
+    public Task<Lead?> GetForJobAsync(Guid workspaceId, Guid leadId, CancellationToken ct = default)
+        => Task.FromResult(_leads.GetValueOrDefault(leadId) is { } l && l.WorkspaceId == workspaceId ? l : null);
     public Task UpdateAsync(Lead lead, CancellationToken ct = default) => Task.CompletedTask;
     public Task SoftDeleteAsync(Lead lead, CancellationToken ct = default) { _leads.Remove(lead.Id); return Task.CompletedTask; }
 }
@@ -37,7 +40,7 @@ public class LeadsControllerTests
     private static LeadsController BuildController(FakeLeadRepository repo, Guid callerWorkspaceId)
     {
         var store = new FakeLeadIngestionStore { OnInserted = repo.Seed };
-        var controller = new LeadsController(repo, new LeadIngestionService(store), store,
+        var controller = new LeadsController(repo, new LeadIngestionService(store, new FakeSuppressionList()), store,
             new CreateLeadRequestValidator(), new UpdateLeadRequestValidator(), new LeadQueryValidator());
         var identity = new ClaimsIdentity([new Claim("workspace_id", callerWorkspaceId.ToString())], "test");
         controller.ControllerContext = new ControllerContext

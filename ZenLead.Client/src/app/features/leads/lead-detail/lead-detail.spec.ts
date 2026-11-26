@@ -9,6 +9,7 @@ import { LeadsService } from '../leads.service';
 import { Lead } from '../leads.models';
 import { ProfileDraftService } from '../profiles/profile-draft.service';
 import { ProfilesService } from '../profiles/profiles.service';
+import { AiUsageService } from '../../../core/ai/ai-usage.service';
 
 const lead: Lead = {
   id: 'l1', name: 'Jane', email: 'jane@acme.com', title: 'CTO', status: 'New', createdAt: '2026-10-07T00:00:00Z',
@@ -19,18 +20,19 @@ describe('LeadDetail', () => {
   const navigate = vi.fn();
   const confirmResult = { value: true };
   const dialog = { open: () => ({ afterClosed: () => of(confirmResult.value) }) };
+  const aiUsage = { refresh: vi.fn() };
 
   const build = (service: Partial<LeadsService>) => {
     const route = { snapshot: { paramMap: { get: () => 'l1' } } } as unknown as ActivatedRoute;
     const component = new LeadDetail(
       route, service as LeadsService, { markForCheck: vi.fn() } as unknown as ChangeDetectorRef,
       new FormBuilder(), dialog as unknown as MatDialog, { navigate } as unknown as Router, new LeadSelectionService(),
-      {} as ProfilesService, new ProfileDraftService());
+      {} as ProfilesService, new ProfileDraftService(), aiUsage as unknown as AiUsageService);
     component.ngOnInit();
     return component;
   };
 
-  beforeEach(() => { navigate.mockClear(); confirmResult.value = true; });
+  beforeEach(() => { navigate.mockClear(); aiUsage.refresh.mockClear(); confirmResult.value = true; });
 
   it('loads the lead', () => {
     const component = build({ getById: () => of(lead) });
@@ -50,6 +52,23 @@ describe('LeadDetail', () => {
 
     expect(component.composeState).toBe('done');
     expect(component.draft).toEqual(draft);
+    expect(aiUsage.refresh).toHaveBeenCalled();                     // the budget banner reflects the new spend
+  });
+
+  it('shows the budget message and disables drafts when the AI budget is used up', () => {
+    const message = "This workspace's monthly AI budget has been used. It resets on 1 December 2026.";
+    const compose = vi.fn(() => throwError(() => ({ status: 429, error: { code: 'ai_budget_exceeded', message } })));
+    const component = build({ getById: () => of(lead), composeEmail: compose });
+
+    component.generateDraft();
+
+    expect(component.composeErrorMessage).toBe(message);
+    expect(component.composeErrorMessage).not.toContain('Too many draft requests');
+    expect(component.aiBudgetExceeded).toBe(true);
+    expect(aiUsage.refresh).toHaveBeenCalled();
+
+    component.generateDraft();
+    expect(compose).toHaveBeenCalledTimes(1);                       // the button is disabled; a stray call does nothing
   });
 
   it.each([

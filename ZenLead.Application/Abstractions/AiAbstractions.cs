@@ -1,3 +1,5 @@
+using ZenLead.Domain.Enums;
+
 namespace ZenLead.Application.Abstractions;
 
 public enum AiProviderFailureKind
@@ -30,7 +32,9 @@ public class AiPricing
         => promptTokens / 1000m * PricePer1KInputUsd + completionTokens / 1000m * PricePer1KOutputUsd;
 }
 
-public record AiUsageEntry(Guid WorkspaceId, string Model, int PromptTokens, int CompletionTokens, decimal EstimatedCostUsd);
+/// <param name="Succeeded">False when the provider billed a call whose reply was unusable (the spend still counts).</param>
+public record AiUsageEntry(Guid WorkspaceId, string Model, int PromptTokens, int CompletionTokens, decimal EstimatedCostUsd,
+    AiPurpose Purpose = AiPurpose.Compose, Guid? CampaignId = null, Guid? EnrollmentId = null, bool Succeeded = true);
 public record AiUsageSummary(int Calls, long TotalTokens, decimal EstimatedCostUsd);
 
 public interface ITokenUsageTracker

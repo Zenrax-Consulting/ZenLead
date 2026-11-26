@@ -26,5 +26,10 @@
       }
     </mat-nav-list>
   </mat-sidenav>
-  <mat-sidenav-content><router-outlet></router-outlet></mat-sidenav-content>
+  <mat-sidenav-content>
+    @if (!isSuperAdmin) {
+      <app-ai-budget-banner></app-ai-budget-banner>
+    }
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
 </mat-sidenav-container>

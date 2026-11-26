@@ -42,6 +42,9 @@ public class FakeLeadRepositoryForAi : ILeadRepository
     public Task<IReadOnlyList<Guid>> ListIdsAsync(Guid workspaceId, LeadQuery query, int max, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Guid>>(_leads.Values.Where(l => l.WorkspaceId == workspaceId).Select(l => l.Id).Take(max).ToList());
 
+    public Task<Lead?> GetForJobAsync(Guid workspaceId, Guid leadId, CancellationToken ct = default)
+        => Task.FromResult(_leads.GetValueOrDefault(leadId) is { } l && l.WorkspaceId == workspaceId ? l : null);
+
     public Task UpdateAsync(Lead lead, CancellationToken ct = default) => Task.CompletedTask;
 
     public Task SoftDeleteAsync(Lead lead, CancellationToken ct = default)
