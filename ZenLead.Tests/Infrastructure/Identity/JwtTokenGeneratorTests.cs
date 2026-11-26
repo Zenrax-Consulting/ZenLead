@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Extensions.Configuration;
+using ZenLead.Domain.Enums;
 using ZenLead.Infrastructure.Identity;
 
 namespace ZenLead.Tests.Infrastructure.Identity;
@@ -29,5 +30,22 @@ public class JwtTokenGeneratorTests
         Assert.Equal(workspaceId.ToString(), jwt.Claims.First(c => c.Type == "workspace_id").Value);
         Assert.Equal("a@acme.com", jwt.Claims.First(c => c.Type == JwtRegisteredClaimNames.Email).Value);
         Assert.Equal("ZenLead", jwt.Issuer);
+    }
+
+    [Fact]
+    public void GenerateAccessToken_RegularUser_HasNoRoleClaim()
+    {
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(new JwtTokenGenerator(BuildConfig()).GenerateAccessToken(Guid.NewGuid(), Guid.NewGuid(), "a@acme.com"));
+        Assert.DoesNotContain(jwt.Claims, c => c.Type == "role");
+    }
+
+    [Fact]
+    public void GenerateAccessToken_SuperAdmin_HasRoleAndNoWorkspaceClaim()
+    {
+        var token = new JwtTokenGenerator(BuildConfig()).GenerateAccessToken(Guid.NewGuid(), null, "root@zenlead.test", PlatformRole.SuperAdmin);
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+
+        Assert.Equal("SuperAdmin", jwt.Claims.Single(c => c.Type == "role").Value);
+        Assert.DoesNotContain(jwt.Claims, c => c.Type == "workspace_id");
     }
 }

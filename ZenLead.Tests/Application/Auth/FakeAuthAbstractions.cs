@@ -1,5 +1,7 @@
 using ZenLead.Application.Abstractions;
+using ZenLead.Application.Dtos.Admin;
 using ZenLead.Domain.Entities;
+using ZenLead.Domain.Enums;
 
 namespace ZenLead.Tests.Application.Auth;
 
@@ -25,17 +27,24 @@ public class FakeIdentityService : IIdentityService
     public Task<Guid?> ValidateCredentialsAsync(string email, string password, CancellationToken ct = default)
         => Task.FromResult<Guid?>(RegisteredEmails.Contains(email) ? NextUserId : null);
 
-    public Task<(Guid WorkspaceId, string Email)?> GetUserClaimsDataAsync(Guid userId, CancellationToken ct = default)
-        => Task.FromResult<(Guid, string)?>((WorkspaceIdForUser, "fake@example.com"));
+    public PlatformRole RoleForUser { get; set; } = PlatformRole.None;
+    public bool UserHasNoWorkspace { get; set; }
+
+    public Task<UserClaimsData?> GetUserClaimsDataAsync(Guid userId, CancellationToken ct = default)
+        => Task.FromResult<UserClaimsData?>(new UserClaimsData(UserHasNoWorkspace ? null : WorkspaceIdForUser, "fake@example.com", RoleForUser));
 }
 
 public class FakeWorkspaceRepository : IWorkspaceRepository
 {
     public List<Workspace> Created { get; } = [];
 
-    public Task<Workspace> CreateAsync(string name, CancellationToken ct = default)
+    /// <summary>Simulates losing the race to a simultaneous create (the unique index fires after NameExistsAsync said no).</summary>
+    public bool ThrowNameTakenOnCreate { get; set; }
+
+    public Task<Workspace> CreateAsync(string name, string? adminEmail = null, string timeZone = "UTC", CancellationToken ct = default)
     {
-        var workspace = new Workspace { Id = Guid.NewGuid(), Name = name, CreatedAt = DateTime.UtcNow };
+        if (ThrowNameTakenOnCreate) throw new WorkspaceNameTakenException();
+        var workspace = new Workspace { Id = Guid.NewGuid(), Name = name, AdminEmail = adminEmail, TimeZone = timeZone, CreatedAt = DateTime.UtcNow };
         Created.Add(workspace);
         return Task.FromResult(workspace);
     }
@@ -49,6 +58,13 @@ public class FakeWorkspaceRepository : IWorkspaceRepository
         if (workspace is not null) workspace.TimeZone = timeZone;
         return Task.FromResult(workspace is not null);
     }
+
+    public Task<bool> NameExistsAsync(string name, CancellationToken ct = default)
+        => Task.FromResult(Created.Any(w => string.Equals(w.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+    public Task<IReadOnlyList<WorkspaceAdminResponse>> ListWithUserCountsAsync(CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<WorkspaceAdminResponse>>(
+            Created.Select(w => new WorkspaceAdminResponse(w.Id, w.Name, w.AdminEmail, w.TimeZone, 0, w.CreatedAt)).ToList());
 }
 
 public class FakeUnitOfWork : IUnitOfWork
@@ -74,8 +90,8 @@ public class FakeUnitOfWork : IUnitOfWork
 
 public class FakeJwtTokenGenerator : IJwtTokenGenerator
 {
-    public string GenerateAccessToken(Guid userId, Guid workspaceId, string email)
-        => $"fake-token:{userId}:{workspaceId}:{email}";
+    public string GenerateAccessToken(Guid userId, Guid? workspaceId, string email, PlatformRole role = PlatformRole.None)
+        => role == PlatformRole.None ? $"fake-token:{userId}:{workspaceId}:{email}" : $"fake-token:{userId}:{workspaceId}:{email}:{role}";
 }
 
 public class FakeRefreshTokenService : IRefreshTokenService

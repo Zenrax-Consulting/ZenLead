@@ -9,7 +9,7 @@ using ZenLead.Application.Email;
 namespace ZenLead.Api.Controllers.V1;
 
 [ApiController]
-[Authorize]
+[Authorize(Policy = Policies.AnyUser)]   // not tenant data; the super admin may also be in Hangfire:AdminEmails
 [Route("api/v1/ops")]
 public class OpsController(IConfiguration config, IDataProtectionProvider dp, IEmailSender sender) : ControllerBase
 {

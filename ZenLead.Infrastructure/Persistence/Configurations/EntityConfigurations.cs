@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ZenLead.Domain.Entities;
+using ZenLead.Domain.Enums;
 
 namespace ZenLead.Infrastructure.Persistence.Configurations;
 
@@ -10,6 +11,8 @@ public class WorkspaceConfiguration : IEntityTypeConfiguration<Workspace>
     {
         builder.Property(w => w.Name).HasMaxLength(200);
         builder.Property(w => w.TimeZone).HasMaxLength(64).HasDefaultValue("UTC");
+        builder.Property(w => w.AdminEmail).HasMaxLength(256);
+        builder.HasIndex(w => w.Name).IsUnique();       // case-insensitive via SQL Server's default CI collation; the app also normalises
     }
 }
 
@@ -63,7 +66,20 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
     {
         builder.Property(u => u.DisplayName).HasMaxLength(200);
         builder.HasIndex(u => u.WorkspaceId);
-        builder.HasOne<Workspace>().WithMany().HasForeignKey(u => u.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Workspace>().WithMany().HasForeignKey(u => u.WorkspaceId).IsRequired(false).OnDelete(DeleteBehavior.Restrict);
+        // a normal user can never exist without a workspace, even through a buggy code path
+        builder.ToTable(t => t.HasCheckConstraint("CK_AspNetUsers_WorkspaceOrSuperAdmin",
+            $"[WorkspaceId] IS NOT NULL OR [PlatformRole] = {(int)PlatformRole.SuperAdmin}"));
+    }
+}
+
+public class AuditLogEntryConfiguration : IEntityTypeConfiguration<AuditLogEntry>
+{
+    public void Configure(EntityTypeBuilder<AuditLogEntry> builder)
+    {
+        builder.Property(a => a.Action).HasMaxLength(100);
+        builder.Property(a => a.TargetType).HasMaxLength(50);
+        builder.HasIndex(a => a.Timestamp);
     }
 }
 

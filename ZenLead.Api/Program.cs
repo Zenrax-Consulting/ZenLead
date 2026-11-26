@@ -2,6 +2,7 @@ using System.Text;
 using FluentValidation;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,8 @@ using Azure.Identity;
 using Azure.Storage.Blobs;
 using ZenLead.Infrastructure.Csv;
 using ZenLead.Infrastructure.Storage;
+using ZenLead.Application;
+using ZenLead.Application.UseCases.Admin;
 using ZenLead.Application.UseCases.Ai;
 using ZenLead.Application.UseCases.Auth;
 using ZenLead.Api;
@@ -30,6 +33,7 @@ using ZenLead.Infrastructure.Persistence;
 using SendGrid;
 using ZenLead.Application.Email;
 using ZenLead.Infrastructure.Email;
+using ZenLead.Domain.Enums;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +70,10 @@ builder.Services
         options.Password.RequireLowercase = true;
         options.Password.RequireUppercase = true;
         options.Password.RequireNonAlphanumeric = true;
+        // counted by IdentityService.ValidateCredentialsAsync; protects every account, the super admin included
+        options.Lockout.AllowedForNewUsers = true;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     })
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ZenLeadDbContext>();
@@ -90,7 +98,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+// Deny by default: plain [Authorize] means "signed in AND in a workspace", so the workspace-less super admin gets 403 on
+// every tenant endpoint without per-controller checks. Non-tenant endpoints opt in with Policies.AnyUser.
+builder.Services.AddAuthorizationBuilder()
+    .SetDefaultPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().RequireClaim("workspace_id").Build())
+    .AddPolicy(Policies.AnyUser, p => p.RequireAuthenticatedUser())
+    .AddPolicy(Policies.SuperAdminOnly, p => p.RequireAuthenticatedUser().RequireClaim("role", nameof(PlatformRole.SuperAdmin)));
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -115,6 +128,13 @@ builder.Services.AddScoped<ILeadIngestionStore, LeadIngestionStore>();
 builder.Services.AddScoped<LeadIngestionService>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+
+// super admin & workspace creation (F19)
+builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
+builder.Services.Configure<SuperAdminOptions>(builder.Configuration.GetSection("SuperAdmin"));
+builder.Services.AddScoped<SuperAdminSeeder>();
+builder.Services.AddScoped<IAuditLog, EfAuditLog>();
+builder.Services.AddScoped<CreateWorkspaceUseCase>();
 
 // keep connections to OpenAI pooled longer than the default so a quiet minute does not bring back the cold-connection cost
 var openAiHttpClient = new HttpClient(new SocketsHttpHandler
@@ -195,6 +215,13 @@ builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>()
 
 var app = builder.Build();
 
+// endpoint tests set Seed:SuperAdmin=false and seed explicitly
+if (app.Configuration.GetValue("Seed:SuperAdmin", true))
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>().SeedAsync(app.Environment.IsProduction());
+}
+
 app.UseDefaultFiles();
 app.MapStaticAssets();
 
@@ -223,3 +250,6 @@ app.MapControllers();
 app.MapFallbackToFile("/index.html");
 
 app.Run();
+
+/// <summary>Visible to WebApplicationFactory in ZenLead.Tests.</summary>
+public partial class Program { }

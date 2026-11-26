@@ -46,3 +46,14 @@ Authorization: Bearer <paste access token>
 Content-Type: application/json
 
 { "timeZone": "Asia/Dubai" }
+
+### Super admin: list workspaces (log in as the super admin first; any other token gets 403)
+GET {{ZenLead.Api_HostAddress}}/api/v1/admin/workspaces
+Authorization: Bearer <paste super admin access token>
+
+### Super admin: create a workspace
+POST {{ZenLead.Api_HostAddress}}/api/v1/admin/workspaces
+Authorization: Bearer <paste super admin access token>
+Content-Type: application/json
+
+{ "name": "Zenrax", "adminEmail": "admin@example.com", "timeZone": "UTC" }

@@ -23,16 +23,30 @@ public class IdentityService(UserManager<AppUser> userManager) : IIdentityServic
         return user.Id;
     }
 
+    /// <remarks>
+    /// Counts failures towards Identity's lockout (see the Lockout options in Program.cs). A locked-out account is refused
+    /// even with the right password, and the caller sees the same null as for a wrong password.
+    /// </remarks>
     public async Task<Guid?> ValidateCredentialsAsync(string email, string password, CancellationToken ct = default)
     {
         var user = await userManager.FindByEmailAsync(email);
         if (user is null) return null;
-        return await userManager.CheckPasswordAsync(user, password) ? user.Id : null;
+        if (await userManager.IsLockedOutAsync(user)) return null;
+
+        if (!await userManager.CheckPasswordAsync(user, password))
+        {
+            await userManager.AccessFailedAsync(user);
+            return null;
+        }
+
+        if (await userManager.GetAccessFailedCountAsync(user) > 0)
+            await userManager.ResetAccessFailedCountAsync(user);
+        return user.Id;
     }
 
-    public async Task<(Guid WorkspaceId, string Email)?> GetUserClaimsDataAsync(Guid userId, CancellationToken ct = default)
+    public async Task<UserClaimsData?> GetUserClaimsDataAsync(Guid userId, CancellationToken ct = default)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
-        return user is null ? null : (user.WorkspaceId, user.Email!);
+        return user is null ? null : new UserClaimsData(user.WorkspaceId, user.Email!, user.PlatformRole);
     }
 }

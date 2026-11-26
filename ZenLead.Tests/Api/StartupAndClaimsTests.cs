@@ -69,11 +69,24 @@ public class StartupConfigurationTests
         values["LeadSource:Provider"] = "Pdl";
         values["Email:Provider"] = "SendGrid";   // outside Development email must be real too (covered separately)
         values["SendGrid:ApiKey"] = "SG.test";
+        values["App:PublicBaseUrl"] = "https://app.zenlead.test";
 
         Assert.Contains(StartupConfiguration.Validate(Config(values), isDevelopment: false), p => p.Contains("LeadSource:Pdl:ApiKey"));
 
         values["LeadSource:Pdl:ApiKey"] = "key";
         Assert.Empty(StartupConfiguration.Validate(Config(values), isDevelopment: false));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("not a url")]
+    public void Validate_OutsideDevelopment_RequiresAbsolutePublicBaseUrl(string? url)
+    {
+        var values = Valid();
+        values["App:PublicBaseUrl"] = url;
+
+        Assert.Contains(StartupConfiguration.Validate(Config(values), isDevelopment: false), p => p.Contains("App:PublicBaseUrl"));
+        Assert.DoesNotContain(StartupConfiguration.Validate(Config(values), isDevelopment: true), p => p.Contains("App:PublicBaseUrl"));
     }
 
     [Fact]

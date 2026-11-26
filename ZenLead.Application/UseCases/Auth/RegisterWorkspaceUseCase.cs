@@ -18,7 +18,7 @@ public class RegisterWorkspaceUseCase(
         // workspace + user are created atomically so a failed user never leaves an orphan workspace
         var (workspaceId, userId) = await unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            var workspace = await workspaces.CreateAsync(request.WorkspaceName, ct);
+            var workspace = await workspaces.CreateAsync(request.WorkspaceName, ct: ct);
             var userId = await identity.CreateUserAsync(workspace.Id, request.Email, request.Password, request.DisplayName, ct);
             return (workspace.Id, userId);
         }, ct);

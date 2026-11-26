@@ -1,6 +1,7 @@
 using ZenLead.Application.Abstractions;
 using ZenLead.Application.Dtos.Auth;
 using ZenLead.Application.UseCases.Auth;
+using ZenLead.Domain.Enums;
 
 namespace ZenLead.Tests.Application.Auth;
 
@@ -17,7 +18,7 @@ public class RefreshTokenUseCaseTests
         public Task<bool> EmailExistsAsync(string email, CancellationToken ct = default) => Task.FromResult(false);
         public Task<Guid> CreateUserAsync(Guid workspaceId, string email, string password, string displayName, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Guid?> ValidateCredentialsAsync(string email, string password, CancellationToken ct = default) => Task.FromResult<Guid?>(null);
-        public Task<(Guid WorkspaceId, string Email)?> GetUserClaimsDataAsync(Guid userId, CancellationToken ct = default) => Task.FromResult<(Guid, string)?>(null);
+        public Task<UserClaimsData?> GetUserClaimsDataAsync(Guid userId, CancellationToken ct = default) => Task.FromResult<UserClaimsData?>(null);
     }
 
     [Fact]
@@ -36,6 +37,20 @@ public class RefreshTokenUseCaseTests
         Assert.Equal("rotated", result!.RefreshToken);
         Assert.Contains(userId.ToString(), result.AccessToken);
         Assert.Contains(workspaceId.ToString(), result.AccessToken);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SuperAdmin_KeepsRoleAndStaysWorkspaceless()
+    {
+        var userId = Guid.NewGuid();
+        var identity = new FakeIdentityService { UserHasNoWorkspace = true, RoleForUser = PlatformRole.SuperAdmin };
+        var sut = new RefreshTokenUseCase(
+            new ScriptedRefreshTokenService(new RefreshResult(true, userId, "rotated", null)),
+            identity, new FakeJwtTokenGenerator());
+
+        var result = await sut.ExecuteAsync(new RefreshRequest("old"));
+
+        Assert.Equal($"fake-token:{userId}::fake@example.com:SuperAdmin", result!.AccessToken);
     }
 
     [Fact]

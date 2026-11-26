@@ -1,0 +1,2 @@
+.dialog-form { display: flex; flex-direction: column; gap: 0.25rem; min-width: 360px; }
+.dialog-error { color: #b00020; }

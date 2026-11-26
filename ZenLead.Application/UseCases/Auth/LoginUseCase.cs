@@ -16,7 +16,7 @@ public class LoginUseCase(
         var claimsData = await identity.GetUserClaimsDataAsync(userId.Value, ct)
             ?? throw new InvalidOperationException("User not found after credential validation.");
 
-        var accessToken = jwtTokenGenerator.GenerateAccessToken(userId.Value, claimsData.WorkspaceId, claimsData.Email);
+        var accessToken = jwtTokenGenerator.GenerateAccessToken(userId.Value, claimsData.WorkspaceId, claimsData.Email, claimsData.Role);
         var refreshToken = await refreshTokens.IssueAsync(userId.Value, ct);
 
         return new AuthResponse(accessToken, refreshToken);

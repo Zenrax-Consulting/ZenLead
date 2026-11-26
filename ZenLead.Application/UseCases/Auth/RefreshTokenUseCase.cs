@@ -16,7 +16,7 @@ public class RefreshTokenUseCase(
         var claimsData = await identity.GetUserClaimsDataAsync(result.UserId, ct)
             ?? throw new InvalidOperationException("User not found for valid refresh token.");
 
-        var accessToken = jwtTokenGenerator.GenerateAccessToken(result.UserId, claimsData.WorkspaceId, claimsData.Email);
+        var accessToken = jwtTokenGenerator.GenerateAccessToken(result.UserId, claimsData.WorkspaceId, claimsData.Email, claimsData.Role); // super admin keeps its role and stays workspace-less
         return new AuthResponse(accessToken, result.NewRawToken!);
     }
 }

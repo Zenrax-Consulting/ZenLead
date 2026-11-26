@@ -22,7 +22,7 @@ public sealed class RefreshTokenServiceTests : IDisposable
     {
         using var db = NewDb();
         await db.Database.EnsureCreatedAsync();
-        var workspace = new Workspace { Id = Guid.NewGuid(), Name = "Acme", CreatedAt = DateTime.UtcNow };
+        var workspace = new Workspace { Id = Guid.NewGuid(), Name = $"Acme-{Guid.NewGuid()}", CreatedAt = DateTime.UtcNow };
         var user = new AppUser { Id = Guid.NewGuid(), UserName = $"{Guid.NewGuid():N}@acme.com", WorkspaceId = workspace.Id };
         db.Workspaces.Add(workspace);
         db.Users.Add(user);

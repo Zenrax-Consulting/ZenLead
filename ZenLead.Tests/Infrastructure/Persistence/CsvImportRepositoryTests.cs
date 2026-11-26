@@ -17,7 +17,7 @@ public class CsvImportRepositoryTests
     {
         using var ctx = db.CreateContext(null);
         foreach (var id in batches.Select(b => b.WorkspaceId).Distinct())
-            ctx.Workspaces.Add(new Workspace { Id = id, Name = "W", CreatedAt = DateTime.UtcNow });
+            ctx.Workspaces.Add(new Workspace { Id = id, Name = $"W-{id}", CreatedAt = DateTime.UtcNow });
         ctx.CsvImportBatches.AddRange(batches);
         ctx.SaveChanges();
     }

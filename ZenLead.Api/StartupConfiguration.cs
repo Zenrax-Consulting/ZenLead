@@ -26,6 +26,8 @@ public static class StartupConfiguration
         }
 
         problems.AddRange(ValidateEmail(configuration, isDevelopment));
+        if (!isDevelopment && !Uri.TryCreate(configuration["App:PublicBaseUrl"], UriKind.Absolute, out _))
+            problems.Add("'App:PublicBaseUrl' must be set to the absolute public URL of the app outside Development (used for links in emails).");
 
         foreach (var key in RequiredKeys)
             if (string.IsNullOrWhiteSpace(configuration[key]))
