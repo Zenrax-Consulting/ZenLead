@@ -67,3 +67,69 @@ Authorization: Bearer <paste super admin access token>
 Content-Type: application/json
 
 { "name": "Zenrax", "adminEmail": "admin@example.com", "timeZone": "UTC" }
+
+### Campaigns (F22): create a draft campaign (window is local time in the workspace zone unless timeZoneId overrides it)
+POST {{ZenLead.Api_HostAddress}}/api/v1/campaigns
+Authorization: Bearer <paste access token>
+Content-Type: application/json
+
+{ "name": "Spring outreach", "fromName": null, "dailySendCap": 30, "windowStart": "09:00", "windowEnd": "17:00", "sendDays": "Weekdays", "timeZoneId": null }
+
+### Campaigns: list (newest first, with enrollment counts)
+GET {{ZenLead.Api_HostAddress}}/api/v1/campaigns
+Authorization: Bearer <paste access token>
+
+### Campaigns: get one with steps and counts
+GET {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>
+Authorization: Bearer <paste access token>
+
+### Campaigns: add a step (step 1 must have delayDays 0; later steps count calendar days after the previous send)
+POST {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/steps
+Authorization: Bearer <paste access token>
+Content-Type: application/json
+
+{ "delayDays": 0, "subjectTemplate": "Quick question, {{firstName|there}}", "bodyTemplate": "Hi {{firstName|there}},\n\nI noticed {{company|your team}}...", "useAiPersonalisation": false }
+
+### Campaigns: edit a step (always allowed)
+PUT {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/steps/<step id>
+Authorization: Bearer <paste access token>
+Content-Type: application/json
+
+{ "delayDays": 3, "subjectTemplate": "Following up", "bodyTemplate": "Hi {{firstName|there}}, just bumping this.", "useAiPersonalisation": false }
+
+### Campaigns: delete a step (409 step_in_use once a lead has passed it)
+DELETE {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/steps/<step id>
+Authorization: Bearer <paste access token>
+
+### Campaigns: reorder steps (every step id exactly once)
+POST {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/steps/reorder
+Authorization: Bearer <paste access token>
+Content-Type: application/json
+
+{ "orderedStepIds": ["<step id>", "<step id>"] }
+
+### Campaigns: preview a step for a lead (unsubscribe link is a placeholder)
+POST {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/preview
+Authorization: Bearer <paste access token>
+Content-Type: application/json
+
+{ "leadId": "<lead id>", "stepId": "<step id>" }
+
+### Campaigns: enroll leads — dry run first (same counts, writes nothing); send either leadIds or filter
+POST {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/enroll
+Authorization: Bearer <paste access token>
+Content-Type: application/json
+
+{ "leadIds": ["<lead id>"], "filter": null, "dryRun": true }
+
+### Campaigns: list enrollments (status optional)
+GET {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/enrollments?page=1&pageSize=25
+Authorization: Bearer <paste access token>
+
+### Campaigns: activate (409 { problems: [...] } until valid and Email:DomainVerified=true)
+POST {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/activate
+Authorization: Bearer <paste access token>
+
+### Campaigns: pause
+POST {{ZenLead.Api_HostAddress}}/api/v1/campaigns/<campaign id>/pause
+Authorization: Bearer <paste access token>

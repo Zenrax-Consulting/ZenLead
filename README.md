@@ -21,7 +21,10 @@ dotnet user-secrets set "Jwt:Issuer" "zenlead" --project ZenLead.Api
 dotnet user-secrets set "Jwt:Audience" "zenlead-client" --project ZenLead.Api
 dotnet user-secrets set "OpenAI:ApiKey" "<your OpenAI key>" --project ZenLead.Api
 dotnet user-secrets set "SendGrid:ApiKey" "<restricted SendGrid key, Mail Send only>" --project ZenLead.Api
+dotnet user-secrets set "Unsubscribe:SigningKey" "<random string, at least 32 characters>" --project ZenLead.Api
 ```
+
+Campaigns (F22): `Unsubscribe:SigningKey` signs the unsubscribe link in every campaign email. The links never expire, so **changing this key breaks every link already sent** — set it once per environment and don't rotate it casually. Campaign send windows use the workspace time zone (`PUT /api/v1/workspaces/current/time-zone`) unless a campaign overrides it; activation is refused until `Email:DomainVerified` is `true`.
 
 Email (F17 onwards): `SendGrid:ApiKey` is a restricted key with only Mail Send; never commit it or paste it into `.http` files. Later features add `SendGrid:InboundSecret` (F25) and `SendGrid:EventWebhookPublicKey` (F28) to user-secrets the same way. Non-secret defaults live in `appsettings.json` under `Email` (`FromAddress`, `FromName`, `DomainVerified`, `InboundDomain`); set `Email:DomainVerified` to `true` by hand once SendGrid shows the domain verified. SendGrid account, DNS and Inbound Parse setup is in the runbook `plans/phase-2-features/17-sendgrid-dns.md`; current status is in `docs/sendgrid-dns-status.md`.
 

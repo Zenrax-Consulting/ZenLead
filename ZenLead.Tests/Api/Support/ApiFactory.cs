@@ -35,6 +35,7 @@ public class ApiFactory : WebApplicationFactory<Program>
         ["Jwt:Issuer"] = "test",
         ["Jwt:Audience"] = "test",
         ["OpenAI:ApiKey"] = "test",
+        ["Unsubscribe:SigningKey"] = new string('u', 48),
         ["Hangfire:Enabled"] = "false",
         ["Email:Provider"] = "Log",
         ["App:PublicBaseUrl"] = "https://app.zenlead.test",
