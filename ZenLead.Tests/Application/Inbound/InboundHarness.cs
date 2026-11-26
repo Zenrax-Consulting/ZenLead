@@ -41,6 +41,7 @@ public sealed class InboundHarness : IDisposable
     public FixedTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 3, 11, 6, 30, 0, TimeSpan.Zero));
     public FakeHtmlSanitizer Sanitizer { get; } = new();
     public CapturingLoggerProvider Logs { get; } = new();
+    public ZenLead.Tests.Application.Discovery.FakeJobScheduler Scheduler { get; } = new();
     public EmailOptions Email { get; } = new() { InboundDomain = InboundFixtures.InboundDomain, FromAddress = "outreach@zenrax.test" };
 
     public DateTime Now => Clock.GetUtcNow().UtcDateTime;
@@ -58,7 +59,7 @@ public sealed class InboundHarness : IDisposable
         await using var ctx = Db.CreateContext(null);
         var loggerFactory = LoggerFactory.Create(b => b.AddProvider(Logs).SetMinimumLevel(LogLevel.Trace));
         var useCase = new ProcessInboundEmailUseCase(new InboundStore(ctx, Clock), Sanitizer, Options.Create(Email),
-            Options.Create(new InboundOptions()), Clock, loggerFactory.CreateLogger<ProcessInboundEmailUseCase>());
+            Options.Create(new InboundOptions()), Clock, Scheduler, loggerFactory.CreateLogger<ProcessInboundEmailUseCase>());
         return await useCase.ExecuteAsync(mail, CancellationToken.None);
     }
 

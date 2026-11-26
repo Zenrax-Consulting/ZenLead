@@ -24,4 +24,11 @@ public static class LeadStatusRules
             _ => false
         };
     }
+
+    /// <summary>
+    /// The one legitimate backward move: a "reply" that turned out to be an out-of-office (F26) returns the lead from
+    /// Replied to Contacted. Explicit and separate so <see cref="CanTransition"/> stays strict.
+    /// </summary>
+    public static bool CanRevertReply(LeadStatus current, LeadStatus previous)
+        => current == LeadStatus.Replied && previous == LeadStatus.Contacted;
 }

@@ -40,6 +40,14 @@ public class FakeJobScheduler(FakeDiscoveryRunRepository? runs = null) : IJobSch
 
     public List<(Guid BatchId, Guid WorkspaceId)> CsvImports { get; } = [];
     public void EnqueueCsvImport(Guid batchId, Guid workspaceId) => CsvImports.Add((batchId, workspaceId));
+
+    public List<(Guid WorkspaceId, Guid MessageId)> ReplyClassifications { get; } = [];
+    public bool ThrowOnReplyClassification { get; set; }
+    public void EnqueueReplyClassification(Guid workspaceId, Guid messageId)
+    {
+        if (ThrowOnReplyClassification) throw new InvalidOperationException("Hangfire storage unavailable");
+        ReplyClassifications.Add((workspaceId, messageId));
+    }
 }
 
 /// <summary>Returns pre-scripted pages by cursor index ("0", "1", ...), or generates fresh unique leads forever when none are scripted.</summary>

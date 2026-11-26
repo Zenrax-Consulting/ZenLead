@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -33,18 +32,11 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
         history.AddUserMessage(BuildUserMessage(context));
 
         var settings = new OpenAIPromptExecutionSettings { ResponseFormat = typeof(SubjectBodyDto), MaxTokens = MaxCompletionTokens };
-        ChatMessageContent response;
-        try
-        {
-            response = await CallAsync(chat, history, settings, ct);
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            logger.LogWarning("compose-email call timed out, retrying once for lead {LeadEmail}", context.LeadEmail);
-            response = await CallAsync(chat, history, settings, ct); // one retry, no backoff — Gate 1 scope only
-        }
+        // one retry on timeout, no backoff — Gate 1 scope only
+        var response = await ChatCompletionHelper.CallWithTimeoutRetryAsync(chat, history, settings,
+            () => logger.LogWarning("compose-email call timed out, retrying once for lead {LeadEmail}", context.LeadEmail), ct);
 
-        var (prompt, completion, total) = ExtractTokenUsage(response);
+        var (prompt, completion, total) = ChatCompletionHelper.ExtractTokenUsage(response);
         logger.LogInformation("compose-email call used {TokensUsed} tokens for lead {LeadEmail}", total, context.LeadEmail);
 
         if (string.IsNullOrWhiteSpace(response.Content))
@@ -78,39 +70,4 @@ public class EmailComposer(Kernel kernel, ILogger<EmailComposer> logger) : IEmai
         Country: {context.CompanyCountry ?? "unknown"}
         Additional context: {context.AdditionalContext ?? "none"}
         """;
-
-    private static async Task<ChatMessageContent> CallAsync(
-        IChatCompletionService chat, ChatHistory history, PromptExecutionSettings settings, CancellationToken ct)
-    {
-        try
-        {
-            return await chat.GetChatMessageContentAsync(history, settings, kernel: null, ct);
-        }
-        catch (HttpOperationException ex)
-        {
-            // keep Semantic Kernel / OpenAI exception types inside Infrastructure
-            var kind = ex.StatusCode == HttpStatusCode.TooManyRequests
-                ? AiProviderFailureKind.RateLimited
-                : AiProviderFailureKind.Unavailable;
-            throw new AiProviderException(kind, $"AI provider returned {(int?)ex.StatusCode}.", ex);
-        }
-    }
-
-    private static (int Prompt, int Completion, int Total) ExtractTokenUsage(ChatMessageContent response)
-    {
-        if (response.Metadata is null || !response.Metadata.TryGetValue("Usage", out var usage) || usage is null)
-            return (0, 0, 0);
-
-        int Read(params string[] names)
-        {
-            foreach (var name in names)
-                if (usage.GetType().GetProperty(name)?.GetValue(usage) is int value) return value;
-            return 0;
-        }
-
-        var prompt = Read("InputTokenCount", "PromptTokens");
-        var completion = Read("OutputTokenCount", "CompletionTokens");
-        var total = Read("TotalTokenCount", "TotalTokens");
-        return (prompt, completion, total != 0 ? total : prompt + completion);
-    }
 }

@@ -633,6 +633,13 @@ namespace ZenLead.Infrastructure.Migrations
                         .HasPrecision(5, 4)
                         .HasColumnType("decimal(5,4)");
 
+                    b.Property<string>("ClassificationNote")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("ClassifiedBy")
+                        .HasColumnType("int");
+
                     b.Property<int>("Direction")
                         .HasColumnType("int");
 
@@ -655,6 +662,9 @@ namespace ZenLead.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsAutoReply")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NeedsReview")
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("OccurredAt")

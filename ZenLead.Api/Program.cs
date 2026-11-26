@@ -42,6 +42,8 @@ using ZenLead.Application.UseCases.Sending;
 using ZenLead.Application.Inbound;
 using ZenLead.Application.UseCases.Inbound;
 using ZenLead.Infrastructure.Inbound;
+using ZenLead.Application.Classification;
+using ZenLead.Application.UseCases.Classification;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -162,7 +164,10 @@ var openAiHttpClient = new HttpClient(new SocketsHttpHandler
 }) { Timeout = TimeSpan.FromSeconds(10) };
 
 builder.Services.AddKernel()
-    .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:Model"] ?? "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient);
+    .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:Model"] ?? "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient)
+    // reply classification (F26): a cheaper model, resolved by service id
+    .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:ClassifierModel"] ?? "gpt-4o-mini", apiKey: builder.Configuration["OpenAI:ApiKey"]!,
+        serviceId: ClassificationModelOptions.DefaultServiceId, httpClient: openAiHttpClient);
 
 builder.Services.AddScoped<IEmailComposer, EmailComposer>();
 if (builder.Configuration.GetValue("OpenAI:WarmUpOnStartup", false))
@@ -247,6 +252,15 @@ else builder.Services.AddSingleton<IInboundEmailParser, SendGridFormParser>();
 builder.Services.AddSingleton<IHtmlSanitizer, GanssHtmlSanitizer>();
 builder.Services.AddScoped<IInboundStore, InboundStore>();
 builder.Services.AddScoped<ProcessInboundEmailUseCase>();
+
+// reply classification (F26): a Hangfire job per human reply; labels + safe auto-actions (unsubscribe, OOO resume)
+builder.Services.Configure<ClassificationOptions>(builder.Configuration.GetSection(ClassificationOptions.SectionName));
+builder.Services.Configure<ClassificationModelOptions>(_ => { });
+builder.Services.AddScoped<IReplyClassifier, ReplyClassifier>();
+builder.Services.AddScoped<IInboxClassificationStore, InboxClassificationStore>();
+builder.Services.AddScoped<ClassificationEffects>();
+builder.Services.AddScoped<ClassifyReplyUseCase>();
+builder.Services.AddScoped<ClassifyReplyJob>();
 
 // background jobs; the switch lets endpoint tests boot without SQL Server
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);

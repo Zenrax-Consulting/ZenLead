@@ -41,6 +41,15 @@ public static class EnrollmentRules
         return true;
     }
 
+    /// <summary>Undo a reply-stop caused by an out-of-office: the sequence continues after <paramref name="resumeAfterDays"/> days.</summary>
+    public static bool ResumeAfterOutOfOffice(CampaignEnrollment e, DateTime nowUtc, int resumeAfterDays, SendWindow window)
+    {
+        if (e.Status != EnrollmentStatus.Replied) return false;
+        e.Status = EnrollmentStatus.Active;
+        e.NextSendAt = SendScheduler.NextSendAt(nowUtc, resumeAfterDays, window);
+        return true;
+    }
+
     public static bool IsDue(CampaignEnrollment e, DateTime nowUtc)
         => e.Status == EnrollmentStatus.Active && e.NextSendAt is { } at && at <= nowUtc;
 

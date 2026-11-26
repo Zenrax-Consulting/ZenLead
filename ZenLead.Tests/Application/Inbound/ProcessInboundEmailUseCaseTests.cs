@@ -468,4 +468,64 @@ public class ProcessInboundEmailUseCaseTests : IDisposable
 
         Assert.Equal(["abc.def.ghi@host.example", "abc.def.ghi", "abc", "ref1@host", "ref1", "plain"], ids);
     }
+
+    // ---------------- F26: classification hook ----------------
+
+    [Fact]
+    public async Task A_human_reply_enqueues_classification_exactly_once()
+    {
+        var s = await _h.SeedAsync();
+
+        var result = await _h.ProcessAsync(_h.ReplyFrom(s));
+
+        var message = (await _h.Messages()).Single();
+        Assert.Equal([(s.WorkspaceId, message.Id)], _h.Scheduler.ReplyClassifications);
+        Assert.Equal(message.Id, result.MessageId);
+        Assert.Equal(ClassificationSource.None, message.ClassifiedBy);
+        Assert.Null(message.ClassificationNote);
+    }
+
+    [Fact]
+    public async Task An_auto_reply_is_labelled_by_headers_and_enqueues_nothing()
+    {
+        var s = await _h.SeedAsync();
+
+        await _h.ProcessAsync(_h.ReplyFrom(s, headers: Headers(("Auto-Submitted", "auto-replied")), subject: "Automatic reply: Quick question"));
+
+        Assert.Empty(_h.Scheduler.ReplyClassifications);
+        var message = (await _h.Messages()).Single();
+        Assert.Equal(ClassificationSource.Header, message.ClassifiedBy);
+        Assert.Equal("auto_header", message.ClassificationNote);
+    }
+
+    [Fact]
+    public async Task A_duplicate_delivery_enqueues_nothing_more()
+    {
+        var s = await _h.SeedAsync();
+
+        await _h.ProcessAsync(_h.ReplyFrom(s));
+        await _h.ProcessAsync(_h.ReplyFrom(s));
+
+        Assert.Single(_h.Scheduler.ReplyClassifications);
+    }
+
+    [Fact]
+    public async Task A_quarantined_mail_enqueues_nothing()
+    {
+        await _h.ProcessAsync(InboundHarness.Mail("stranger@example.com", ["business@zenraxconsulting.test"]));
+
+        Assert.Empty(_h.Scheduler.ReplyClassifications);
+    }
+
+    [Fact]
+    public async Task A_failing_enqueue_never_fails_the_webhook()
+    {
+        var s = await _h.SeedAsync();
+        _h.Scheduler.ThrowOnReplyClassification = true;
+
+        var result = await _h.ProcessAsync(_h.ReplyFrom(s));
+
+        Assert.Equal(InboundOutcome.Attached, result.Outcome);
+        Assert.Single(await _h.Messages());
+    }
 }
