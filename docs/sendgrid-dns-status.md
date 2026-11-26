@@ -11,7 +11,7 @@ Tracks Feature 17 (SendGrid domain & inbound DNS kickoff). Runbook: `plans/phase
 | SendGrid plan / trial end | 60-day free trial, ends 2027-01-24 (paid plan needed after that) | 2026-11-26 | ✔ active |
 | API key (restricted, Mail Send) | created, stored in user-secrets | 2026-11-26 | ✔ |
 | Domain auth `zenraxconsulting.com` (root) | `em4973`, `s1`/`s2._domainkey` CNAMEs all resolve to SendGrid (u119583210.wl211) on `zenraxconsulting.com`; but the SendGrid domain entry was created for `zenraxconsultancy.com`, so Verify fails — must be re-created for `zenraxconsulting.com` | 2026-11-26 | pending |
-| MX `reply.leads` → mx.sendgrid.net | prio 10; `reply.leads.zenraxconsulting.com` does not resolve yet | 2026-11-26 | pending |
+| MX `reply.leads` → mx.sendgrid.net | prio 10, TTL 3600; resolves at GoDaddy (ns25) and 8.8.8.8 | 2026-11-26 | ✔ resolves |
 | Inbound Parse host | reply.leads.zenraxconsulting.com → placeholder (`https://example.invalid/api/v1/webhooks/sendgrid/inbound?secret=PLACEHOLDER`), raw MIME off | — | pending |
 | DMARC (root) | existing policy: `v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net` (GoDaddy); duplicate `p=none` record removed, single record confirmed | 2026-11-26 | ✔ |
 | Tracking settings | click off, subscription off, open on | 2026-11-26 | ✔ |
@@ -40,3 +40,4 @@ None. (If domain verification drags, Single Sender Verification with an owner-co
 - 2026-11-26 — First DNS check queried `zenraxconsultancy.com` (wrong name, does not exist), so its "no DKIM / no DMARC" result was invalid.
 - 2026-11-26 — Re-checked `zenraxconsulting.com` via 8.8.8.8: s1/s2 DKIM CNAMEs present; two `_dmarc` TXT records (GoDaddy `p=quarantine` + new `p=none`) — delete the `p=none` one; `reply.leads` MX not present. Sender changed to `business@zenraxconsulting.com`; `Email:FromAddress`/`InboundDomain` updated.
 - 2026-11-26 — Duplicate DMARC record removed. All three CNAMEs present on `zenraxconsulting.com`. SendGrid Verify failed because its domain entry is `zenraxconsultancy.com`; owner to delete it and authenticate `zenraxconsulting.com` instead. `reply.leads` MX still absent.
+- 2026-11-26 — `reply.leads.zenraxconsulting.com` MX → `mx.sendgrid.net` (10) resolves. CNAMEs re-confirmed at the authoritative GoDaddy nameserver. SendGrid Verify still failing.
