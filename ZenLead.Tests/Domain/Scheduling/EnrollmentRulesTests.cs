@@ -104,4 +104,33 @@ public class EnrollmentRulesTests
     [InlineData(3, 0, true)]
     public void Campaign_Finishes_When_No_Live_Enrollment_Remains(int total, int live, bool finished)
         => Assert.Equal(finished, EnrollmentRules.CampaignIsFinished(total, live));
+
+    [Fact]
+    public void ResumeAfterOutOfOffice_reactivates_a_replied_enrollment_after_the_delay()
+    {
+        var e = new CampaignEnrollment { Status = EnrollmentStatus.Replied, NextStepOrder = 2, NextSendAt = null };
+
+        Assert.True(EnrollmentRules.ResumeAfterOutOfOffice(e, Utc(10, 20), 7, Window));
+
+        Assert.Equal(EnrollmentStatus.Active, e.Status);
+        Assert.Equal(Utc(18, 9), e.NextSendAt);                 // +7 days lands at 20:00, after the window → next day's 09:00
+        Assert.Equal(2, e.NextStepOrder);                       // the sequence continues where it stopped
+    }
+
+    [Theory]
+    [InlineData(EnrollmentStatus.Active)]
+    [InlineData(EnrollmentStatus.Paused)]
+    [InlineData(EnrollmentStatus.Completed)]
+    [InlineData(EnrollmentStatus.Unsubscribed)]
+    [InlineData(EnrollmentStatus.Bounced)]
+    [InlineData(EnrollmentStatus.Failed)]
+    public void ResumeAfterOutOfOffice_only_undoes_a_reply_stop(EnrollmentStatus status)
+    {
+        var e = new CampaignEnrollment { Status = status, NextSendAt = Utc(12, 10) };
+
+        Assert.False(EnrollmentRules.ResumeAfterOutOfOffice(e, Utc(10, 10), 7, Window));
+
+        Assert.Equal(status, e.Status);
+        Assert.Equal(Utc(12, 10), e.NextSendAt);
+    }
 }

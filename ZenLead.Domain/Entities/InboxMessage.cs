@@ -19,6 +19,9 @@ public class InboxMessage : ITenantEntity
     public DateTime OccurredAt { get; set; }                    // received / sent
     public ReplyClassification Classification { get; set; }
     public decimal? ClassificationConfidence { get; set; }
+    public ClassificationSource ClassifiedBy { get; set; }      // None until headers (F25), the AI (F26) or a human (F27) labels it
+    public bool NeedsReview { get; set; }                       // uncertain AND consequential label: surfaced by the inbox (F27)
+    public string? ClassificationNote { get; set; }             // ≤ 100: budget, ai_failed, low_confidence, invalid_output, auto_header
     public string? RawMessageId { get; set; }                   // inbound Message-ID (dedupe key); outbound: SmtpMessageId when known
     public Guid? EmailMessageId { get; set; }                   // outbound: the campaign EmailMessage
     public bool SenderMismatch { get; set; }

@@ -29,6 +29,7 @@ public class InboxMessageConfiguration : IEntityTypeConfiguration<InboxMessage>
         builder.Property(m => m.AuthSummary).HasMaxLength(100);
         builder.Property(m => m.RawMessageId).HasMaxLength(500);
         builder.Property(m => m.ClassificationConfidence).HasPrecision(5, 4);
+        builder.Property(m => m.ClassificationNote).HasMaxLength(100);
         builder.HasIndex(m => new { m.ThreadId, m.OccurredAt });
         // inbound dedupe: SendGrid redelivers, so the same Message-ID must never create a second row (Direction 0 = Inbound)
         builder.HasIndex(m => new { m.WorkspaceId, m.RawMessageId }).IsUnique()

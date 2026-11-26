@@ -35,6 +35,7 @@ public class ProcessInboundEmailUseCase(
     IOptions<EmailOptions> email,
     IOptions<InboundOptions> inbound,
     TimeProvider clock,
+    IJobScheduler scheduler,
     ILogger<ProcessInboundEmailUseCase> logger)
 {
     public const int MaxSubjectLength = 500;
@@ -104,6 +105,8 @@ public class ProcessInboundEmailUseCase(
                 AutoReplyKind.Bounce => ReplyClassification.Bounce,
                 _ => ReplyClassification.Unclassified
             },
+            ClassifiedBy = auto != AutoReplyKind.None ? ClassificationSource.Header : ClassificationSource.None,
+            ClassificationNote = auto != AutoReplyKind.None ? "auto_header" : null,
             AuthSummary = Truncate($"dkim={Verdict(mail.Dkim)}; spf={Verdict(mail.Spf)}", 100)
         };
         if (!await store.TryAddInboundAsync(message, ct))
@@ -117,7 +120,19 @@ public class ProcessInboundEmailUseCase(
         logger.LogInformation("Inbound reply attached via {Via} to enrollment {EnrollmentId} (thread {ThreadId}, message {MessageId}, auto {AutoReply}, stopped {Stopped})",
             via, target.EnrollmentId, thread.Id, message.Id, auto, effects.EnrollmentStopped);       // ids only: no addresses/bodies in logs
 
-        // F26 hooks in here: enqueue classification for non-auto replies (message.Id, target.WorkspaceId)
+        // 5) Classification (F26) runs in a background job, after the commit; auto-replies were already labelled by headers
+        if (!message.IsAutoReply)
+        {
+            try
+            {
+                scheduler.EnqueueReplyClassification(target.WorkspaceId, message.Id);
+            }
+            catch (Exception ex)
+            {
+                // never fail the webhook over this: the reply is stored and visible, it just stays Unclassified
+                logger.LogWarning(ex, "Could not enqueue classification for message {MessageId}; it stays Unclassified", message.Id);
+            }
+        }
         return InboundResult.Attached(thread.Id, message.Id, via);
     }
 
