@@ -14,6 +14,15 @@ public record CredentialCheck(Guid? UserId, AppUserStatus? Status, bool LockedOu
     public static readonly CredentialCheck Invalid = new(null, null, false);
 }
 
+/// <summary>Outcome of <see cref="IIdentityService.ChangePasswordAsync"/> (F21).</summary>
+public abstract record ChangePasswordResult
+{
+    public sealed record Success : ChangePasswordResult;
+    public sealed record WrongCurrentPassword : ChangePasswordResult;
+    public sealed record LockedOut : ChangePasswordResult;
+    public sealed record PolicyFailed(IReadOnlyList<string> Errors) : ChangePasswordResult;
+}
+
 public interface IIdentityService
 {
     Task<bool> EmailExistsAsync(string email, CancellationToken ct = default);
@@ -32,6 +41,15 @@ public interface IIdentityService
 
     /// <summary>Users of the workspace still awaiting approval (pending-request cap).</summary>
     Task<int> CountPendingAsync(Guid workspaceId, CancellationToken ct = default);
+
+    /// <summary>Runs Identity's password validators for the user; an empty list means the password is acceptable (F21).</summary>
+    Task<IReadOnlyList<string>> ValidatePasswordAsync(Guid userId, string password, CancellationToken ct = default);
+
+    /// <summary>Replaces the password (no current password needed), resets the failure count, clears lockout and rotates the security stamp.</summary>
+    Task SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default);
+
+    /// <summary>Lockout-aware: a wrong current password counts as a failed attempt, so the form can't be used to guess the password.</summary>
+    Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct = default);
 
     /// <summary>Computes and discards a password hash so the "already registered" path costs the same as creating a user.</summary>
     void BurnPasswordHash();

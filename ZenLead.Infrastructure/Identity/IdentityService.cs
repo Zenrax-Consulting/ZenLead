@@ -85,6 +85,59 @@ public class IdentityService(UserManager<AppUser> userManager) : IIdentityServic
     public Task<int> CountPendingAsync(Guid workspaceId, CancellationToken ct = default)
         => userManager.Users.CountAsync(u => u.WorkspaceId == workspaceId && u.Status == AppUserStatus.PendingApproval, ct);
 
+    public async Task<IReadOnlyList<string>> ValidatePasswordAsync(Guid userId, string password, CancellationToken ct = default)
+    {
+        var user = await RequireAsync(userId);
+        var errors = new List<string>();
+        foreach (var validator in userManager.PasswordValidators)
+        {
+            var result = await validator.ValidateAsync(userManager, user, password);
+            if (!result.Succeeded) errors.AddRange(result.Errors.Select(e => e.Description));
+        }
+        return errors;
+    }
+
+    public async Task SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
+    {
+        var user = await RequireAsync(userId);
+        if (await userManager.HasPasswordAsync(user))
+            EnsureSucceeded(await userManager.RemovePasswordAsync(user), "remove password");
+        EnsureSucceeded(await userManager.AddPasswordAsync(user, newPassword), "set password");
+        EnsureSucceeded(await userManager.ResetAccessFailedCountAsync(user), "reset failure count");
+        EnsureSucceeded(await userManager.SetLockoutEndDateAsync(user, null), "clear lockout");
+        EnsureSucceeded(await userManager.UpdateSecurityStampAsync(user), "update security stamp");
+    }
+
+    public async Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct = default)
+    {
+        var user = await RequireAsync(userId);
+        if (await userManager.IsLockedOutAsync(user)) return new ChangePasswordResult.LockedOut();
+
+        if (!await userManager.CheckPasswordAsync(user, currentPassword))
+        {
+            await userManager.AccessFailedAsync(user);
+            return new ChangePasswordResult.WrongCurrentPassword();
+        }
+
+        var errors = await ValidatePasswordAsync(userId, newPassword, ct);
+        if (errors.Count > 0) return new ChangePasswordResult.PolicyFailed(errors);
+
+        var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);   // also rotates the security stamp
+        if (!result.Succeeded) return new ChangePasswordResult.PolicyFailed(result.Errors.Select(e => e.Description).ToList());
+        if (await userManager.GetAccessFailedCountAsync(user) > 0)
+            await userManager.ResetAccessFailedCountAsync(user);
+        return new ChangePasswordResult.Success();
+    }
+
+    private async Task<AppUser> RequireAsync(Guid userId)
+        => await userManager.FindByIdAsync(userId.ToString()) ?? throw new InvalidOperationException($"User {userId} not found.");
+
+    private static void EnsureSucceeded(IdentityResult result, string what)
+    {
+        if (!result.Succeeded)
+            throw new InvalidOperationException($"Could not {what}: " + string.Join("; ", result.Errors.Select(e => e.Code)));
+    }
+
     public void BurnPasswordHash() => userManager.PasswordHasher.HashPassword(TimingDummy, "dummy-password-for-timing");
 
     private static UserLookup? ToLookup(AppUser? user)

@@ -10,6 +10,7 @@
     @if (canOpenDashboard) {
       <button mat-menu-item type="button" (click)="openJobDashboard()">Job dashboard</button>
     }
+    <a mat-menu-item routerLink="/account/password">Change password</a>
     <button mat-menu-item type="button" (click)="logout()">Log out</button>
   </mat-menu>
 </mat-toolbar>

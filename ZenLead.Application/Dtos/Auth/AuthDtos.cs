@@ -6,6 +6,11 @@ public record LoginRequest(string Email, string Password);
 public record RefreshRequest(string RefreshToken);
 public record AuthResponse(string AccessToken, string RefreshToken);
 
+// password reset / change (F21)
+public record ForgotPasswordRequest(string Email);
+public record ResetPasswordRequest(string Token, string NewPassword);
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+
 /// <summary><see cref="Status"/> is "pending", "used" or "expired"; requester details are present only while pending.</summary>
 public record ApprovalInfoResponse(string Status, string? RequesterName, string? RequesterEmail, string? WorkspaceName);
 

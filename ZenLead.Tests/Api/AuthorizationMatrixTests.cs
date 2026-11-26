@@ -26,7 +26,10 @@ public class AuthorizationMatrixTests(ApiFactory factory) : IClassFixture<ApiFac
         "GET api/v1/workspaces",
         "GET api/v1/auth/approvals/{token}",
         "POST api/v1/auth/approvals/{token}/approve",
-        "POST api/v1/auth/approvals/{token}/reject"
+        "POST api/v1/auth/approvals/{token}/reject",
+        // F21: forgot/reset password (anonymous; the reset token is the credential)
+        "POST api/v1/auth/forgot-password",
+        "POST api/v1/auth/reset-password"
     ];
 
     private static readonly HashSet<string?> KnownPolicies = [null, Policies.AnyUser, Policies.SuperAdminOnly];
