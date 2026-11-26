@@ -14,6 +14,8 @@ import { Register } from './features/auth/register/register';
 import { Login } from './features/auth/login/login';
 import { RegisterPending } from './features/auth/register-pending/register-pending';
 import { Approve } from './features/auth/approve/approve';
+import { ForgotPassword } from './features/auth/forgot-password/forgot-password';
+import { ResetPassword } from './features/auth/reset-password/reset-password';
 
 @NgModule({
   declarations: [
@@ -22,6 +24,8 @@ import { Approve } from './features/auth/approve/approve';
     Login,
     RegisterPending,
     Approve,
+    ForgotPassword,
+    ResetPassword,
     Shell,
     ComingSoon
   ],

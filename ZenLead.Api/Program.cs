@@ -67,7 +67,7 @@ builder.Services.AddDbContext<ZenLeadDbContext>(options =>
 builder.Services
     .AddIdentityCore<AppUser>(options =>
     {
-        // keep in sync with RegisterRequestValidator
+        // keep in sync with PasswordRules (register, reset and change validators)
         options.Password.RequiredLength = 8;
         options.Password.RequireDigit = true;
         options.Password.RequireLowercase = true;
@@ -121,6 +121,8 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(RateLimiting.AuthPolicy, ctx => RateLimiting.AuthPartition(ctx, authPermits));
     options.AddPolicy(RateLimiting.RegisterPolicy, ctx => RateLimiting.PerIpPartition(ctx, registerPermits, RateLimiting.RegisterWindow));
     options.AddPolicy(RateLimiting.PickerPolicy, ctx => RateLimiting.PerIpPartition(ctx, pickerPermits, TimeSpan.FromMinutes(1)));
+    var forgotPermits = builder.Configuration.GetValue("RateLimits:ForgotPermitLimit", RateLimiting.ForgotPermitsPerWindow);
+    options.AddPolicy(RateLimiting.ForgotPolicy, ctx => RateLimiting.PerIpPartition(ctx, forgotPermits, RateLimiting.ForgotWindow));
     options.OnRejected = (context, _) =>
     {
         context.HttpContext.Response.Headers.RetryAfter = "60";
@@ -235,6 +237,13 @@ builder.Services.AddScoped<DecideApprovalUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
 builder.Services.AddScoped<RefreshTokenUseCase>();
 builder.Services.AddScoped<ComposeEmailUseCase>();
+
+// forgot / reset / change password (F21)
+builder.Services.Configure<PasswordResetOptions>(builder.Configuration.GetSection(PasswordResetOptions.SectionName));
+builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
+builder.Services.AddScoped<ForgotPasswordUseCase>();
+builder.Services.AddScoped<ResetPasswordUseCase>();
+builder.Services.AddScoped<ChangePasswordUseCase>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 

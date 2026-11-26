@@ -18,6 +18,8 @@ public class FakeIdentityService : IIdentityService
         public string DisplayName { get; set; } = "";
         public AppUserStatus Status { get; set; }
         public PlatformRole Role { get; set; } = PlatformRole.None;
+        public int FailedAttempts { get; set; }
+        public bool LockedOut { get; set; }
     }
 
     public Dictionary<Guid, FakeUser> Users { get; } = [];
@@ -62,6 +64,93 @@ public class FakeIdentityService : IIdentityService
         => Task.FromResult(Users.Values.Count(u => u.WorkspaceId == workspaceId && u.Status == AppUserStatus.PendingApproval));
 
     public void BurnPasswordHash() => BurnCount++;
+
+    /// <summary>Mirrors Identity's options (length 8 + digit/lower/upper/symbol).</summary>
+    public Task<IReadOnlyList<string>> ValidatePasswordAsync(Guid userId, string password, CancellationToken ct = default)
+    {
+        var errors = new List<string>();
+        if (password.Length < 8) errors.Add("Passwords must be at least 8 characters.");
+        if (!password.Any(char.IsDigit)) errors.Add("Passwords must have at least one digit ('0'-'9').");
+        if (!password.Any(char.IsLower)) errors.Add("Passwords must have at least one lowercase ('a'-'z').");
+        if (!password.Any(char.IsUpper)) errors.Add("Passwords must have at least one uppercase ('A'-'Z').");
+        if (password.All(char.IsLetterOrDigit)) errors.Add("Passwords must have at least one non alphanumeric character.");
+        return Task.FromResult<IReadOnlyList<string>>(errors);
+    }
+
+    public List<Guid> PasswordSetFor { get; } = [];
+
+    public Task SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
+    {
+        var user = Users[userId];
+        user.Password = newPassword;
+        user.FailedAttempts = 0;
+        user.LockedOut = false;
+        PasswordSetFor.Add(userId);
+        return Task.CompletedTask;
+    }
+
+    public async Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct = default)
+    {
+        var user = Users[userId];
+        if (user.LockedOut) return new ChangePasswordResult.LockedOut();
+        if (user.Password != currentPassword)
+        {
+            if (++user.FailedAttempts >= 5) user.LockedOut = true;
+            return new ChangePasswordResult.WrongCurrentPassword();
+        }
+        var errors = await ValidatePasswordAsync(userId, newPassword, ct);
+        if (errors.Count > 0) return new ChangePasswordResult.PolicyFailed(errors);
+        user.Password = newPassword;
+        user.FailedAttempts = 0;
+        return new ChangePasswordResult.Success();
+    }
+}
+
+/// <summary>In-memory reset tokens with the same atomic semantics as the EF repository.</summary>
+public class FakePasswordResetRepository : IPasswordResetRepository
+{
+    public List<PasswordResetToken> Rows { get; } = [];
+
+    public Task AddAsync(PasswordResetToken token, CancellationToken ct = default)
+    {
+        lock (Rows) Rows.Add(token);
+        return Task.CompletedTask;
+    }
+
+    public Task<int> CountCreatedSinceAsync(Guid userId, DateTime since, CancellationToken ct = default)
+    {
+        lock (Rows) return Task.FromResult(Rows.Count(t => t.UserId == userId && t.CreatedAt >= since));
+    }
+
+    public Task InvalidateUnusedAsync(Guid userId, DateTime now, CancellationToken ct = default)
+    {
+        lock (Rows)
+            foreach (var t in Rows.Where(t => t.UserId == userId && t.UsedAt == null && t.ExpiresAt > now)) t.ExpiresAt = now;
+        return Task.CompletedTask;
+    }
+
+    public Task<PasswordResetToken?> FindByHashAsync(string hash, CancellationToken ct = default)
+    {
+        lock (Rows)
+            return Task.FromResult(Rows.FirstOrDefault(t => t.TokenHash == hash) is { } t
+                ? new PasswordResetToken
+                {
+                    Id = t.Id, UserId = t.UserId, TokenHash = t.TokenHash, CreatedAt = t.CreatedAt,
+                    ExpiresAt = t.ExpiresAt, UsedAt = t.UsedAt, RequestedIp = t.RequestedIp
+                }
+                : null);
+    }
+
+    public Task<bool> TryConsumeAsync(string hash, DateTime now, CancellationToken ct = default)
+    {
+        lock (Rows)
+        {
+            var row = Rows.FirstOrDefault(t => t.TokenHash == hash && t.UsedAt == null && t.ExpiresAt > now);
+            if (row is null) return Task.FromResult(false);
+            row.UsedAt = now;
+            return Task.FromResult(true);
+        }
+    }
 }
 
 public class FakeApprovalRepository : IApprovalRepository
@@ -171,9 +260,13 @@ public class FakeJwtTokenGenerator : IJwtTokenGenerator
 public class FakeRefreshTokenService : IRefreshTokenService
 {
     public List<Guid> RevokedAllFor { get; } = [];
+    public List<Guid> IssuedFor { get; } = [];
 
     public Task<string> IssueAsync(Guid userId, CancellationToken ct = default)
-        => Task.FromResult("fake-refresh-token");
+    {
+        IssuedFor.Add(userId);
+        return Task.FromResult("fake-refresh-token");
+    }
 
     public Task<RefreshResult> ValidateAndRotateAsync(string rawToken, CancellationToken ct = default)
         => Task.FromResult(new RefreshResult(true, Guid.NewGuid(), "new-fake-refresh-token", null));

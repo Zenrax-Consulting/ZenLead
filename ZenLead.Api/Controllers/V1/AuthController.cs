@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
@@ -19,8 +20,15 @@ public class AuthController(
     LoginUseCase login,
     RefreshTokenUseCase refreshToken,
     IValidator<RegisterRequest> registerValidator,
-    IValidator<LoginRequest> loginValidator) : ControllerBase
+    IValidator<LoginRequest> loginValidator,
+    ForgotPasswordUseCase forgotPassword,
+    ResetPasswordUseCase resetPassword,
+    ChangePasswordUseCase changePassword,
+    IValidator<ForgotPasswordRequest> forgotValidator,
+    IValidator<ResetPasswordRequest> resetValidator,
+    IValidator<ChangePasswordRequest> changeValidator) : ControllerBase
 {
+    public const string ForgotMessage = "If an account exists for that address, we've emailed a reset link.";
     public const string AcceptedMessage =
         "Request received. If the address can be registered, your workspace administrator has been asked to approve it.";
 
@@ -103,6 +111,59 @@ public class AuthController(
             DecisionResult.Expired => StatusCode(StatusCodes.Status410Gone, new { code = "expired", message = "This link has expired." }),
             _ => NotFound()
         };
+
+    /// <summary>Same 200 and body whether or not the address has an account (F21). Validation errors only for malformed input.</summary>
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting(RateLimiting.ForgotPolicy)]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken ct)
+    {
+        var validation = await forgotValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid) return ValidationProblem(validation.ToModelState());   // says nothing about accounts
+        await forgotPassword.ExecuteAsync(request.Email, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        return Ok(new { message = ForgotMessage });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken ct)
+    {
+        var validation = await resetValidator.ValidateAsync(request, ct);
+        // a missing/oversized token gets the same answer as an unknown or expired one
+        if (validation.Errors.Any(e => e.PropertyName == nameof(ResetPasswordRequest.Token))) return InvalidResetToken();
+        if (!validation.IsValid) return ValidationProblem(validation.ToModelState());
+
+        var result = await resetPassword.ExecuteAsync(request, ct);
+        if (result.IsOk) return NoContent();
+        if (result.Errors.Count > 0) return PasswordProblem(nameof(ResetPasswordRequest.NewPassword), result.Errors);
+        return InvalidResetToken();
+    }
+
+    /// <summary>Works for every signed-in user, the super admin included. Returns a fresh session; every other session is signed out.</summary>
+    [HttpPost("change-password")]
+    [Authorize(Policy = Policies.AnyUser)]
+    public async Task<ActionResult<AuthResponse>> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
+    {
+        if (this.UserId() is not { } userId) return Unauthorized();
+        var validation = await changeValidator.ValidateAsync(request, ct);
+        if (!validation.IsValid) return ValidationProblem(validation.ToModelState());
+
+        var result = await changePassword.ExecuteAsync(userId, request, ct);
+        return result.Outcome switch
+        {
+            ChangePasswordOutcome.Success => Ok(result.Tokens),
+            ChangePasswordOutcome.PolicyFailed => PasswordProblem(nameof(ChangePasswordRequest.NewPassword), result.Errors ?? []),
+            _ => BadRequest(new { code = "wrong_password", message = "The current password is incorrect." })   // lockout looks the same
+        };
+    }
+
+    private BadRequestObjectResult InvalidResetToken()
+        => BadRequest(new { code = "invalid_token", message = "This link is invalid or has expired. Request a new one." });
+
+    private ActionResult PasswordProblem(string field, IReadOnlyList<string> errors)
+    {
+        var modelState = new ModelStateDictionary();
+        foreach (var error in errors) modelState.AddModelError(field, error);
+        return ValidationProblem(modelState);
+    }
 
     private ActionResult WorkspaceProblem(string message)
     {

@@ -85,6 +85,18 @@ public class RegistrationApprovalConfiguration : IEntityTypeConfiguration<Regist
     }
 }
 
+public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<PasswordResetToken>
+{
+    public void Configure(EntityTypeBuilder<PasswordResetToken> builder)
+    {
+        builder.Property(t => t.TokenHash).HasMaxLength(64); // Base64 SHA-256 = 44 chars
+        builder.HasIndex(t => t.TokenHash).IsUnique();
+        builder.Property(t => t.RequestedIp).HasMaxLength(45);
+        builder.HasIndex(t => new { t.UserId, t.CreatedAt });
+        builder.HasOne<AppUser>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public class AuditLogEntryConfiguration : IEntityTypeConfiguration<AuditLogEntry>
 {
     public void Configure(EntityTypeBuilder<AuditLogEntry> builder)

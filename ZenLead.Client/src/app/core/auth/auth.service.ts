@@ -65,6 +65,22 @@ export class AuthService {
     );
   }
 
+  /** Always answers 200 with the same neutral message, whether or not the address has an account (F21). */
+  forgotPassword(email: string): Observable<void> {
+    return this.http.post<void>('/api/v1/auth/forgot-password', { email });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<void> {
+    return this.http.post<void>('/api/v1/auth/reset-password', { token, newPassword });
+  }
+
+  /** Every other session is signed out server-side; this one continues with the returned pair. */
+  changePassword(currentPassword: string, newPassword: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>('/api/v1/auth/change-password', { currentPassword, newPassword }).pipe(
+      tap(response => this.storeSession(response))
+    );
+  }
+
   logout(): void {
     this.accessToken = null;
     localStorage.removeItem(REFRESH_TOKEN_KEY);

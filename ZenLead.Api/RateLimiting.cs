@@ -26,6 +26,11 @@ public static class RateLimiting
     public const string PickerPolicy = "picker";
     public const int PickerPermitsPerMinute = 30;
 
+    /// <summary>Forgot-password (F21): 10 per hour per IP by default; override with RateLimits:ForgotPermitLimit. The per-email cap lives in the use case.</summary>
+    public const string ForgotPolicy = "forgot";
+    public const int ForgotPermitsPerWindow = 10;
+    public static readonly TimeSpan ForgotWindow = TimeSpan.FromHours(1);
+
     /// <summary>Per-client-IP fixed window, for anonymous endpoints.</summary>
     public static RateLimitPartition<string> PerIpPartition(HttpContext context, int permitLimit, TimeSpan window)
         => RateLimitPartition.GetFixedWindowLimiter(
