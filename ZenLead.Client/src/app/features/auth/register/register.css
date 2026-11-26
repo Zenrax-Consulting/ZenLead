@@ -5,3 +5,6 @@
 .auth-switch {
   margin-top: 1rem;
 }
+
+.approve-warning { font-weight: 500; }
+.approve-actions { display: flex; gap: 8px; margin-top: 16px; }

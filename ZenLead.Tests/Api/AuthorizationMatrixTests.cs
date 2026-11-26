@@ -21,7 +21,12 @@ public class AuthorizationMatrixTests(ApiFactory factory) : IClassFixture<ApiFac
     [
         "POST api/v1/auth/register",
         "POST api/v1/auth/login",
-        "POST api/v1/auth/refresh"
+        "POST api/v1/auth/refresh",
+        // F20: registration picker and approval links (the token is the credential)
+        "GET api/v1/workspaces",
+        "GET api/v1/auth/approvals/{token}",
+        "POST api/v1/auth/approvals/{token}/approve",
+        "POST api/v1/auth/approvals/{token}/reject"
     ];
 
     private static readonly HashSet<string?> KnownPolicies = [null, Policies.AnyUser, Policies.SuperAdminOnly];

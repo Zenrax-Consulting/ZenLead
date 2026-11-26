@@ -50,4 +50,22 @@ describe('Login', () => {
     expect(component.submitting).toBe(false);
     expect(router.navigate).not.toHaveBeenCalled();
   });
+
+  it('explains an account awaiting approval', () => {
+    const { component } = build(vi.fn().mockReturnValue(throwError(() => ({ status: 403, error: { code: 'pending_approval' } }))));
+    component.form.setValue({ email: 'a@acme.com', password: 'Passw0rd!' });
+
+    component.submit();
+
+    expect(component.errorMessage).toBe('Your account is awaiting approval by your workspace administrator.');
+  });
+
+  it('explains a registration that was not approved', () => {
+    expect(Login.messageFor({ status: 403, error: { code: 'not_approved' } }))
+      .toBe("Your registration wasn't approved. Contact your workspace administrator.");
+  });
+
+  it('keeps the generic message for a 403 without a known code', () => {
+    expect(Login.messageFor({ status: 403, error: null })).toBe('Invalid email or password.');
+  });
 });

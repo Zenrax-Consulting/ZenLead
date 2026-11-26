@@ -1,37 +1,106 @@
 using ZenLead.Application.Abstractions;
 using ZenLead.Application.Dtos.Admin;
+using ZenLead.Application.Dtos.Auth;
 using ZenLead.Domain.Entities;
 using ZenLead.Domain.Enums;
 
 namespace ZenLead.Tests.Application.Auth;
 
+/// <summary>In-memory users with statuses. Passwords are stored as given (it's a fake).</summary>
 public class FakeIdentityService : IIdentityService
 {
-    public List<string> RegisteredEmails { get; } = [];
-    public Guid NextUserId { get; set; } = Guid.NewGuid();
-    public Guid WorkspaceIdForUser { get; set; }
-
-    public Task<bool> EmailExistsAsync(string email, CancellationToken ct = default)
-        => Task.FromResult(RegisteredEmails.Contains(email));
-
-    public Exception? ExceptionOnCreate { get; set; }
-
-    public Task<Guid> CreateUserAsync(Guid workspaceId, string email, string password, string displayName, CancellationToken ct = default)
+    public class FakeUser
     {
-        if (ExceptionOnCreate is not null) throw ExceptionOnCreate;
-        RegisteredEmails.Add(email);
-        WorkspaceIdForUser = workspaceId;
-        return Task.FromResult(NextUserId);
+        public Guid Id { get; init; } = Guid.NewGuid();
+        public Guid? WorkspaceId { get; set; }
+        public string Email { get; init; } = "";
+        public string Password { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public AppUserStatus Status { get; set; }
+        public PlatformRole Role { get; set; } = PlatformRole.None;
     }
 
-    public Task<Guid?> ValidateCredentialsAsync(string email, string password, CancellationToken ct = default)
-        => Task.FromResult<Guid?>(RegisteredEmails.Contains(email) ? NextUserId : null);
+    public Dictionary<Guid, FakeUser> Users { get; } = [];
+    public Exception? ExceptionOnCreate { get; set; }
+    public int BurnCount { get; private set; }
 
-    public PlatformRole RoleForUser { get; set; } = PlatformRole.None;
-    public bool UserHasNoWorkspace { get; set; }
+    public FakeUser Add(string email, AppUserStatus status, Guid? workspaceId = null, string password = "Passw0rd!", string displayName = "User",
+        PlatformRole role = PlatformRole.None)
+    {
+        var user = new FakeUser { Email = email, Status = status, WorkspaceId = workspaceId, Password = password, DisplayName = displayName, Role = role };
+        Users[user.Id] = user;
+        return user;
+    }
+
+    private FakeUser? ByEmail(string email) => Users.Values.FirstOrDefault(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase));
+    private static UserLookup? Lookup(FakeUser? u) => u is null ? null : new UserLookup(u.Id, u.Status, u.WorkspaceId, u.DisplayName, u.Email);
+
+    public Task<bool> EmailExistsAsync(string email, CancellationToken ct = default) => Task.FromResult(ByEmail(email) is not null);
+    public Task<UserLookup?> FindByEmailAsync(string email, CancellationToken ct = default) => Task.FromResult(Lookup(ByEmail(email)));
+    public Task<UserLookup?> FindByIdAsync(Guid userId, CancellationToken ct = default) => Task.FromResult(Lookup(Users.GetValueOrDefault(userId)));
+
+    public Task<Guid> CreateUserAsync(Guid workspaceId, string email, string password, string displayName, AppUserStatus status, CancellationToken ct = default)
+    {
+        if (ExceptionOnCreate is not null) throw ExceptionOnCreate;
+        if (ByEmail(email) is not null) throw new EmailAlreadyRegisteredException();
+        return Task.FromResult(Add(email, status, workspaceId, password, displayName).Id);
+    }
+
+    public Task<CredentialCheck> ValidateCredentialsAsync(string email, string password, CancellationToken ct = default)
+        => Task.FromResult(ByEmail(email) is { } u && u.Password == password ? new CredentialCheck(u.Id, u.Status, false) : CredentialCheck.Invalid);
+
+    public Task SetStatusAsync(Guid userId, AppUserStatus status, CancellationToken ct = default)
+    {
+        Users[userId].Status = status;
+        return Task.CompletedTask;
+    }
 
     public Task<UserClaimsData?> GetUserClaimsDataAsync(Guid userId, CancellationToken ct = default)
-        => Task.FromResult<UserClaimsData?>(new UserClaimsData(UserHasNoWorkspace ? null : WorkspaceIdForUser, "fake@example.com", RoleForUser));
+        => Task.FromResult(Users.GetValueOrDefault(userId) is { } u ? new UserClaimsData(u.WorkspaceId, u.Email, u.Role, u.Status) : null);
+
+    public Task<int> CountPendingAsync(Guid workspaceId, CancellationToken ct = default)
+        => Task.FromResult(Users.Values.Count(u => u.WorkspaceId == workspaceId && u.Status == AppUserStatus.PendingApproval));
+
+    public void BurnPasswordHash() => BurnCount++;
+}
+
+public class FakeApprovalRepository : IApprovalRepository
+{
+    public List<RegistrationApproval> Rows { get; } = [];
+
+    public Task AddAsync(RegistrationApproval approval, CancellationToken ct = default)
+    {
+        Rows.Add(approval);
+        return Task.CompletedTask;
+    }
+
+    public Task<RegistrationApproval?> FindByHashAsync(string tokenHash, CancellationToken ct = default)
+        => Task.FromResult(Rows.FirstOrDefault(a => a.TokenHash == tokenHash) is { } a ? Copy(a) : null);
+
+    public Task<bool> TryConsumeAsync(string tokenHash, DateTime now, ApprovalDecision decision, CancellationToken ct = default)
+    {
+        var row = Rows.FirstOrDefault(a => a.TokenHash == tokenHash && a.UsedAt == null && a.ExpiresAt > now);
+        if (row is null) return Task.FromResult(false);
+        row.UsedAt = now;
+        row.Decision = decision;
+        return Task.FromResult(true);
+    }
+
+    public Task InvalidatePendingForUserAsync(Guid userId, DateTime now, CancellationToken ct = default)
+    {
+        foreach (var row in Rows.Where(a => a.UserId == userId && a.UsedAt == null && a.ExpiresAt > now)) row.ExpiresAt = now;
+        return Task.CompletedTask;
+    }
+
+    public Task<DateTime?> LastCreatedAtAsync(Guid userId, CancellationToken ct = default)
+        => Task.FromResult(Rows.Where(a => a.UserId == userId).Select(a => (DateTime?)a.CreatedAt).Max());
+
+    // callers get a snapshot, like AsNoTracking
+    private static RegistrationApproval Copy(RegistrationApproval a) => new()
+    {
+        Id = a.Id, UserId = a.UserId, WorkspaceId = a.WorkspaceId, TokenHash = a.TokenHash,
+        CreatedAt = a.CreatedAt, ExpiresAt = a.ExpiresAt, UsedAt = a.UsedAt, Decision = a.Decision
+    };
 }
 
 public class FakeWorkspaceRepository : IWorkspaceRepository
@@ -65,6 +134,11 @@ public class FakeWorkspaceRepository : IWorkspaceRepository
     public Task<IReadOnlyList<WorkspaceAdminResponse>> ListWithUserCountsAsync(CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<WorkspaceAdminResponse>>(
             Created.Select(w => new WorkspaceAdminResponse(w.Id, w.Name, w.AdminEmail, w.TimeZone, 0, w.CreatedAt)).ToList());
+
+    public Task<IReadOnlyList<WorkspaceOption>> SearchByNameAsync(string? q, int max, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<WorkspaceOption>>(Created
+            .Where(w => string.IsNullOrWhiteSpace(q) || w.Name.Contains(q.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(w => w.Name).Take(max).Select(w => new WorkspaceOption(w.Id, w.Name)).ToList());
 }
 
 public class FakeUnitOfWork : IUnitOfWork
@@ -96,9 +170,17 @@ public class FakeJwtTokenGenerator : IJwtTokenGenerator
 
 public class FakeRefreshTokenService : IRefreshTokenService
 {
+    public List<Guid> RevokedAllFor { get; } = [];
+
     public Task<string> IssueAsync(Guid userId, CancellationToken ct = default)
         => Task.FromResult("fake-refresh-token");
 
     public Task<RefreshResult> ValidateAndRotateAsync(string rawToken, CancellationToken ct = default)
         => Task.FromResult(new RefreshResult(true, Guid.NewGuid(), "new-fake-refresh-token", null));
+
+    public Task RevokeAllAsync(Guid userId, CancellationToken ct = default)
+    {
+        RevokedAllFor.Add(userId);
+        return Task.CompletedTask;
+    }
 }

@@ -29,6 +29,7 @@ public class ZenLeadDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, G
     public DbSet<LeadDiscoveryRun> DiscoveryRuns => Set<LeadDiscoveryRun>();
     public DbSet<CsvImportBatch> CsvImportBatches => Set<CsvImportBatch>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
+    public DbSet<RegistrationApproval> RegistrationApprovals => Set<RegistrationApproval>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

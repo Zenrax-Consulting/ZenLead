@@ -76,7 +76,7 @@ public class ApiFactory : WebApplicationFactory<Program>
         using var scope = Services.CreateScope();
         var sp = scope.ServiceProvider;
         var workspace = await sp.GetRequiredService<IWorkspaceRepository>().CreateAsync(name, adminEmail: email);
-        var userId = await sp.GetRequiredService<IIdentityService>().CreateUserAsync(workspace.Id, email, password ?? NewPassword(), "Test user");
+        var userId = await sp.GetRequiredService<IIdentityService>().CreateUserAsync(workspace.Id, email, password ?? NewPassword(), "Test user", AppUserStatus.Active);
         var token = sp.GetRequiredService<IJwtTokenGenerator>().GenerateAccessToken(userId, workspace.Id, email);
         return (workspace.Id, userId, token);
     }
@@ -89,7 +89,7 @@ public class ApiFactory : WebApplicationFactory<Program>
         var user = new AppUser
         {
             UserName = email, Email = email, EmailConfirmed = true, DisplayName = "Platform admin",
-            PlatformRole = PlatformRole.SuperAdmin, WorkspaceId = null
+            PlatformRole = PlatformRole.SuperAdmin, WorkspaceId = null, Status = AppUserStatus.Active
         };
         var result = await sp.GetRequiredService<UserManager<AppUser>>().CreateAsync(user, NewPassword());
         if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Code)));

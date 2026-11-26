@@ -34,6 +34,7 @@ using SendGrid;
 using ZenLead.Application.Email;
 using ZenLead.Infrastructure.Email;
 using ZenLead.Domain.Enums;
+using ZenLead.Application.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -111,7 +112,13 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(RateLimiting.ComposePolicy, RateLimiting.ComposePartition);
     options.AddPolicy(RateLimiting.DiscoveryPolicy, RateLimiting.DiscoveryPartition);
     options.AddPolicy(RateLimiting.UploadPolicy, RateLimiting.UploadPartition);
-    options.AddPolicy(RateLimiting.AuthPolicy, RateLimiting.AuthPartition);
+    // limits are overridable (RateLimits:*) so endpoint tests can make many anonymous calls from one "IP"
+    var authPermits = builder.Configuration.GetValue("RateLimits:AuthPermitLimit", RateLimiting.AuthPermitsPerMinute);
+    var registerPermits = builder.Configuration.GetValue("RateLimits:RegisterPermitLimit", RateLimiting.RegisterPermitsPerWindow);
+    var pickerPermits = builder.Configuration.GetValue("RateLimits:PickerPermitLimit", RateLimiting.PickerPermitsPerMinute);
+    options.AddPolicy(RateLimiting.AuthPolicy, ctx => RateLimiting.AuthPartition(ctx, authPermits));
+    options.AddPolicy(RateLimiting.RegisterPolicy, ctx => RateLimiting.PerIpPartition(ctx, registerPermits, RateLimiting.RegisterWindow));
+    options.AddPolicy(RateLimiting.PickerPolicy, ctx => RateLimiting.PerIpPartition(ctx, pickerPermits, TimeSpan.FromMinutes(1)));
     options.OnRejected = (context, _) =>
     {
         context.HttpContext.Response.Headers.RetryAfter = "60";
@@ -206,7 +213,12 @@ else
     builder.Services.AddScoped<IJobScheduler, NoopJobScheduler>();
 }
 
-builder.Services.AddScoped<RegisterWorkspaceUseCase>();
+// workspace membership & registration approval (F20)
+builder.Services.Configure<RegistrationOptions>(builder.Configuration.GetSection(RegistrationOptions.SectionName));
+builder.Services.AddScoped<IApprovalRepository, ApprovalRepository>();
+builder.Services.AddScoped<RequestRegistrationUseCase>();
+builder.Services.AddScoped<GetApprovalInfoUseCase>();
+builder.Services.AddScoped<DecideApprovalUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
 builder.Services.AddScoped<RefreshTokenUseCase>();
 builder.Services.AddScoped<ComposeEmailUseCase>();

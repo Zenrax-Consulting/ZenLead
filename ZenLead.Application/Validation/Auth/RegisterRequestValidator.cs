@@ -7,7 +7,7 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
 {
     public RegisterRequestValidator()
     {
-        RuleFor(x => x.WorkspaceName).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.WorkspaceId).NotEmpty().WithMessage("Choose a workspace from the list.");
         RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
         // Mirrors the Identity password options in Program.cs (length 8 + digit/lower/upper/symbol),
         // so a password the validator accepts is never rejected later by Identity.

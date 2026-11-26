@@ -12,12 +12,16 @@ import { Shell } from './core/layout/shell/shell';
 import { ComingSoon } from './core/placeholder/coming-soon';
 import { Register } from './features/auth/register/register';
 import { Login } from './features/auth/login/login';
+import { RegisterPending } from './features/auth/register-pending/register-pending';
+import { Approve } from './features/auth/approve/approve';
 
 @NgModule({
   declarations: [
     App,
     Register,
     Login,
+    RegisterPending,
+    Approve,
     Shell,
     ComingSoon
   ],

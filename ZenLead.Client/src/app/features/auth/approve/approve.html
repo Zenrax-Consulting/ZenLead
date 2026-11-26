@@ -1,0 +1,42 @@
+<mat-card class="auth-card">
+  @switch (state) {
+    @case ('loading') {
+      <mat-card-title>Registration request</mat-card-title>
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+    @case ('ready') {
+      <mat-card-title>Registration request</mat-card-title>
+      <p><strong>{{ info?.requesterName }}</strong> ({{ info?.requesterEmail }}) has asked to join
+        <strong>{{ info?.workspaceName }}</strong>.</p>
+      <p class="approve-warning">Only approve people you recognise.</p>
+      <div class="approve-actions">
+        <button mat-raised-button color="primary" type="button" (click)="decide('approve')" [disabled]="deciding">Approve</button>
+        <button mat-button type="button" (click)="decide('reject')" [disabled]="deciding">Reject</button>
+      </div>
+    }
+    @case ('approved') {
+      <mat-card-title>Approved</mat-card-title>
+      <p>{{ info?.requesterName ?? 'They' }} can sign in now. We've emailed them.</p>
+    }
+    @case ('rejected') {
+      <mat-card-title>Rejected</mat-card-title>
+      <p>The request was rejected. They won't be able to sign in.</p>
+    }
+    @case ('used') {
+      <mat-card-title>Link already used</mat-card-title>
+      <p>This request has already been approved or rejected.</p>
+    }
+    @case ('expired') {
+      <mat-card-title>Link expired</mat-card-title>
+      <p>This link has expired. The person can request access again.</p>
+    }
+    @case ('invalid') {
+      <mat-card-title>Link not valid</mat-card-title>
+      <p>This approval link isn't valid. Check you opened the newest email.</p>
+    }
+    @default {
+      <mat-card-title>Something went wrong</mat-card-title>
+      <p class="auth-error">We couldn't load or record the decision. Please try again later.</p>
+    }
+  }
+</mat-card>
