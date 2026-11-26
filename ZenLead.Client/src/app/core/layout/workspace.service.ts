@@ -9,4 +9,9 @@ export class WorkspaceService {
   current(): Observable<{ id: string; name: string }> {
     return this.http.get<{ id: string; name: string }>('/api/v1/workspaces/current');
   }
+
+  /** IANA id, e.g. "Asia/Dubai" (F18); campaign send windows without their own zone are evaluated in it. */
+  updateTimeZone(timeZone: string): Observable<void> {
+    return this.http.put<void>('/api/v1/workspaces/current/time-zone', { timeZone });
+  }
 }

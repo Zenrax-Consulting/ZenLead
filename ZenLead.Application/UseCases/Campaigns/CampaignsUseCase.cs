@@ -28,14 +28,14 @@ public class CampaignsUseCase(
         };
         Apply(campaign, request);
         await campaigns.AddAsync(campaign, ct);
-        return await ToResponseAsync(campaign, EnrollmentCounts.Empty, ct);
+        return await ToResponseAsync(campaign, EnrollmentCounts.Empty, 0, ct);
     }
 
     public async Task<CampaignOutcome<CampaignResponse>> GetAsync(Guid workspaceId, Guid campaignId, CancellationToken ct = default)
     {
         var campaign = await LoadAsync(workspaceId, campaignId, ct);
         if (campaign is null) return CampaignOutcome<CampaignResponse>.NotFound();
-        return CampaignOutcome<CampaignResponse>.Success(await ToResponseAsync(campaign, await enrollments.CountsAsync(campaignId, ct), ct));
+        return CampaignOutcome<CampaignResponse>.Success(await ToResponseAsync(campaign, ct));
     }
 
     /// <summary>Allowed in any status but Completed; window changes apply to future scheduling only.</summary>
@@ -48,7 +48,7 @@ public class CampaignsUseCase(
 
         Apply(campaign, request);
         await campaigns.UpdateAsync(campaign, ct);
-        return CampaignOutcome<CampaignResponse>.Success(await ToResponseAsync(campaign, await enrollments.CountsAsync(campaignId, ct), ct));
+        return CampaignOutcome<CampaignResponse>.Success(await ToResponseAsync(campaign, ct));
     }
 
     public async Task<CampaignOutcome<PagedResult<EnrollmentRow>>> ListEnrollmentsAsync(
@@ -101,11 +101,19 @@ public class CampaignsUseCase(
         campaign.TimeZoneId = string.IsNullOrWhiteSpace(request.TimeZoneId) ? null : request.TimeZoneId.Trim();
     }
 
-    private async Task<CampaignResponse> ToResponseAsync(Campaign c, EnrollmentCounts counts, CancellationToken ct)
+    private async Task<CampaignResponse> ToResponseAsync(Campaign c, CancellationToken ct)
+        => await ToResponseAsync(c, await enrollments.CountsAsync(c.Id, ct), StepsStarted(await enrollments.MaxNextStepOrderAsync(c.Id, ct)), ct);
+
+    /// <summary>How many steps some enrollment has passed: <c>NextStepOrder</c> starts at 1, so the max minus one (never negative).</summary>
+    public static int StepsStarted(int maxNextStepOrder) => Math.Max(maxNextStepOrder - 1, 0);
+
+    private async Task<CampaignResponse> ToResponseAsync(Campaign c, EnrollmentCounts counts, int stepsStarted, CancellationToken ct)
     {
-        var zone = CampaignWindowFactory.EffectiveTimeZone(c, await workspaces.WorkspaceTimeZoneAsync(c.WorkspaceId, ct));
+        var workspaceZone = await workspaces.WorkspaceTimeZoneAsync(c.WorkspaceId, ct);
+        var zone = CampaignWindowFactory.EffectiveTimeZone(c, workspaceZone);
         return new CampaignResponse(c.Id, c.Name, c.Status, c.FromName, c.DailySendCap, CampaignTimes.ToText(c.WindowStart), CampaignTimes.ToText(c.WindowEnd),
-            c.SendDays, c.TimeZoneId, zone, c.CreatedAt, c.ActivatedAt, c.Steps.OrderBy(s => s.Order).Select(ToResponse).ToList(), counts);
+            c.SendDays, c.TimeZoneId, zone, c.CreatedAt, c.ActivatedAt, c.Steps.OrderBy(s => s.Order).Select(ToResponse).ToList(), counts,
+            stepsStarted, workspaceZone);
     }
 
     public static StepResponse ToResponse(CampaignStep s)

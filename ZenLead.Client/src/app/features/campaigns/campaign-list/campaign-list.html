@@ -1,0 +1,49 @@
+<div class="list-header">
+  <h1>Campaigns</h1>
+  <button mat-raised-button color="primary" (click)="newCampaign()" [disabled]="creating">New campaign</button>
+</div>
+
+<mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+
+<div *ngIf="error" class="error" role="alert">
+  <p>{{ error }}</p>
+  <button mat-stroked-button (click)="load()">Retry</button>
+</div>
+
+<div *ngIf="!loading && !error && campaigns?.length === 0" class="empty-state">
+  <p>No campaigns yet.</p>
+  <button mat-raised-button color="primary" (click)="newCampaign()">Create your first campaign</button>
+</div>
+
+<div class="table-wrap" *ngIf="campaigns?.length">
+  <table mat-table [dataSource]="campaigns!">
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef>Name</th>
+      <td mat-cell *matCellDef="let c"><a [routerLink]="['/campaigns', c.id]">{{ c.name }}</a></td>
+    </ng-container>
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let c">
+        <span class="chip" [ngClass]="'tone-' + chip(c.status).tone"><mat-icon aria-hidden="true">{{ chip(c.status).icon }}</mat-icon>{{ chip(c.status).label }}</span>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="steps">
+      <th mat-header-cell *matHeaderCellDef>Steps</th>
+      <td mat-cell *matCellDef="let c">{{ c.stepCount }}</td>
+    </ng-container>
+    <ng-container matColumnDef="enrolled">
+      <th mat-header-cell *matHeaderCellDef>Enrolled</th>
+      <td mat-cell *matCellDef="let c">{{ c.counts.total }}</td>
+    </ng-container>
+    <ng-container matColumnDef="sent">
+      <th mat-header-cell *matHeaderCellDef>Sent</th>
+      <td mat-cell *matCellDef="let c">{{ c.sent }}</td>
+    </ng-container>
+    <ng-container matColumnDef="createdAt">
+      <th mat-header-cell *matHeaderCellDef>Created</th>
+      <td mat-cell *matCellDef="let c">{{ c.createdAt | date: 'mediumDate' }}</td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns" class="clickable" (click)="open(row)"></tr>
+  </table>
+</div>

@@ -10,10 +10,11 @@ import { TargetProfilesList } from './profiles/target-profiles-list/target-profi
 import { TargetProfileEdit } from './profiles/target-profile-edit/target-profile-edit';
 import { RunDiscoveryDialog } from './profiles/run-discovery-dialog/run-discovery-dialog';
 import { ImportWizard } from './import/import-wizard';
+import { CampaignsSharedModule } from '../campaigns/campaigns-shared-module';
 
 @NgModule({
   declarations: [LeadsList, LeadDetail, AddLeadDialog, ConfirmDialog, TargetProfilesList, TargetProfileEdit, RunDiscoveryDialog, ImportWizard],
   // MatStepperModule stays here, not in SharedModule: SharedModule is eager, so anything added there grows the initial bundle.
-  imports: [SharedModule, MatStepperModule, LeadsRoutingModule]
+  imports: [SharedModule, MatStepperModule, CampaignsSharedModule, LeadsRoutingModule]
 })
 export class LeadsModule {}

@@ -1,0 +1,100 @@
+<mat-card class="card" appearance="outlined">
+  <div class="card-head">
+    <ng-content select="[dragHandle]"></ng-content>
+    <h3>Step {{ step.order }}</h3>
+    <span class="send-label">{{ sendLabel }}</span>
+    <span class="spacer"></span>
+    <span class="save-state" aria-live="polite">
+      <ng-container [ngSwitch]="saveState">
+        <span *ngSwitchCase="'saving'">Saving…</span>
+        <span *ngSwitchCase="'saved'"><mat-icon aria-hidden="true">check</mat-icon>Saved</span>
+        <span *ngSwitchCase="'error'" class="error">Couldn't save<ng-container *ngIf="saveError"> — {{ saveError }}</ng-container>
+          <button mat-button type="button" (click)="save()">Retry</button></span>
+        <span *ngSwitchDefault><button *ngIf="dirty" mat-button type="button" (click)="save()">Save now</button></span>
+      </ng-container>
+    </span>
+    <button mat-icon-button type="button" (click)="move.emit(-1)" [disabled]="index === 0 || reorderLocked || locked"
+            [attr.aria-label]="'Move step ' + step.order + ' up'"><mat-icon aria-hidden="true">arrow_upward</mat-icon></button>
+    <button mat-icon-button type="button" (click)="move.emit(1)" [disabled]="index === count - 1 || reorderLocked || locked"
+            [attr.aria-label]="'Move step ' + step.order + ' down'"><mat-icon aria-hidden="true">arrow_downward</mat-icon></button>
+    <button mat-icon-button type="button" class="delete" (click)="deleted.emit()" [disabled]="locked"
+            [matTooltip]="locked ? 'Already sent to some leads — it can’t be deleted' : ''"
+            [attr.aria-label]="'Delete step ' + step.order"><mat-icon aria-hidden="true">delete</mat-icon></button>
+  </div>
+
+  <form [formGroup]="form" class="fields">
+    <mat-form-field appearance="outline" class="delay">
+      <mat-label>Delay (days)</mat-label>
+      <input matInput type="number" formControlName="delayDays" min="0" max="90" (blur)="onBlur()">
+      <mat-hint *ngIf="isFirst">Sends right away</mat-hint>
+      <mat-hint *ngIf="!isFirst">After the previous step</mat-hint>
+    </mat-form-field>
+
+    <div class="tokens" role="toolbar" aria-label="Insert a merge token">
+      <span class="muted">Insert:</span>
+      <mat-chip-set>
+        <mat-chip *ngFor="let t of tokens" (click)="insertToken(t.token)" (mousedown)="$event.preventDefault()"
+                  [matTooltip]="tokenTooltip(t.token)">
+          {{ t.label }}
+        </mat-chip>
+      </mat-chip-set>
+    </div>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Subject</mat-label>
+      <input matInput #subjectInput formControlName="subjectTemplate" maxlength="300"
+             (focus)="rememberField('subjectTemplate')" (blur)="onBlur()">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Body</mat-label>
+      <textarea matInput #bodyInput formControlName="bodyTemplate" cdkTextareaAutosize cdkAutosizeMinRows="5"
+                (focus)="rememberField('bodyTemplate')" (blur)="onBlur()"></textarea>
+    </mat-form-field>
+
+    <div class="warnings" role="status">
+      <p *ngFor="let t of unknown" class="warn"><mat-icon aria-hidden="true">warning</mat-icon>Unknown token {{ braces(t) }} — it can't be filled in.</p>
+      <p *ngIf="usesCompanyWithoutFallback" class="warn">
+        <mat-icon aria-hidden="true">info</mat-icon>Uses {{ braces('company') }} — leads without a company will be skipped unless you add a fallback, e.g. {{ braces('company|your team') }}.
+      </p>
+    </div>
+    <p class="footer-note muted"><mat-icon aria-hidden="true">lock</mat-icon>An unsubscribe link is added automatically.</p>
+
+    <mat-slide-toggle formControlName="useAiPersonalisation" (change)="onBlur()">Personalise each email with AI at send time</mat-slide-toggle>
+    <p class="muted small" *ngIf="form.controls.useAiPersonalisation.value">
+      One AI call per lead for this step (counts against the monthly AI budget). If AI is unavailable the template is sent as written.
+    </p>
+  </form>
+
+  <mat-divider></mat-divider>
+
+  <section class="preview" aria-label="Preview with a lead">
+    <mat-form-field appearance="outline" class="lead-picker">
+      <mat-label>Preview with lead</mat-label>
+      <input matInput [formControl]="leadControl" [matAutocomplete]="leadAuto" placeholder="Search leads">
+      <mat-autocomplete #leadAuto="matAutocomplete" [displayWith]="leadLabel" (optionSelected)="onLeadSelected($event.option.value)">
+        <mat-option *ngFor="let l of leadOptions" [value]="l">{{ l.name }} <span class="muted">· {{ l.company?.name ?? 'no company' }}</span></mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+
+    <div class="ai">
+      <mat-form-field appearance="outline" class="ai-instruction">
+        <mat-label>AI instruction (optional)</mat-label>
+        <input matInput [formControl]="aiInstruction" maxlength="500" placeholder="mention our Dubai office">
+      </mat-form-field>
+      <button mat-stroked-button type="button" (click)="generateWithAi()" [disabled]="!previewLead || aiLoading"
+              [matTooltip]="previewLead ? '' : 'Pick a preview lead first'">
+        <mat-icon aria-hidden="true">auto_awesome</mat-icon>{{ aiLoading ? 'Generating…' : 'Generate with AI' }}
+      </button>
+    </div>
+    <p *ngIf="aiError" class="error" role="alert">{{ aiError }}</p>
+    <p *ngIf="previewError" class="error" role="alert">{{ previewError }}</p>
+
+    <div *ngIf="preview" class="rendered">
+      <p *ngFor="let t of preview.missingTokens" class="warn missing"><mat-icon aria-hidden="true">warning</mat-icon>{{ missingLabel(t) }}</p>
+      <p><strong>Subject:</strong> {{ preview.subject }}</p>
+      <pre class="body">{{ preview.body }}</pre>
+      <button mat-button type="button" (click)="runPreview()">Refresh preview</button>
+    </div>
+  </section>
+</mat-card>

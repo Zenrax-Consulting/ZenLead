@@ -1,0 +1,4 @@
+.muted { opacity: 0.7; }
+.breakdown { margin: 4px 0 12px; padding-left: 20px; }
+.warning { display: flex; gap: 8px; align-items: flex-start; color: #8a5a00; margin: 8px 0; }
+.error { color: #b00020; }

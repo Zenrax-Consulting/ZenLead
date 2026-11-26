@@ -1,0 +1,53 @@
+<form [formGroup]="form" (ngSubmit)="save()" class="settings">
+  <mat-form-field appearance="outline">
+    <mat-label>Campaign name</mat-label>
+    <input matInput formControlName="name" maxlength="200">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>From name (optional)</mat-label>
+    <input matInput formControlName="fromName" maxlength="100">
+    <mat-hint>Shown as the sender's name; the address stays the workspace's sending address.</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Daily send cap</mat-label>
+    <input matInput type="number" formControlName="dailySendCap" min="1" max="500">
+    <mat-hint>New domains should start low — the workspace-wide warm-up cap also applies.</mat-hint>
+  </mat-form-field>
+
+  <fieldset class="window">
+    <legend>Send window</legend>
+    <label>From <input type="time" formControlName="windowStart" aria-label="Window start"></label>
+    <label>to <input type="time" formControlName="windowEnd" aria-label="Window end"></label>
+    <p class="error" *ngIf="form.hasError('windowOrder')">The window must start before it ends.</p>
+  </fieldset>
+
+  <div class="days">
+    <span id="days-label">Days</span>
+    <mat-button-toggle-group formControlName="days" multiple aria-labelledby="days-label">
+      <mat-button-toggle *ngFor="let d of dayNames; let i = index" [value]="i">{{ d }}</mat-button-toggle>
+    </mat-button-toggle-group>
+    <p class="error" *ngIf="form.controls.days.invalid">Pick at least one day.</p>
+  </div>
+
+  <div class="zone">
+    <p>Workspace time zone: <strong>{{ campaign.workspaceTimeZone }}</strong>
+      <button mat-button type="button" (click)="changeWorkspaceZone()" [disabled]="campaign.status === 'Completed'">Change workspace time zone</button></p>
+    <mat-form-field appearance="outline">
+      <mat-label>Campaign time zone</mat-label>
+      <mat-select formControlName="timeZoneId">
+        <mat-option [value]="null">Use the workspace zone ({{ campaign.workspaceTimeZone }})</mat-option>
+        <mat-option *ngFor="let z of zones" [value]="z">{{ z }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <p class="preview">Sends {{ preview }}</p>
+  <p class="error" *ngIf="error" role="alert">{{ error }}</p>
+
+  <div class="actions">
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || form.pristine || saving || campaign.status === 'Completed'">Save settings</button>
+    <button mat-button type="button" (click)="reset()" [disabled]="form.pristine || saving">Discard changes</button>
+  </div>
+</form>

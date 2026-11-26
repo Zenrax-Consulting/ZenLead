@@ -1,0 +1,20 @@
+<div cdkDropList class="steps" [cdkDropListData]="steps" (cdkDropListDropped)="drop($event)" [cdkDropListDisabled]="reorderLocked || completed">
+  <div class="step" *ngFor="let step of steps; let i = index; trackBy: trackById" cdkDrag [cdkDragDisabled]="locked(i) || reorderLocked || completed"
+       [attr.data-step-order]="step.order">
+    <app-step-editor
+      [step]="step" [index]="i" [count]="steps.length" [campaign]="campaign" [day]="dayOf(i)"
+      [locked]="locked(i)" [reorderLocked]="reorderLocked || completed"
+      (saved)="onSaved($event)" (deleted)="remove(step, i)" (move)="move(i, $event)">
+      <button dragHandle mat-icon-button cdkDragHandle type="button" [disabled]="locked(i) || reorderLocked || completed"
+              [attr.aria-label]="'Drag to reorder step ' + step.order">
+        <mat-icon aria-hidden="true">drag_indicator</mat-icon>
+      </button>
+    </app-step-editor>
+  </div>
+</div>
+
+<p *ngIf="steps.length === 0" class="empty">No steps yet. A campaign needs at least one email.</p>
+
+<button mat-stroked-button (click)="addStep()" [disabled]="adding || completed">
+  <mat-icon aria-hidden="true">add</mat-icon>Add step
+</button>

@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>Add leads to {{ data.campaignName }}</h2>
+<mat-dialog-content>
+  <p class="muted">{{ data.total }} {{ data.leadIds ? 'selected' : 'matching the current filter' }}.</p>
+
+  <mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+  <p *ngIf="loading">Checking which leads can be added…</p>
+
+  <ng-container *ngIf="preview">
+    <p class="will-add"><strong>Will be added: {{ preview.enrolled }}</strong></p>
+    <ul class="breakdown">
+      <li *ngIf="preview.alreadyEnrolled">Already in this campaign: {{ preview.alreadyEnrolled }}</li>
+      <li *ngIf="preview.skippedSuppressed">Skipped — unsubscribed or bounced: {{ preview.skippedSuppressed }}</li>
+      <li *ngIf="preview.skippedInvalidEmail">Skipped — invalid email: {{ preview.skippedInvalidEmail }}</li>
+      <li *ngIf="preview.skippedMissingTokens">Skipped — missing a value used in your templates: {{ preview.skippedMissingTokens }}</li>
+      <li *ngIf="preview.notFound">Skipped — no longer exist: {{ preview.notFound }}</li>
+    </ul>
+
+    <div class="warning" role="status" *ngIf="preview.warnUnverified || preview.warnRisky">
+      <mat-icon aria-hidden="true">warning</mat-icon>
+      <span>
+        <ng-container *ngIf="preview.warnUnverified">{{ preview.warnUnverified }} have unverified emails</ng-container><ng-container *ngIf="preview.warnUnverified && preview.warnRisky">, </ng-container><ng-container *ngIf="preview.warnRisky">{{ preview.warnRisky }} are risky</ng-container>.
+        These may bounce and hurt deliverability.
+      </span>
+    </div>
+
+    <p *ngIf="preview.truncated" class="muted">Only the first 5,000 were considered.</p>
+    <p *ngIf="preview.enrolled === 0" class="muted">Nothing to add — every lead is already enrolled or would be skipped.</p>
+  </ng-container>
+
+  <p *ngIf="error" class="error" role="alert">{{ error }}</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-raised-button color="primary" (click)="confirm()" [disabled]="!canConfirm">
+    Add {{ preview?.enrolled ?? '' }} lead{{ preview?.enrolled === 1 ? '' : 's' }}
+  </button>
+</mat-dialog-actions>

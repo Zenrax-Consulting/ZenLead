@@ -1,0 +1,8 @@
+.header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.title h1 { margin: 0; }
+.actions { display: flex; gap: 8px; }
+.summary { opacity: 0.8; }
+.sender { cursor: pointer; background: none; font: inherit; }
+.banner { display: flex; gap: 8px; align-items: center; padding: 8px 12px; margin: 8px 0 12px; border-radius: 4px; background: rgba(0, 90, 200, 0.08); }
+.error { color: #b00020; }

@@ -123,6 +123,7 @@ public class CampaignsControllerTests(ApiFactory factory) : IClassFixture<ApiFac
             ["enroll"] = await intruder.PostAsJsonAsync($"{Url}/{id}/enroll", new EnrollRequest([lead.Id], null), Json),
             ["enrollments"] = await intruder.GetAsync($"{Url}/{id}/enrollments"),
             ["activate"] = await intruder.PostAsync($"{Url}/{id}/activate", null),
+            ["activation-preview"] = await intruder.GetAsync($"{Url}/{id}/activation-preview"),
             ["pause"] = await intruder.PostAsync($"{Url}/{id}/pause", null),
             ["preview"] = await intruder.PostAsJsonAsync($"{Url}/{id}/preview", new PreviewRequest(lead.Id, step.Id), Json)
         };
@@ -175,6 +176,43 @@ public class CampaignsControllerTests(ApiFactory factory) : IClassFixture<ApiFac
 
         Assert.Equal(HttpStatusCode.BadRequest, both.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, neither.StatusCode);
+    }
+
+    [Fact]
+    public async Task Sender_Reports_The_Configured_Identity_Without_Secrets()
+    {
+        var (client, _) = await SignInAsync();
+
+        var response = await client.GetAsync($"{Url}/sender");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        var sender = JsonSerializer.Deserialize<SenderStatus>(body, Json)!;
+        Assert.False(string.IsNullOrEmpty(sender.FromAddress));
+        Assert.False(string.IsNullOrEmpty(sender.InboundDomain));
+        Assert.DoesNotContain("apiKey", body, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.ClientFor(null).GetAsync($"{Url}/sender")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Activation_Preview_And_New_Response_Fields_Round_Trip()
+    {
+        var (client, _) = await SignInAsync();
+        var created = await CreateCampaignAsync(client);
+        Assert.Equal(0, created.StepsStarted);
+        Assert.Equal("UTC", created.WorkspaceTimeZone);
+
+        var preview = await client.GetFromJsonAsync<ActivationPreview>($"{Url}/{created.Id}/activation-preview", Json);
+        Assert.Equal(new ActivationPreview(0, 0, 0, 0m, preview!.AiBudgetRemainingUsd), preview);
+
+        var item = Assert.Single((await client.GetFromJsonAsync<List<CampaignListItem>>(Url, Json))!);
+        Assert.Equal(0, item.Sent);
+
+        var activate = await client.PostAsJsonAsync($"{Url}/{created.Id}/steps", new StepRequest(2, "Hi", "Body", false), Json);
+        Assert.Equal(HttpStatusCode.Created, activate.StatusCode);
+        using var doc = JsonDocument.Parse(await (await client.PostAsync($"{Url}/{created.Id}/activate", null)).Content.ReadAsStringAsync());
+        var firstDelay = doc.RootElement.GetProperty("problems").EnumerateArray().Single(p => p.GetProperty("code").GetString() == "first_delay");
+        Assert.Equal(1, firstDelay.GetProperty("stepOrder").GetInt32());
     }
 
     [Fact]
