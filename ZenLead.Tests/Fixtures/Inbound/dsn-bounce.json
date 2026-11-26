@@ -1,0 +1,11 @@
+{
+  "from": "Mail Delivery Subsystem <mailer-daemon@googlemail.com>",
+  "to": "r-__ENROLLMENT__@reply.zenlead.test",
+  "subject": "Delivery Status Notification (Failure)",
+  "headers": "Return-Path: <>\nFrom: Mail Delivery Subsystem <mailer-daemon@googlemail.com>\nTo: r-__ENROLLMENT__@reply.zenlead.test\nAuto-Submitted: auto-replied\nSubject: Delivery Status Notification (Failure)\nMessage-ID: <DSN-0001@mx.google.com>\nDate: Wed, 11 Mar 2026 06:00:09 +0000\nContent-Type: multipart/report; boundary=\"b1\"; report-type=delivery-status\n",
+  "text": "Address not found\n\nYour message wasn't delivered because the address couldn't be found.\n",
+  "dkim": "{@googlemail.com : pass}",
+  "SPF": "pass",
+  "envelope": "{\"to\": [\"r-__ENROLLMENT__@reply.zenlead.test\"], \"from\": \"\"}",
+  "charsets": "{\"to\": \"UTF-8\", \"from\": \"UTF-8\", \"subject\": \"UTF-8\", \"text\": \"UTF-8\", \"html\": \"UTF-8\"}"
+}

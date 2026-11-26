@@ -117,4 +117,38 @@ public class SenderStore(ZenLeadDbContext db) : ISenderStore
     public Task<bool> CampaignHasLiveEnrollmentsAsync(Guid workspaceId, Guid campaignId, CancellationToken ct)
         => db.CampaignEnrollments.ForWorkspace(workspaceId)
             .AnyAsync(e => e.CampaignId == campaignId && (e.Status == EnrollmentStatus.Active || e.Status == EnrollmentStatus.Paused), ct);
+
+    public async Task AttachOutboundAsync(SendContext ctx, EmailMessage message, string fromAddress, CancellationToken ct)
+    {
+        var e = ctx.Enrollment;
+        var occurredAt = message.SentAt ?? message.QueuedAt;
+        var thread = db.InboxThreads.Local.FirstOrDefault(t => t.EnrollmentId == e.Id)
+                     ?? await db.InboxThreads.ForWorkspace(e.WorkspaceId).FirstOrDefaultAsync(t => t.EnrollmentId == e.Id, ct);
+        if (thread is null)
+        {
+            thread = new InboxThread
+            {
+                Id = Guid.NewGuid(), WorkspaceId = e.WorkspaceId, LeadId = e.LeadId, CampaignId = e.CampaignId, EnrollmentId = e.Id,
+                Subject = Limit(message.Subject, 500), LastMessageAt = occurredAt, IsRead = true, CreatedAt = occurredAt
+            };
+            db.InboxThreads.Add(thread);
+        }
+        else
+        {
+            var alreadyAttached = db.InboxMessages.Local.Any(m => m.EmailMessageId == message.Id)
+                                  || await db.InboxMessages.ForWorkspace(e.WorkspaceId).AnyAsync(m => m.EmailMessageId == message.Id, ct);
+            if (alreadyAttached) return;
+            if (occurredAt > thread.LastMessageAt) thread.LastMessageAt = occurredAt;
+        }
+
+        db.InboxMessages.Add(new InboxMessage
+        {
+            Id = Guid.NewGuid(), WorkspaceId = e.WorkspaceId, ThreadId = thread.Id, Direction = MessageDirection.Outbound,
+            FromAddress = Limit(fromAddress, 256), ToAddress = Limit(ctx.Lead.Email, 256), Subject = Limit(message.Subject, 500),
+            TextBody = message.Body, OccurredAt = occurredAt, RawMessageId = message.SmtpMessageId, EmailMessageId = message.Id,
+            IsAutoReply = false
+        });
+    }
+
+    private static string Limit(string v, int max) => v.Length <= max ? v : v[..max];
 }

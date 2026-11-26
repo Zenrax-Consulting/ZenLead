@@ -1,0 +1,11 @@
+{
+  "from": "\"Doe, Jane\" <__LEAD__>",
+  "to": "\"Zenrax Replies\" <r-__ENROLLMENT__@reply.zenlead.test>",
+  "subject": "RE: Quick question about Acme",
+  "headers": "From: \"Doe, Jane\" <__LEAD__>\nTo: \"Zenrax Replies\" <r-__ENROLLMENT__@reply.zenlead.test>\nSubject: RE: Quick question about Acme\nThread-Topic: Quick question about Acme\nDate: Wed, 11 Mar 2026 06:20:11 +0000\nMessage-ID:\n <AM0PR01MB0001.outlook-reply-0001@AM0PR01MB0001.eurprd01.prod.outlook.com>\nAccept-Language: en-GB\nContent-Language: en-GB\nMIME-Version: 1.0\n",
+  "text": "Thanks, not right now - maybe next quarter.\n\nKind regards,\nJane Doe\nHead of Ops | Acme\n\nFrom: Zenrax <business@zenraxconsulting.test>\nSent: 11 March 2026 06:00\nTo: Jane Doe <__LEAD__>\nSubject: Quick question about Acme\n\nHello Jane,\nWould you be open to a short call?\n",
+  "dkim": "{@example.com : pass}",
+  "SPF": "pass",
+  "envelope": "{\"to\": [\"r-__ENROLLMENT__@reply.zenlead.test\"], \"from\": \"__LEAD__\"}",
+  "charsets": "{\"to\": \"UTF-8\", \"from\": \"UTF-8\", \"subject\": \"UTF-8\", \"text\": \"UTF-8\", \"html\": \"UTF-8\"}"
+}

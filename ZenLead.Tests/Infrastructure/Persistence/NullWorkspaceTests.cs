@@ -41,6 +41,9 @@ public class NullWorkspaceTests : IDisposable
             LeadId = lead.Id, Subject = "s", Body = "b", QueuedAt = now
         });
         ctx.SuppressedEmails.Add(new SuppressedEmail { Id = Guid.NewGuid(), WorkspaceId = _ws, Email = "gone@x.com", CreatedAt = now });
+        var thread = new InboxThread { Id = Guid.NewGuid(), WorkspaceId = _ws, LeadId = lead.Id, EnrollmentId = enrollment.Id, Subject = "s", CreatedAt = now, LastMessageAt = now };
+        ctx.InboxThreads.Add(thread);
+        ctx.InboxMessages.Add(new InboxMessage { Id = Guid.NewGuid(), WorkspaceId = _ws, ThreadId = thread.Id, Subject = "s", OccurredAt = now });
         ctx.SaveChanges();
     }
 

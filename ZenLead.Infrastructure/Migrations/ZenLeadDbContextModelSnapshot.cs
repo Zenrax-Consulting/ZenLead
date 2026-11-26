@@ -579,6 +579,179 @@ namespace ZenLead.Infrastructure.Migrations
                     b.ToTable("EmailMessages");
                 });
 
+            modelBuilder.Entity("ZenLead.Domain.Entities.InboundQuarantine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FromAddress")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("HeadersSnippet")
+                        .HasMaxLength(4096)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ToAddress")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceivedAt");
+
+                    b.ToTable("InboundQuarantine", (string)null);
+                });
+
+            modelBuilder.Entity("ZenLead.Domain.Entities.InboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AuthSummary")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Classification")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ClassificationConfidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("EmailMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FromAddress")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("FromName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("FullTextBody")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HtmlBody")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsAutoReply")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RawMessageId")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("SenderMismatch")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TextBody")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ThreadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ToAddress")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmailMessageId");
+
+                    b.HasIndex("ThreadId", "OccurredAt");
+
+                    b.HasIndex("WorkspaceId", "RawMessageId")
+                        .IsUnique()
+                        .HasFilter("[RawMessageId] IS NOT NULL AND [Direction] = 0");
+
+                    b.ToTable("InboxMessages");
+                });
+
+            modelBuilder.Entity("ZenLead.Domain.Entities.InboxThread", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Classification")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("EnrollmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastMessageAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("LeadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EnrollmentId")
+                        .IsUnique()
+                        .HasFilter("[EnrollmentId] IS NOT NULL");
+
+                    b.HasIndex("LeadId");
+
+                    b.HasIndex("WorkspaceId", "Classification");
+
+                    b.HasIndex("WorkspaceId", "IsRead");
+
+                    b.HasIndex("WorkspaceId", "LastMessageAt");
+
+                    b.ToTable("InboxThreads");
+                });
+
             modelBuilder.Entity("ZenLead.Domain.Entities.Lead", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1155,6 +1328,36 @@ namespace ZenLead.Infrastructure.Migrations
                     b.HasOne("ZenLead.Domain.Entities.CampaignEnrollment", null)
                         .WithMany()
                         .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZenLead.Domain.Entities.Workspace", null)
+                        .WithMany()
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ZenLead.Domain.Entities.InboxMessage", b =>
+                {
+                    b.HasOne("ZenLead.Domain.Entities.InboxThread", null)
+                        .WithMany()
+                        .HasForeignKey("ThreadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ZenLead.Domain.Entities.Workspace", null)
+                        .WithMany()
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ZenLead.Domain.Entities.InboxThread", b =>
+                {
+                    b.HasOne("ZenLead.Domain.Entities.Lead", null)
+                        .WithMany()
+                        .HasForeignKey("LeadId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

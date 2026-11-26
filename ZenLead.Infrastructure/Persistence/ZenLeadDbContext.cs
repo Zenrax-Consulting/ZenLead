@@ -36,6 +36,9 @@ public class ZenLeadDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, G
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<EmailMessage> EmailMessages => Set<EmailMessage>();
     public DbSet<SuppressedEmail> SuppressedEmails => Set<SuppressedEmail>();
+    public DbSet<InboxThread> InboxThreads => Set<InboxThread>();
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
+    public DbSet<InboundQuarantine> InboundQuarantine => Set<InboundQuarantine>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

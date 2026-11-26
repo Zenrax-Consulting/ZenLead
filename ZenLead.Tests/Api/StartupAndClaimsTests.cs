@@ -89,6 +89,7 @@ public class StartupConfigurationTests
         values["LeadSource:Provider"] = "Pdl";
         values["Email:Provider"] = "SendGrid";   // outside Development email must be real too (covered separately)
         values["SendGrid:ApiKey"] = "SG.test";
+        values["SendGrid:InboundSecret"] = new string('s', 40);
         values["App:PublicBaseUrl"] = "https://app.zenlead.test";
 
         Assert.Contains(StartupConfiguration.Validate(Config(values), isDevelopment: false), p => p.Contains("LeadSource:Pdl:ApiKey"));
@@ -118,7 +119,38 @@ public class StartupConfigurationTests
         Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("SendGrid:ApiKey"));
 
         values["SendGrid:ApiKey"] = "SG.test";
+        values["SendGrid:InboundSecret"] = new string('s', 40);
         Assert.Empty(StartupConfiguration.Validate(Config(values)));
+    }
+
+    [Fact]
+    public void Validate_SendGridProvider_RequiresAStrongInboundSecret()
+    {
+        var values = Valid();
+        values["Email:Provider"] = "SendGrid";
+        values["SendGrid:ApiKey"] = "SG.test";
+
+        Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("SendGrid:InboundSecret"));
+
+        values["SendGrid:InboundSecret"] = "too-short";
+        Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("at least 32"));
+
+        values["SendGrid:InboundSecret"] = new string('s', 32);
+        Assert.Empty(StartupConfiguration.Validate(Config(values)));
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("Fields", true)]
+    [InlineData("rawmime", true)]
+    [InlineData("Raw", false)]
+    public void Validate_InboundParseMode_FailsClosedOnTypos(string? mode, bool ok)
+    {
+        var values = Valid();
+        values["Inbound:ParseMode"] = mode;
+        var problems = StartupConfiguration.Validate(Config(values));
+        if (ok) Assert.DoesNotContain(problems, p => p.Contains("Inbound:ParseMode"));
+        else Assert.Contains(problems, p => p.Contains("Inbound:ParseMode"));
     }
 
     [Theory]

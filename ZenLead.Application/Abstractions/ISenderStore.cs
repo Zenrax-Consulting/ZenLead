@@ -45,6 +45,13 @@ public interface ISenderStore
     Task<Campaign?> GetCampaignAsync(Guid workspaceId, Guid campaignId, CancellationToken ct);
 
     Task<bool> CampaignHasLiveEnrollmentsAsync(Guid workspaceId, Guid campaignId, CancellationToken ct);
+
+    /// <summary>
+    /// Inbox threading (F25): finds or stages the enrollment's <see cref="InboxThread"/> and stages an outbound <see cref="InboxMessage"/>
+    /// for <paramref name="message"/> (once per EmailMessage). Nothing is saved: the next <see cref="SaveAsync"/> commits it together
+    /// with the message status and the enrollment advance.
+    /// </summary>
+    Task AttachOutboundAsync(SendContext ctx, EmailMessage message, string fromAddress, CancellationToken ct);
 }
 
 /// <summary>Addresses a workspace must never email. Checked at ingestion, enrollment and send. Emails are compared lowercase.</summary>

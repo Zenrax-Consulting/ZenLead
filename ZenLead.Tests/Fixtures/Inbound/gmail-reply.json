@@ -1,0 +1,14 @@
+{
+  "from": "Jane Doe <__LEAD__>",
+  "to": "r-__ENROLLMENT__@reply.zenlead.test",
+  "subject": "Re: Quick question about Acme",
+  "headers": "Received: by mx0.sendgrid.net with SMTP id abc\nDKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=20230601;\n\tbh=abc=; b=def=\nMIME-Version: 1.0\nReferences: <14c5d75ce93.dfd.64b469.filter0001.16648.5515E0B88.0@ismtpd0001p1lon1.sendgrid.net>\n <older-thread-id@mail.example.com>\nIn-Reply-To: <14c5d75ce93.dfd.64b469.filter0001.16648.5515E0B88.0@ismtpd0001p1lon1.sendgrid.net>\nFrom: Jane Doe <__LEAD__>\nDate: Wed, 11 Mar 2026 10:15:02 +0400\nMessage-ID: <CAF=gmail-reply-0001@mail.gmail.com>\nSubject: Re: Quick question about Acme\nTo: r-__ENROLLMENT__@reply.zenlead.test\nContent-Type: multipart/alternative; boundary=\"0000000000001\"\n",
+  "text": "Hi,\n\nYes, happy to chat next week. Tuesday works.\n\nJane\n\nOn Wed, 11 Mar 2026 at 10:00, Zenrax <business@zenraxconsulting.test> wrote:\n> Hello Jane,\n> Would you be open to a short call?\n",
+  "html": "<div dir=\"ltr\">Hi,<br><br>Yes, happy to chat next week. Tuesday works.<br><br>Jane</div><br><div class=\"gmail_quote\"><blockquote>Hello Jane</blockquote></div><img src=\"https://tracker.example.com/p.gif\">",
+  "dkim": "{@example.com : pass}",
+  "SPF": "pass",
+  "envelope": "{\"to\": [\"r-__ENROLLMENT__@reply.zenlead.test\"], \"from\": \"__LEAD__\"}",
+  "charsets": "{\"to\": \"UTF-8\", \"from\": \"UTF-8\", \"subject\": \"UTF-8\", \"text\": \"UTF-8\", \"html\": \"UTF-8\"}",
+  "sender_ip": "209.85.0.1",
+  "spam_score": "0.1"
+}

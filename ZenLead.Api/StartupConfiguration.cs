@@ -66,6 +66,17 @@ public static class StartupConfiguration
             yield return "'Email:Provider' must be 'SendGrid' outside Development; the 'Log' provider would write account emails to the log instead of sending them.";
         else if (isSendGrid && string.IsNullOrWhiteSpace(configuration["SendGrid:ApiKey"]))
             yield return "Missing configuration 'SendGrid:ApiKey' (required when 'Email:Provider' is 'SendGrid'). Set it with: dotnet user-secrets set \"SendGrid:ApiKey\" \"<value>\" --project ZenLead.Api";
+
+        // the inbound webhook (F25) authenticates SendGrid with a shared secret in the Inbound Parse URL
+        var inboundSecret = configuration["SendGrid:InboundSecret"];
+        if (isSendGrid && string.IsNullOrWhiteSpace(inboundSecret))
+            yield return "Missing configuration 'SendGrid:InboundSecret' (required when 'Email:Provider' is 'SendGrid'; at least 32 random characters). Set it with: dotnet user-secrets set \"SendGrid:InboundSecret\" \"<value>\" --project ZenLead.Api";
+        else if (!string.IsNullOrWhiteSpace(inboundSecret) && inboundSecret.Length < WebhookOptions.MinInboundSecretLength)
+            yield return $"'SendGrid:InboundSecret' must be at least {WebhookOptions.MinInboundSecretLength} characters long.";
+
+        var parseMode = configuration["Inbound:ParseMode"];
+        if (!string.IsNullOrWhiteSpace(parseMode) && !parseMode.Equals("Fields", StringComparison.OrdinalIgnoreCase) && !parseMode.Equals("RawMime", StringComparison.OrdinalIgnoreCase))
+            yield return $"Unknown 'Inbound:ParseMode' '{parseMode}'. Known: Fields (default), RawMime.";
     }
 
     public static void ThrowIfInvalid(IConfiguration configuration, bool isDevelopment = true)
