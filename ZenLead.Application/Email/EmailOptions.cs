@@ -8,8 +8,8 @@ public class EmailOptions
     public const string SendGridProvider = "SendGrid";
 
     public string Provider { get; set; } = LogProvider;              // "Log" | "SendGrid"
-    public string FromAddress { get; set; } = "info@zenraxconsultancy.com";
+    public string FromAddress { get; set; } = "business@zenraxconsulting.com";
     public string FromName { get; set; } = "Zenrax";
     public bool DomainVerified { get; set; }
-    public string InboundDomain { get; set; } = "reply.leads.zenraxconsultancy.com";
+    public string InboundDomain { get; set; } = "reply.leads.zenraxconsulting.com";
 }
