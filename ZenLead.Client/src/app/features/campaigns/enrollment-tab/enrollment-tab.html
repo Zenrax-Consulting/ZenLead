@@ -1,0 +1,62 @@
+<div class="toolbar">
+  <button mat-raised-button color="primary" (click)="addLeads()" [disabled]="campaign.status === 'Completed'">
+    <mat-icon aria-hidden="true">group_add</mat-icon>Add leads
+  </button>
+  <mat-form-field appearance="outline" class="status">
+    <mat-label>Status</mat-label>
+    <mat-select [value]="status" (selectionChange)="onStatus($event.value)">
+      <mat-option [value]="null">Any status</mat-option>
+      <mat-option *ngFor="let s of statuses" [value]="s">{{ s }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <ul class="counts" aria-label="Enrollment counts">
+    <li *ngFor="let c of counts"><strong>{{ c.value }}</strong> {{ c.label }}</li>
+  </ul>
+</div>
+
+<mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+
+<div *ngIf="error" class="error" role="alert">
+  <p>Failed to load enrolled leads.</p>
+  <button mat-stroked-button (click)="load()">Retry</button>
+</div>
+
+<div *ngIf="!loading && !error && total === 0" class="empty-state">
+  <p>{{ status ? 'No leads with this status.' : 'No leads in this campaign yet.' }}</p>
+  <button *ngIf="!status" mat-stroked-button (click)="addLeads()" [disabled]="campaign.status === 'Completed'">Add leads</button>
+</div>
+
+<div class="table-wrap" *ngIf="total > 0">
+  <p class="muted">Times are in {{ campaign.effectiveTimeZone }}.</p>
+  <table mat-table [dataSource]="rows">
+    <ng-container matColumnDef="lead">
+      <th mat-header-cell *matHeaderCellDef>Lead</th>
+      <td mat-cell *matCellDef="let r"><a [routerLink]="['/leads', r.leadId]">{{ r.leadName }}</a></td>
+    </ng-container>
+    <ng-container matColumnDef="email">
+      <th mat-header-cell *matHeaderCellDef>Email</th>
+      <td mat-cell *matCellDef="let r">{{ r.leadEmail }}</td>
+    </ng-container>
+    <ng-container matColumnDef="step">
+      <th mat-header-cell *matHeaderCellDef>Progress</th>
+      <td mat-cell *matCellDef="let r">{{ stepLabel(r) }}</td>
+    </ng-container>
+    <ng-container matColumnDef="nextSend">
+      <th mat-header-cell *matHeaderCellDef>Next send</th>
+      <td mat-cell *matCellDef="let r">{{ nextSend(r) }}</td>
+    </ng-container>
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let r">
+        <span class="chip" [ngClass]="'tone-' + chip(r.status).tone"><mat-icon aria-hidden="true">{{ chip(r.status).icon }}</mat-icon>{{ chip(r.status).label }}</span>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="reason">
+      <th mat-header-cell *matHeaderCellDef>Reason</th>
+      <td mat-cell *matCellDef="let r"><span class="reason" [matTooltip]="r.failureReason ?? ''">{{ r.failureReason }}</span></td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+  </table>
+  <mat-paginator [length]="total" [pageIndex]="page - 1" [pageSize]="pageSize" [pageSizeOptions]="[25, 50, 100]" (page)="onPage($event)"></mat-paginator>
+</div>

@@ -1,1 +1,10 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Status chips (campaigns): tone sets the colour, the icon + label carry the meaning, so it never relies on colour alone. */
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px 2px 6px; border-radius: 12px; font-size: 13px; border: 1px solid currentColor; }
+.chip mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.tone-neutral { color: #4a4a4a; }
+.tone-good { color: #1b6e2d; }
+.tone-info { color: #1a4f9c; }
+.tone-warn { color: #8a5a00; }
+.tone-bad { color: #b00020; }

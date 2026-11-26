@@ -16,10 +16,16 @@ import {
 import { LeadsService } from '../leads.service';
 import { ProfileDraftService } from '../profiles/profile-draft.service';
 import { ProfilesService } from '../profiles/profiles.service';
+import { CampaignsService } from '../../campaigns/campaigns.service';
+import { EnrollResult } from '../../campaigns/campaigns.models';
+import { EnrollDialog, EnrollDialogData } from '../../campaigns/enroll-dialog/enroll-dialog';
+import { CampaignPickerDialog, PickedCampaign } from '../../campaigns/campaign-picker-dialog/campaign-picker-dialog';
 
 const DEFAULT_SORT = '-createdAt';
 const SORTABLE = ['name', 'email', 'company', 'status', 'createdAt'];
 const PAGE_SIZES = [25, 50, 100];
+/** The enroll endpoint considers at most this many leads from a filter (F22). */
+export const MAX_ENROLL_FILTER = 5000;
 
 /** URL query params → typed LeadQuery. Unknown or malformed values are dropped rather than sent to the API. */
 export function parseLeadQuery(params: Params): LeadQuery {
@@ -75,12 +81,14 @@ export class LeadsList implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private profiles: ProfilesService,
     private drafts: ProfileDraftService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private campaigns: CampaignsService
   ) {}
 
   ngOnInit(): void {
     this.subs.add(this.route.queryParams.subscribe(params => {
       this.query = parseLeadQuery(params);
+      this.syncEnrollMode(params['enrollIn']);
       this.searchControl.setValue(this.query.q ?? '', { emitEvent: false });
       this.syncActiveCompany();
       this.load();
@@ -216,6 +224,56 @@ export class LeadsList implements OnInit, OnDestroy {
         this.snackBar.open(err.status === 400 ? (err.error?.message ?? 'Could not build a profile from those leads.') : 'Failed to create a target profile.', 'OK', { duration: 6000 });
         this.cdr.markForCheck();
       }
+    });
+  }
+
+  // ---- campaign enrollment (F24) ----
+
+  /** Set by ?enrollIn=<campaignId>: the list is picking leads for that campaign. */
+  enrollCampaign: PickedCampaign | null = null;
+
+  private syncEnrollMode(campaignId: string | undefined): void {
+    if (!campaignId) { this.enrollCampaign = null; return; }
+    if (this.enrollCampaign?.id === campaignId) return;
+    this.enrollCampaign = { id: campaignId, name: '…' };
+    this.campaigns.get(campaignId).subscribe({
+      next: c => { this.enrollCampaign = { id: c.id, name: c.name }; this.cdr.markForCheck(); },
+      error: () => { this.enrollCampaign = null; this.snackBar.open('That campaign was not found.', 'OK', { duration: 5000 }); this.cdr.markForCheck(); }
+    });
+  }
+
+  /** "Add all M matching" is only offered while the whole filter fits in one enroll request. */
+  get canEnrollAllMatching(): boolean { return this.total > 0 && this.selection.lastTotal <= MAX_ENROLL_FILTER && !!this.selection.lastQuery; }
+
+  enrollSelected(): void {
+    if (!this.enrollCampaign || this.selection.count === 0) return;
+    this.openEnroll(this.enrollCampaign, { leadIds: this.selection.selected, total: this.selection.count });
+  }
+
+  enrollAllMatching(): void {
+    if (!this.enrollCampaign || !this.canEnrollAllMatching) return;
+    this.openEnroll(this.enrollCampaign, { filter: { ...this.selection.lastQuery!, page: 1 }, total: this.selection.lastTotal });
+  }
+
+  cancelEnroll(): void { this.navigate({ enrollIn: null }, true); }
+
+  /** Outside enroll mode: pick (or create) a campaign, then the same preview dialog. */
+  addSelectionToCampaign(): void {
+    if (this.selection.count === 0) return;
+    this.dialog.open(CampaignPickerDialog, { width: '480px' }).afterClosed().subscribe((picked?: PickedCampaign) => {
+      if (picked) this.openEnroll(picked, { leadIds: this.selection.selected, total: this.selection.count });
+    });
+  }
+
+  private openEnroll(campaign: PickedCampaign, target: Pick<EnrollDialogData, 'leadIds' | 'filter' | 'total'>): void {
+    const data: EnrollDialogData = { campaignId: campaign.id, campaignName: campaign.name, ...target };
+    this.dialog.open(EnrollDialog, { data, width: '520px' }).afterClosed().subscribe((result?: EnrollResult) => {
+      if (!result) return;
+      this.selection.clear();
+      if (this.enrollCampaign) this.cancelEnroll();
+      this.snackBar.open(`${result.enrolled} lead${result.enrolled === 1 ? '' : 's'} added`, 'View', { duration: 8000 })
+        .onAction().subscribe(() => this.router.navigate(['/campaigns', campaign.id], { queryParams: { tab: 'leads' } }));
+      this.cdr.markForCheck();
     });
   }
 

@@ -33,10 +33,18 @@ public class CampaignRepository(ZenLeadDbContext db) : ICampaignRepository
                 Failed = g.Count(e => e.Status == EnrollmentStatus.Failed)
             });
 
+        // Accepted by the provider: Sent, Delivered or Bounced (Queued/Dropped/Failed never left).
+        var sent = db.EmailMessages
+            .Where(m => m.Status == EmailMessageStatus.Sent || m.Status == EmailMessageStatus.Delivered || m.Status == EmailMessageStatus.Bounced)
+            .GroupBy(m => m.CampaignId)
+            .Select(g => new { CampaignId = g.Key, Sent = g.Count() });
+
         var rows = await (
             from c in db.Campaigns.AsNoTracking().Where(c => c.WorkspaceId == workspaceId)
             join k in counts on c.Id equals k.CampaignId into kj
             from k in kj.DefaultIfEmpty()
+            join m in sent on c.Id equals m.CampaignId into mj
+            from m in mj.DefaultIfEmpty()
             orderby c.CreatedAt descending, c.Id
             select new
             {
@@ -48,11 +56,12 @@ public class CampaignRepository(ZenLeadDbContext db) : ICampaignRepository
                 Replied = (int?)k.Replied ?? 0,
                 Unsubscribed = (int?)k.Unsubscribed ?? 0,
                 Bounced = (int?)k.Bounced ?? 0,
-                Failed = (int?)k.Failed ?? 0
+                Failed = (int?)k.Failed ?? 0,
+                Sent = (int?)m.Sent ?? 0
             }).ToListAsync(ct);
 
         return rows.Select(r => new CampaignListItem(r.Id, r.Name, r.Status, r.StepCount,
-            new EnrollmentCounts(r.Total, r.Active, r.Completed, r.Replied, r.Unsubscribed, r.Bounced, r.Failed), r.CreatedAt)).ToList();
+            new EnrollmentCounts(r.Total, r.Active, r.Completed, r.Replied, r.Unsubscribed, r.Bounced, r.Failed), r.CreatedAt, r.Sent)).ToList();
     }
 
     public async Task UpdateAsync(Campaign campaign, CancellationToken ct = default)

@@ -49,12 +49,19 @@
   </mat-chip>
 </mat-chip-set>
 
-<div class="selection-bar" *ngIf="selection.count > 0">
+<div class="enroll-bar" *ngIf="enrollCampaign" role="region" aria-label="Add leads to campaign">
+  <span>Adding to <strong>{{ enrollCampaign.name }}</strong> — {{ selection.count }} selected</span>
+  <button mat-raised-button color="primary" (click)="enrollSelected()" [disabled]="selection.count === 0">Add selected</button>
+  <button mat-stroked-button *ngIf="canEnrollAllMatching" (click)="enrollAllMatching()">Add all {{ selection.lastTotal }} matching this filter</button>
+  <button mat-button (click)="cancelEnroll()">Cancel</button>
+</div>
+
+<div class="selection-bar" *ngIf="selection.count > 0 && !enrollCampaign">
   <span>{{ selection.count }} selected</span>
   <button mat-button (click)="selection.clear()">Clear</button>
   <mat-checkbox *ngIf="features.discovery && repliedSelected" [checked]="onlyReplied" (change)="onlyReplied = $event.checked">Only leads that replied</mat-checkbox>
   <button mat-stroked-button *ngIf="features.discovery" (click)="createProfileFromSelection()" [disabled]="creatingProfile">Create target profile</button>
-  <button mat-stroked-button *ngIf="features.campaigns">Add to campaign</button>
+  <button mat-stroked-button *ngIf="features.campaigns" (click)="addSelectionToCampaign()">Add to campaign</button>
 </div>
 
 <mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>

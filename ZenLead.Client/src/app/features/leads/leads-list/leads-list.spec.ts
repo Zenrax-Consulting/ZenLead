@@ -154,7 +154,7 @@ describe('LeadsList', () => {
     expect(selection.lastTotal).toBe(7);
   });
 
-  it('shows the discovery action but hides the campaign action while campaigns are off', async () => {
+  it('shows the discovery and campaign actions on a selection', async () => {
     const fixture = await setup();
     http.expectOne(isList).flush(page([lead('1')]));
     TestBed.inject(LeadSelectionService).toggle('1');
@@ -164,6 +164,29 @@ describe('LeadsList', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('1 selected');
     expect(text).toContain('Create target profile');
-    expect(text).not.toContain('Add to campaign');
+    expect(text).toContain('Add to campaign');
+  });
+
+  it('?enrollIn= shows the enroll bar with the campaign name and "all matching" within the limit', async () => {
+    const fixture = await setup({ enrollIn: 'c1', q: 'acme' });
+    http.expectOne(r => r.url === '/api/v1/campaigns/c1').flush({ id: 'c1', name: 'Spring outreach', sendDays: 'Weekdays', steps: [] });
+    http.expectOne(isList).flush(page([lead('1'), lead('2')], 40));
+    TestBed.inject(LeadSelectionService).toggle('1');
+    fixture.componentRef.changeDetectorRef.markForCheck();
+    await fixture.whenStable();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Adding to Spring outreach — 1 selected');
+    expect(text).toContain('Add selected');
+    expect(text).toContain('Add all 40 matching this filter');
+    expect(text).not.toContain('Create target profile');            // the normal selection bar gives way to the enroll bar
+  });
+
+  it('hides "all matching" above 5,000 leads', async () => {
+    const fixture = await setup({ enrollIn: 'c1' });
+    http.expectOne(r => r.url === '/api/v1/campaigns/c1').flush({ id: 'c1', name: 'Spring', sendDays: 'Weekdays', steps: [] });
+    http.expectOne(isList).flush(page([lead('1')], 5001));
+
+    expect(fixture.componentInstance.canEnrollAllMatching).toBe(false);
   });
 });

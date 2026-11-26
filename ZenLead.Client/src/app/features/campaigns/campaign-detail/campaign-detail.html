@@ -1,0 +1,52 @@
+<a mat-button routerLink="/campaigns"><mat-icon aria-hidden="true">arrow_back</mat-icon>Campaigns</a>
+
+<div *ngIf="loadError" class="error" role="alert">
+  <p>Couldn't load this campaign.</p>
+  <button mat-stroked-button (click)="load()">Retry</button>
+</div>
+
+<mat-progress-bar *ngIf="!campaign && !loadError" mode="indeterminate"></mat-progress-bar>
+
+<ng-container *ngIf="campaign as c">
+  <header class="header">
+    <div class="title">
+      <h1>{{ c.name }}</h1>
+      <span class="chip" [ngClass]="'tone-' + chip(c.status).tone"><mat-icon aria-hidden="true">{{ chip(c.status).icon }}</mat-icon>{{ chip(c.status).label }}</span>
+      <button *ngIf="sender" type="button" class="chip sender" [ngClass]="sender.domainVerified ? 'tone-good' : 'tone-warn'"
+              (click)="openSenderHelp()" [attr.aria-label]="sender.domainVerified ? 'Sending domain verified — details' : 'Sending domain not verified — how to fix'">
+        <mat-icon aria-hidden="true">{{ sender.domainVerified ? 'verified' : 'warning' }}</mat-icon>
+        {{ sender.domainVerified ? 'Sending domain verified' : 'Sending domain not verified' }}
+      </button>
+    </div>
+    <div class="actions">
+      <button mat-raised-button color="primary" *ngIf="canActivate" (click)="activate()" [disabled]="busy">
+        <mat-icon aria-hidden="true">play_arrow</mat-icon>Activate
+      </button>
+      <button mat-stroked-button *ngIf="canPause" (click)="pause()" [disabled]="busy">
+        <mat-icon aria-hidden="true">pause</mat-icon>Pause
+      </button>
+    </div>
+  </header>
+  <p class="summary"><span class="timeline">{{ timeline }}</span> · {{ window }}</p>
+
+  <div class="banner" role="note" *ngIf="c.status !== 'Draft'">
+    <mat-icon aria-hidden="true">info</mat-icon>
+    Edits to subjects/bodies apply to emails not yet sent. Steps that have already gone out can't be deleted or reordered.
+  </div>
+
+  <mat-tab-group [selectedIndex]="selectedIndex" (selectedIndexChange)="onTabChange($event)" mat-stretch-tabs="false">
+    <mat-tab label="Steps">
+      <app-steps-tab [campaign]="c" [focusStep]="focusStep" (campaignChange)="onCampaignChange($event)"></app-steps-tab>
+    </mat-tab>
+    <mat-tab label="Leads">
+      <ng-template matTabContent>
+        <app-enrollment-tab [campaign]="c"></app-enrollment-tab>
+      </ng-template>
+    </mat-tab>
+    <mat-tab label="Settings">
+      <ng-template matTabContent>
+        <app-settings-tab [campaign]="c" (campaignChange)="onCampaignChange($event)"></app-settings-tab>
+      </ng-template>
+    </mat-tab>
+  </mat-tab-group>
+</ng-container>

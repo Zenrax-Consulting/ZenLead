@@ -1,8 +1,10 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using ZenLead.Application.Dtos.Campaigns;
 using ZenLead.Application.Dtos.Leads;
+using ZenLead.Application.Email;
 using ZenLead.Application.UseCases.Campaigns;
 using ZenLead.Domain.Enums;
 
@@ -18,6 +20,8 @@ public class CampaignsController(
     EnrollLeadsUseCase enroll,
     ActivateCampaignUseCase activate,
     PauseCampaignUseCase pause,
+    ActivationPreviewUseCase activationPreview,
+    IOptions<EmailOptions> email,
     IValidator<CampaignRequest> campaignValidator,
     IValidator<StepRequest> stepValidator,
     IValidator<EnrollRequest> enrollValidator,
@@ -125,6 +129,23 @@ public class CampaignsController(
         if (this.WorkspaceId() is not { } workspaceId) return Unauthorized();
         var outcome = await pause.ExecuteAsync(workspaceId, id, ct);
         return outcome.Kind == CampaignOutcomeKind.Ok ? ToResult(await campaigns.GetAsync(workspaceId, id, ct)) : ToResult(outcome).Result!;
+    }
+
+    /// <summary>The sending identity and whether its domain is verified (F24). Config only, no secrets.</summary>
+    [HttpGet("sender")]
+    public ActionResult<SenderStatus> Sender()
+    {
+        if (this.WorkspaceId() is null) return Unauthorized();
+        var o = email.Value;
+        return Ok(new SenderStatus(o.FromAddress, o.FromName, o.DomainVerified, o.InboundDomain));
+    }
+
+    /// <summary>AI call/cost estimate shown before activation (F24). Read-only.</summary>
+    [HttpGet("{id:guid}/activation-preview")]
+    public async Task<ActionResult<ActivationPreview>> ActivationPreview(Guid id, CancellationToken ct)
+    {
+        if (this.WorkspaceId() is not { } workspaceId) return Unauthorized();
+        return ToResult(await activationPreview.ExecuteAsync(workspaceId, id, ct));
     }
 
     [HttpPost("{id:guid}/preview")]

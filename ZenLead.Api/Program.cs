@@ -219,6 +219,7 @@ builder.Services.AddScoped<CampaignStepsUseCase>();
 builder.Services.AddScoped<EnrollLeadsUseCase>();
 builder.Services.AddScoped<ActivateCampaignUseCase>();
 builder.Services.AddScoped<PauseCampaignUseCase>();
+builder.Services.AddScoped<ActivationPreviewUseCase>();       // F24
 
 // sending engine (F23): the campaign sender, suppression list, public unsubscribe and the monthly AI soft cap
 builder.Services.Configure<SendingOptions>(builder.Configuration.GetSection(SendingOptions.SectionName));

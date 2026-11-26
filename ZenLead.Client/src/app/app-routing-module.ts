@@ -26,7 +26,7 @@ const routes: Routes = [
     canActivate: [tenantGuard],
     children: [
       { path: 'leads', loadChildren: () => import('./features/leads/leads-module').then(m => m.LeadsModule) },
-      { path: 'campaigns', component: ComingSoon, data: { title: 'Campaigns', sprint: 3 } },
+      { path: 'campaigns', loadChildren: () => import('./features/campaigns/campaigns-module').then(m => m.CampaignsModule) },
       { path: 'inbox', component: ComingSoon, data: { title: 'Inbox', sprint: 4 } },
       { path: 'analytics', component: ComingSoon, data: { title: 'Analytics', sprint: 5 } }
     ]

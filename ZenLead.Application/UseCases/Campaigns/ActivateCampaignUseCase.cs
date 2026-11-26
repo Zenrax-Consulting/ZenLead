@@ -28,14 +28,14 @@ public class ActivateCampaignUseCase(
         if (c.Steps.Count == 0) problems.Add(new("no_steps", "Add at least one step."));
         var ordered = c.Steps.OrderBy(s => s.Order).ToList();
         if (ordered.Select((s, i) => s.Order == i + 1).Any(ok => !ok)) problems.Add(new("steps_unordered", "Step order must be 1, 2, 3…"));
-        if (ordered.FirstOrDefault() is { DelayDays: not 0 }) problems.Add(new("first_delay", "The first step must send immediately (delay 0)."));
+        if (ordered.FirstOrDefault() is { DelayDays: not 0 }) problems.Add(new("first_delay", "The first step must send immediately (delay 0).", ordered[0].Order));
         foreach (var s in ordered)
         {
-            if (string.IsNullOrWhiteSpace(s.SubjectTemplate)) problems.Add(new("empty_subject", $"Step {s.Order} has no subject."));
-            if (string.IsNullOrWhiteSpace(s.BodyTemplate)) problems.Add(new("empty_body", $"Step {s.Order} has no body."));
+            if (string.IsNullOrWhiteSpace(s.SubjectTemplate)) problems.Add(new("empty_subject", $"Step {s.Order} has no subject.", s.Order));
+            if (string.IsNullOrWhiteSpace(s.BodyTemplate)) problems.Add(new("empty_body", $"Step {s.Order} has no body.", s.Order));
             foreach (var t in TemplateRenderer.UnknownTokens(s.SubjectTemplate).Concat(TemplateRenderer.UnknownTokens(s.BodyTemplate))
                          .Distinct(StringComparer.OrdinalIgnoreCase))
-                problems.Add(new("bad_token", $"Step {s.Order} uses unknown token {{{{{t}}}}}."));
+                problems.Add(new("bad_token", $"Step {s.Order} uses unknown token {{{{{t}}}}}.", s.Order));
         }
         if (c.WindowStart >= c.WindowEnd || c.SendDays == SendDays.None) problems.Add(new("window_invalid", "Send window is invalid."));
         if (!email.DomainVerified) problems.Add(new("domain_unverified", "The sending domain isn't verified yet."));

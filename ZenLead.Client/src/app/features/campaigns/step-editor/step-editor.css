@@ -1,0 +1,22 @@
+.card { padding: 8px 16px 16px; }
+.card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.card-head h3 { margin: 0; }
+.send-label { opacity: 0.75; font-size: 13px; }
+.spacer { flex: 1; }
+.save-state { display: inline-flex; align-items: center; font-size: 13px; }
+.save-state mat-icon { font-size: 16px; width: 16px; height: 16px; vertical-align: middle; }
+.fields { display: flex; flex-direction: column; margin-top: 8px; }
+.delay { max-width: 200px; }
+.full { width: 100%; }
+.tokens { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.warn { display: flex; gap: 6px; align-items: center; color: #8a5a00; margin: 4px 0; }
+.error { color: #b00020; }
+.muted { opacity: 0.7; }
+.small { font-size: 13px; }
+.footer-note { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.preview { margin-top: 12px; }
+.lead-picker { width: 100%; max-width: 420px; }
+.ai { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.ai-instruction { flex: 1 1 260px; }
+.rendered { border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 4px; padding: 8px 12px; margin-top: 8px; }
+.body { white-space: pre-wrap; font-family: inherit; margin: 0; }

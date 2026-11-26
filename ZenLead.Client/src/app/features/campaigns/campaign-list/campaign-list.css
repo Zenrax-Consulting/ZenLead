@@ -1,0 +1,5 @@
+.list-header { display: flex; justify-content: space-between; align-items: center; }
+.error { color: #b00020; }
+.empty-state { padding: 24px 0; }
+.table-wrap { overflow-x: auto; }
+.clickable { cursor: pointer; }
