@@ -8,10 +8,10 @@ Tracks Feature 17 (SendGrid domain & inbound DNS kickoff). Runbook: `plans/phase
 |---|---|---|---|
 | SendGrid plan / trial end | 60-day free trial, ends 2027-01-24 (paid plan needed after that) | 2026-11-26 | ✔ active |
 | API key (restricted, Mail Send) | created, stored in user-secrets | 2026-11-26 | ✔ |
-| Domain auth `zenraxconsultancy.com` (root) | em####/s1/s2 CNAMEs not added yet | — | pending |
+| Domain auth `zenraxconsultancy.com` (root) | em####/s1/s2 CNAMEs; `s1._domainkey` not resolving yet | 2026-11-26 | pending |
 | MX `reply.leads` → mx.sendgrid.net | prio 10, not added yet | — | pending |
 | Inbound Parse host | reply.leads.zenraxconsultancy.com → placeholder (`https://example.invalid/api/v1/webhooks/sendgrid/inbound?secret=PLACEHOLDER`), raw MIME off | — | pending |
-| DMARC (root) | not checked yet | — | pending |
+| DMARC (root) | none existed; to add `_dmarc` TXT `v=DMARC1; p=none; rua=mailto:<owner mailbox>` (monitor first) | 2026-11-26 | pending |
 | Tracking settings | click off, subscription off, open on | 2026-11-26 | ✔ |
 | Sender identity | see decision below | 2026-11-26 | ✔ |
 
@@ -34,3 +34,4 @@ None. (If domain verification drags, Single Sender Verification with an owner-co
 
 - 2026-11-26 — Status doc created; sender identity recorded; `Email` defaults added to `appsettings.json`. Manual SendGrid/GoDaddy steps not started.
 - 2026-11-26 — SendGrid account created (trial ends 2027-01-24); restricted Mail Send key stored in user-secrets; tracking set (click off, subscription off, open on).
+- 2026-11-26 — DNS check via 8.8.8.8: `s1._domainkey` CNAME not found (not yet resolving); no `_dmarc` record exists on the root domain.
