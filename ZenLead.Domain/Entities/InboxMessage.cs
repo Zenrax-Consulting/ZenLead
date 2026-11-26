@@ -27,4 +27,10 @@ public class InboxMessage : ITenantEntity
     public bool SenderMismatch { get; set; }
     public bool IsAutoReply { get; set; }
     public string? AuthSummary { get; set; }                    // e.g. "dkim=pass; spf=pass"
+
+    // manual replies from the inbox (F27)
+    public Guid? ClientRequestId { get; set; }                  // idempotency key from the browser; unique per thread
+    public OutboundDeliveryStatus? DeliveryStatus { get; set; } // null for inbound & campaign sends; Pending | Sent | Failed for manual replies
+    public string? DeliveryError { get; set; }                  // <= 500
+    public Guid? SentByUserId { get; set; }
 }

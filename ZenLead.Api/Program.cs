@@ -44,6 +44,7 @@ using ZenLead.Application.UseCases.Inbound;
 using ZenLead.Infrastructure.Inbound;
 using ZenLead.Application.Classification;
 using ZenLead.Application.UseCases.Classification;
+using ZenLead.Application.UseCases.Inbox;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -132,6 +133,8 @@ builder.Services.AddRateLimiter(options =>
     var forgotPermits = builder.Configuration.GetValue("RateLimits:ForgotPermitLimit", RateLimiting.ForgotPermitsPerWindow);
     options.AddPolicy(RateLimiting.ForgotPolicy, ctx => RateLimiting.PerIpPartition(ctx, forgotPermits, RateLimiting.ForgotWindow));
     options.AddPolicy(RateLimiting.UnsubscribePolicy, ctx => RateLimiting.PerIpPartition(ctx, unsubscribePermits, TimeSpan.FromMinutes(1)));
+    var replyPermits = builder.Configuration.GetValue("RateLimits:ReplyPermitLimit", RateLimiting.ReplyPermitsPerMinute);
+    options.AddPolicy(RateLimiting.ReplyPolicy, ctx => RateLimiting.PerWorkspacePartition(ctx, replyPermits, TimeSpan.FromMinutes(1)));
     options.OnRejected = (context, _) =>
     {
         context.HttpContext.Response.Headers.RetryAfter = "60";
@@ -261,6 +264,12 @@ builder.Services.AddScoped<IInboxClassificationStore, InboxClassificationStore>(
 builder.Services.AddScoped<ClassificationEffects>();
 builder.Services.AddScoped<ClassifyReplyUseCase>();
 builder.Services.AddScoped<ClassifyReplyJob>();
+
+// inbox API (F27): threads, read state, manual replies, manual reclassification
+builder.Services.AddScoped<IInboxRepository, InboxRepository>();
+builder.Services.AddScoped<GetInboxThreadUseCase>();
+builder.Services.AddScoped<SendInboxReplyUseCase>();
+builder.Services.AddScoped<ReclassifyThreadUseCase>();
 
 // background jobs; the switch lets endpoint tests boot without SQL Server
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);

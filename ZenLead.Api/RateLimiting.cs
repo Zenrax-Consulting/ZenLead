@@ -35,6 +35,16 @@ public static class RateLimiting
     public const string UnsubscribePolicy = "unsubscribe";
     public const int UnsubscribePermitsPerMinute = 30;
 
+    /// <summary>Inbox replies (F27): 30 per minute per workspace by default; override with RateLimits:ReplyPermitLimit.</summary>
+    public const string ReplyPolicy = "reply";
+    public const int ReplyPermitsPerMinute = 30;
+
+    /// <summary>Per-workspace fixed window, for authenticated endpoints.</summary>
+    public static RateLimitPartition<string> PerWorkspacePartition(HttpContext context, int permitLimit, TimeSpan window)
+        => RateLimitPartition.GetFixedWindowLimiter(
+            context.User.FindFirstValue("workspace_id") ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = permitLimit, Window = window, QueueLimit = 0 });
+
     /// <summary>Per-client-IP fixed window, for anonymous endpoints.</summary>
     public static RateLimitPartition<string> PerIpPartition(HttpContext context, int permitLimit, TimeSpan window)
         => RateLimitPartition.GetFixedWindowLimiter(
