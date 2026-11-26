@@ -9,6 +9,7 @@ public class WorkspaceConfiguration : IEntityTypeConfiguration<Workspace>
     public void Configure(EntityTypeBuilder<Workspace> builder)
     {
         builder.Property(w => w.Name).HasMaxLength(200);
+        builder.Property(w => w.TimeZone).HasMaxLength(64).HasDefaultValue("UTC");
     }
 }
 

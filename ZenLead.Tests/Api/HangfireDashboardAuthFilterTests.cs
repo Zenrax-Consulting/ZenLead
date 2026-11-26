@@ -65,7 +65,7 @@ public class HangfireDashboardAuthFilterTests
     {
         var config = new ConfigurationBuilder().AddInMemoryCollection(
             admins.Select((a, i) => new KeyValuePair<string, string?>($"Hangfire:AdminEmails:{i}", a))).Build();
-        var controller = new OpsController(config, _dp);
+        var controller = new OpsController(config, _dp, new ZenLead.Tests.Support.FakeEmailSender());
         var claims = email is null ? [] : new[] { new Claim("email", email) };
         controller.ControllerContext = new ControllerContext
         {

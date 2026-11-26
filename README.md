@@ -38,6 +38,8 @@ azurite --silent --location %TEMP%\azurite
 
 (or use the Azurite component of Visual Studio). In Azure, set `Storage:AccountUri` instead and the app authenticates with `DefaultAzureCredential`. The Azurite round-trip tests are skipped unless `AZURITE=1` is set.
 
+Outbound email (F18) goes through `Email:Provider`: `Log` (the Development default, set in `appsettings.Development.json`) writes each message, including approval and reset links, to the API console instead of sending it; `SendGrid` sends for real and needs `SendGrid:ApiKey`. Outside Development the provider must be `SendGrid`. To test real delivery locally, `dotnet user-secrets set "Email:Provider" "SendGrid" --project ZenLead.Api`, then (signed in as an address in `Hangfire:AdminEmails`) call `POST /api/v1/ops/test-email`: it mails the caller's own address.
+
 The API refuses to start, with a message naming each missing setting, if any required value is absent or the signing key is shorter than 32 bytes.
 
 Create the database:

@@ -67,11 +67,46 @@ public class StartupConfigurationTests
     {
         var values = Valid();
         values["LeadSource:Provider"] = "Pdl";
+        values["Email:Provider"] = "SendGrid";   // outside Development email must be real too (covered separately)
+        values["SendGrid:ApiKey"] = "SG.test";
 
         Assert.Contains(StartupConfiguration.Validate(Config(values), isDevelopment: false), p => p.Contains("LeadSource:Pdl:ApiKey"));
 
         values["LeadSource:Pdl:ApiKey"] = "key";
         Assert.Empty(StartupConfiguration.Validate(Config(values), isDevelopment: false));
+    }
+
+    [Fact]
+    public void Validate_SendGridProviderWithoutKey_IsRejected()
+    {
+        var values = Valid();
+        values["Email:Provider"] = "SendGrid";
+
+        Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("SendGrid:ApiKey"));
+
+        values["SendGrid:ApiKey"] = "SG.test";
+        Assert.Empty(StartupConfiguration.Validate(Config(values)));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Log")]
+    public void Validate_LogEmailProvider_IsRejectedOutsideDevelopment_ButFineInDevelopment(string? provider)
+    {
+        var values = Valid();
+        values["Email:Provider"] = provider;
+
+        Assert.Contains(StartupConfiguration.Validate(Config(values), isDevelopment: false), p => p.Contains("Email:Provider"));
+        Assert.Empty(StartupConfiguration.Validate(Config(values), isDevelopment: true));
+    }
+
+    [Fact]
+    public void Validate_UnknownEmailProvider_IsRejected()
+    {
+        var values = Valid();
+        values["Email:Provider"] = "Mailgun";
+
+        Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("Email:Provider"));
     }
 
     [Fact]

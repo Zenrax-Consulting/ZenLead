@@ -16,4 +16,13 @@ public class WorkspaceRepository(ZenLeadDbContext db) : IWorkspaceRepository
 
     public Task<Workspace?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => db.Workspaces.FirstOrDefaultAsync(w => w.Id == id, ct);
+
+    public async Task<bool> UpdateTimeZoneAsync(Guid id, string timeZone, CancellationToken ct = default)
+    {
+        var workspace = await db.Workspaces.FirstOrDefaultAsync(w => w.Id == id, ct);
+        if (workspace is null) return false;
+        workspace.TimeZone = timeZone;
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
 }
