@@ -30,6 +30,9 @@ public class ZenLeadDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, G
     public DbSet<CsvImportBatch> CsvImportBatches => Set<CsvImportBatch>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
     public DbSet<RegistrationApproval> RegistrationApprovals => Set<RegistrationApproval>();
+    public DbSet<Campaign> Campaigns => Set<Campaign>();
+    public DbSet<CampaignStep> CampaignSteps => Set<CampaignStep>();
+    public DbSet<CampaignEnrollment> CampaignEnrollments => Set<CampaignEnrollment>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

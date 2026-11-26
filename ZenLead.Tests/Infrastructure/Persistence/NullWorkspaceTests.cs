@@ -20,12 +20,20 @@ public class NullWorkspaceTests : IDisposable
         ctx.Workspaces.Add(new Workspace { Id = _ws, Name = "Acme", AdminEmail = "admin@acme.test", CreatedAt = now });
         var company = new Company { Id = Guid.NewGuid(), WorkspaceId = _ws, Name = "Co", CreatedAt = now };
         ctx.Companies.Add(company);
-        ctx.Leads.Add(new Lead { Id = Guid.NewGuid(), WorkspaceId = _ws, Name = "n", Email = "a@x.com", Status = LeadStatus.New, CreatedAt = now, CompanyId = company.Id });
+        var lead = new Lead { Id = Guid.NewGuid(), WorkspaceId = _ws, Name = "n", Email = "a@x.com", Status = LeadStatus.New, CreatedAt = now, CompanyId = company.Id };
+        ctx.Leads.Add(lead);
         ctx.AiUsageLogs.Add(new AiUsageLog { Id = Guid.NewGuid(), WorkspaceId = _ws, Model = "m", CreatedAt = now });
         var profile = new TargetProfile { Id = Guid.NewGuid(), WorkspaceId = _ws, Name = "P", CreatedAt = now };
         ctx.TargetProfiles.Add(profile);
         ctx.DiscoveryRuns.Add(new LeadDiscoveryRun { Id = Guid.NewGuid(), WorkspaceId = _ws, TargetProfileId = profile.Id, Provider = "Fake", CreatedAt = now });
         ctx.CsvImportBatches.Add(new CsvImportBatch { Id = Guid.NewGuid(), WorkspaceId = _ws, FileName = "a.csv", BlobPath = "imports/a.csv", CreatedAt = now });
+        var campaign = new Campaign
+        {
+            Id = Guid.NewGuid(), WorkspaceId = _ws, Name = "C", CreatedAt = now,
+            Steps = [new CampaignStep { Id = Guid.NewGuid(), WorkspaceId = _ws, Order = 1, SubjectTemplate = "s", BodyTemplate = "b" }]
+        };
+        ctx.Campaigns.Add(campaign);
+        ctx.CampaignEnrollments.Add(new CampaignEnrollment { Id = Guid.NewGuid(), WorkspaceId = _ws, CampaignId = campaign.Id, LeadId = lead.Id, EnrolledAt = now });
         ctx.SaveChanges();
     }
 

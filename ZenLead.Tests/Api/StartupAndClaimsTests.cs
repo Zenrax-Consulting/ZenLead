@@ -26,7 +26,8 @@ public class StartupConfigurationTests
         ["Jwt:SigningKey"] = new string('k', 32),
         ["Jwt:Issuer"] = "zenlead",
         ["Jwt:Audience"] = "zenlead-client",
-        ["OpenAI:ApiKey"] = "sk-test"
+        ["OpenAI:ApiKey"] = "sk-test",
+        ["Unsubscribe:SigningKey"] = new string('u', 32)
     };
 
     [Fact]
@@ -39,6 +40,7 @@ public class StartupConfigurationTests
     [InlineData("Jwt:Issuer")]
     [InlineData("Jwt:Audience")]
     [InlineData("OpenAI:ApiKey")]
+    [InlineData("Unsubscribe:SigningKey")]
     public void Validate_MissingKey_NamesTheKey(string key)
     {
         var values = Valid();
@@ -129,6 +131,15 @@ public class StartupConfigurationTests
         values["Jwt:SigningKey"] = "too-short";
 
         Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("at least 32 bytes"));
+    }
+
+    [Fact]
+    public void Validate_ShortUnsubscribeSigningKey_IsRejected()
+    {
+        var values = Valid();
+        values["Unsubscribe:SigningKey"] = "too-short";
+
+        Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("'Unsubscribe:SigningKey' must be at least 32 bytes"));
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using ZenLead.Application.Abstractions;
 using ZenLead.Infrastructure.Persistence;
 
@@ -22,8 +23,9 @@ public sealed class TestDb : IDisposable
         ctx.Database.EnsureCreated();
     }
 
-    public ZenLeadDbContext CreateContext(Guid? workspaceId)
-        => new(new DbContextOptionsBuilder<ZenLeadDbContext>().UseSqlite(_connection).Options, new FakeCurrentWorkspace(workspaceId));
+    public ZenLeadDbContext CreateContext(Guid? workspaceId, params IInterceptor[] interceptors)
+        => new(new DbContextOptionsBuilder<ZenLeadDbContext>().UseSqlite(_connection).AddInterceptors(interceptors).Options,
+            new FakeCurrentWorkspace(workspaceId));
 
     public void Dispose() => _connection.Dispose();
 }

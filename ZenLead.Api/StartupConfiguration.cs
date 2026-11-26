@@ -7,7 +7,7 @@ public static class StartupConfiguration
     public const int MinSigningKeyBytes = 32; // HMAC-SHA256 needs a 256-bit key
 
     private static readonly string[] RequiredKeys =
-        ["ConnectionStrings:Default", "Jwt:SigningKey", "Jwt:Issuer", "Jwt:Audience", "OpenAI:ApiKey"];
+        ["ConnectionStrings:Default", "Jwt:SigningKey", "Jwt:Issuer", "Jwt:Audience", "OpenAI:ApiKey", "Unsubscribe:SigningKey"];
 
     /// <summary>Returns a human-readable problem for every missing or invalid required setting.</summary>
     public static IReadOnlyList<string> Validate(IConfiguration configuration, bool isDevelopment = true)
@@ -36,6 +36,11 @@ public static class StartupConfiguration
         var signingKey = configuration["Jwt:SigningKey"];
         if (!string.IsNullOrWhiteSpace(signingKey) && Encoding.UTF8.GetByteCount(signingKey) < MinSigningKeyBytes)
             problems.Add($"'Jwt:SigningKey' must be at least {MinSigningKeyBytes} bytes long.");
+
+        // signs unsubscribe links (F22); they never expire, so rotating this key breaks every link already sent
+        var unsubscribeKey = configuration["Unsubscribe:SigningKey"];
+        if (!string.IsNullOrWhiteSpace(unsubscribeKey) && Encoding.UTF8.GetByteCount(unsubscribeKey) < MinSigningKeyBytes)
+            problems.Add($"'Unsubscribe:SigningKey' must be at least {MinSigningKeyBytes} bytes long.");
 
         return problems;
     }

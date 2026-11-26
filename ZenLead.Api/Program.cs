@@ -35,6 +35,8 @@ using ZenLead.Application.Email;
 using ZenLead.Infrastructure.Email;
 using ZenLead.Domain.Enums;
 using ZenLead.Application.Auth;
+using ZenLead.Application.UseCases.Campaigns;
+using ZenLead.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -200,6 +202,17 @@ if (string.Equals(builder.Configuration["Email:Provider"], EmailOptions.SendGrid
     builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();
 }
 else builder.Services.AddScoped<IEmailSender, LogEmailSender>();
+
+// campaigns (F22): builder API and scheduling; nothing here sends mail (the sender is F23)
+builder.Services.Configure<UnsubscribeOptions>(builder.Configuration.GetSection(UnsubscribeOptions.SectionName));
+builder.Services.AddSingleton<IUnsubscribeTokens, HmacUnsubscribeTokens>();
+builder.Services.AddScoped<ICampaignRepository, CampaignRepository>();
+builder.Services.AddScoped<ICampaignEnrollmentRepository, CampaignEnrollmentRepository>();
+builder.Services.AddScoped<CampaignsUseCase>();
+builder.Services.AddScoped<CampaignStepsUseCase>();
+builder.Services.AddScoped<EnrollLeadsUseCase>();
+builder.Services.AddScoped<ActivateCampaignUseCase>();
+builder.Services.AddScoped<PauseCampaignUseCase>();
 
 // background jobs; the switch lets endpoint tests boot without SQL Server
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
