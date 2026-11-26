@@ -20,7 +20,10 @@ dotnet user-secrets set "Jwt:SigningKey" "<random string, at least 32 characters
 dotnet user-secrets set "Jwt:Issuer" "zenlead" --project ZenLead.Api
 dotnet user-secrets set "Jwt:Audience" "zenlead-client" --project ZenLead.Api
 dotnet user-secrets set "OpenAI:ApiKey" "<your OpenAI key>" --project ZenLead.Api
+dotnet user-secrets set "SendGrid:ApiKey" "<restricted SendGrid key, Mail Send only>" --project ZenLead.Api
 ```
+
+Email (F17 onwards): `SendGrid:ApiKey` is a restricted key with only Mail Send; never commit it or paste it into `.http` files. Later features add `SendGrid:InboundSecret` (F25) and `SendGrid:EventWebhookPublicKey` (F28) to user-secrets the same way. Non-secret defaults live in `appsettings.json` under `Email` (`FromAddress`, `FromName`, `DomainVerified`, `InboundDomain`); set `Email:DomainVerified` to `true` by hand once SendGrid shows the domain verified. SendGrid account, DNS and Inbound Parse setup is in the runbook `plans/phase-2-features/17-sendgrid-dns.md`; current status is in `docs/sendgrid-dns-status.md`.
 
 Optional overrides: `OpenAI:Model` (default `gpt-4o`), `OpenAI:PricePer1KInputUsd` and `OpenAI:PricePer1KOutputUsd` (used for the spend estimate), and `OpenAI:WarmUpOnStartup` (default `false`; when `true`, makes one 1-token completion after startup so the first compose request does not pay connection setup. Measured gain was within noise, so it is off by default).
 
