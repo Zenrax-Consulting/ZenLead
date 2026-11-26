@@ -78,7 +78,7 @@
   <button mat-stroked-button *ngIf="features.discovery" (click)="createProfileFromLead()">Create target profile from this lead</button>
   <p *ngIf="profileError" class="compose-error" role="alert">{{ profileError }}</p>
 
-  <button mat-raised-button color="primary" (click)="generateDraft()" [disabled]="composeState === 'loading'">
+  <button mat-raised-button color="primary" (click)="generateDraft()" [disabled]="composeState === 'loading' || aiBudgetExceeded">
     Generate draft
   </button>
 

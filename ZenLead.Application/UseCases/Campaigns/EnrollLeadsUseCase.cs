@@ -19,6 +19,7 @@ public class EnrollLeadsUseCase(
     ICampaignEnrollmentRepository enrollments,
     ILeadRepository leads,
     IWorkspaceRepository workspaces,
+    ISuppressionList suppression,
     TimeProvider clock,
     ILogger<EnrollLeadsUseCase>? logger = null)
 {
@@ -39,6 +40,9 @@ public class EnrollLeadsUseCase(
         distinct = distinct.Take(MaxPerRequest).ToList();
 
         var found = await leads.GetByIdsAsync(workspaceId, distinct, ct);   // other tenants' / deleted ids simply don't resolve
+        var suppressedEmails = found.Count == 0
+            ? new HashSet<string>()
+            : await suppression.FilterSuppressedAsync(workspaceId, found.Select(l => l.Email).ToList(), ct);
         var requiredTokens = campaign.Steps
             .SelectMany(s => TemplateRenderer.RequiredTokens(s.SubjectTemplate).Concat(TemplateRenderer.RequiredTokens(s.BodyTemplate)))
             .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -50,7 +54,7 @@ public class EnrollLeadsUseCase(
         for (var attempt = 1; ; attempt++)
         {
             var already = await enrollments.ExistingLeadIdsAsync(campaignId, found.Select(l => l.Id).ToList(), ct);
-            var (result, toAdd) = Plan(workspaceId, campaignId, found, already, requiredTokens, nextSendAt, now);
+            var (result, toAdd) = Plan(workspaceId, campaignId, found, already, suppressedEmails, requiredTokens, nextSendAt, now);
             result = result with { NotFound = distinct.Count - found.Count, Truncated = truncated };
             if (request.DryRun || toAdd.Count == 0) return CampaignOutcome<EnrollResult>.Success(result);
 
@@ -67,7 +71,7 @@ public class EnrollLeadsUseCase(
     }
 
     private static (EnrollResult Result, List<CampaignEnrollment> ToAdd) Plan(
-        Guid workspaceId, Guid campaignId, IReadOnlyList<Lead> found, IReadOnlySet<Guid> already,
+        Guid workspaceId, Guid campaignId, IReadOnlyList<Lead> found, IReadOnlySet<Guid> already, IReadOnlySet<string> suppressedEmails,
         IReadOnlyList<string> requiredTokens, DateTime? nextSendAt, DateTime now)
     {
         int enrolled = 0, alreadyEnrolled = 0, suppressed = 0, invalidEmail = 0, missingTokens = 0, warnUnverified = 0, warnRisky = 0;
@@ -76,6 +80,7 @@ public class EnrollLeadsUseCase(
         foreach (var lead in found)
         {
             if (already.Contains(lead.Id)) { alreadyEnrolled++; continue; }
+            if (suppressedEmails.Contains(lead.Email)) { suppressed++; continue; }     // F23 suppression list
 
             var eligibility = EnrollmentEligibility.Check(lead.Status, lead.EmailVerificationStatus);
             if (eligibility.Kind == EligibilityKind.Blocked)

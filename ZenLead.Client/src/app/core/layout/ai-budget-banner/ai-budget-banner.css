@@ -1,0 +1,11 @@
+.ai-budget-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: #fff4e5;
+  color: #663c00;
+}
+.ai-budget-banner.exceeded { background: #fdecea; color: #611a15; }

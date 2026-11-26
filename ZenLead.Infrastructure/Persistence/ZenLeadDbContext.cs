@@ -34,6 +34,8 @@ public class ZenLeadDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, G
     public DbSet<CampaignStep> CampaignSteps => Set<CampaignStep>();
     public DbSet<CampaignEnrollment> CampaignEnrollments => Set<CampaignEnrollment>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<EmailMessage> EmailMessages => Set<EmailMessage>();
+    public DbSet<SuppressedEmail> SuppressedEmails => Set<SuppressedEmail>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

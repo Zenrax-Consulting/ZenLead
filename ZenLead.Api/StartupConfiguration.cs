@@ -26,6 +26,11 @@ public static class StartupConfiguration
         }
 
         problems.AddRange(ValidateEmail(configuration, isDevelopment));
+
+        // fail closed: a typo must never silently become Live (or anything else)
+        var mode = configuration["Sending:Mode"];
+        if (!string.IsNullOrWhiteSpace(mode) && !mode.Equals("Restricted", StringComparison.OrdinalIgnoreCase) && !mode.Equals("Live", StringComparison.OrdinalIgnoreCase))
+            problems.Add($"Unknown 'Sending:Mode' '{mode}'. Known: Restricted (default; only Sending:RecipientAllowList receives campaign email), Live.");
         if (!isDevelopment && !Uri.TryCreate(configuration["App:PublicBaseUrl"], UriKind.Absolute, out _))
             problems.Add("'App:PublicBaseUrl' must be set to the absolute public URL of the app outside Development (used for links in emails).");
 

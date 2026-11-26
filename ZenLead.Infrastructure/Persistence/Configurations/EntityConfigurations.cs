@@ -150,7 +150,11 @@ public class AiUsageLogConfiguration: IEntityTypeConfiguration<AiUsageLog>
     {
         builder.Property(l => l.Model).HasMaxLength(100);
         builder.Property(l => l.EstimatedCostUsd).HasPrecision(18, 6);
+        // existing Phase 1 rows backfill to Purpose = Compose (0, the int column default) and Succeeded = true (AddSendingEngine).
+        // Sentinel true: EF only writes the column when it is false, so an explicit false is never swallowed by the default.
+        builder.Property(l => l.Succeeded).HasDefaultValue(true).HasSentinel(true);
         builder.HasIndex(l => l.WorkspaceId);
+        builder.HasIndex(l => new { l.WorkspaceId, l.CreatedAt });              // the monthly AI budget sum (F23.3)
         builder.HasOne<Workspace>().WithMany().HasForeignKey(l => l.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
     }
 }

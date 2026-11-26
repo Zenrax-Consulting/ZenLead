@@ -7,11 +7,13 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using ZenLead.Api;
 using ZenLead.Api.Controllers.V1;
 using ZenLead.Application.Abstractions;
+using ZenLead.Application.Sending;
 using ZenLead.Application.UseCases.Ai;
 using ZenLead.Application.Validation.Ai;
 using ZenLead.Domain.Entities;
 using ZenLead.Domain.Enums;
 using ZenLead.Tests.Application.Ai;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Api;
 
@@ -36,8 +38,8 @@ public class AiControllerTests
         FakeLeadRepositoryForAi leads, IEmailComposer composer, Guid callerWorkspaceId)
     {
         var usage = new FakeTokenUsageTracker();
-        var useCase = new ComposeEmailUseCase(leads, composer, usage, new AiPricing());
-        var controller = new AiController(useCase, new ComposeEmailRequestValidator(), usage)
+        var useCase = new ComposeEmailUseCase(leads, composer, usage, new AiPricing(), new FakeAiBudget());
+        var controller = new AiController(useCase, new ComposeEmailRequestValidator(), usage, new FakeAiBudget())
         {
             ProblemDetailsFactory = new TestProblemDetailsFactory()
         };
@@ -145,10 +147,11 @@ public class AiControllerTests
 
         var result = await controller.GetTokenUsage(CancellationToken.None);
 
-        var summary = Assert.IsType<AiUsageSummary>(Assert.IsType<OkObjectResult>(result.Result).Value);
+        var summary = Assert.IsType<TokenUsageResponse>(Assert.IsType<OkObjectResult>(result.Result).Value);
         Assert.Equal(1, summary.Calls);
         Assert.Equal(150, summary.TotalTokens);
         Assert.Equal(0.5m, summary.EstimatedCostUsd);
+        Assert.Equal(BudgetState.Ok, summary.Budget.State);                // F23.3: this month's budget rides along
     }
 
     [Fact]
@@ -167,5 +170,30 @@ public class AiControllerTests
 
         Assert.False(limiter.AttemptAcquire(a).IsAcquired);
         Assert.True(limiter.AttemptAcquire(b).IsAcquired);
+    }
+
+    [Fact]
+    public async Task ComposeEmail_BudgetExceeded_Returns429WithCode()
+    {
+        var workspaceId = Guid.NewGuid();
+        var leads = new FakeLeadRepositoryForAi();
+        var lead = SeedLead(leads, workspaceId);
+        var composer = new FakeEmailComposer();
+        var budget = new FakeAiBudget { State = BudgetState.Exceeded };
+        var controller = new AiController(new ComposeEmailUseCase(leads, composer, new FakeTokenUsageTracker(), new AiPricing(), budget),
+            new ComposeEmailRequestValidator(), new FakeTokenUsageTracker(), budget) { ProblemDetailsFactory = new TestProblemDetailsFactory() };
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("workspace_id", workspaceId.ToString())], "test")) }
+        };
+
+        var result = await controller.ComposeEmail(new ComposeEmailApiRequest(lead.Id, null), CancellationToken.None);
+
+        var status = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status429TooManyRequests, status.StatusCode);
+        var json = System.Text.Json.JsonSerializer.Serialize(status.Value);
+        Assert.Contains("\"code\":\"ai_budget_exceeded\"", json);
+        Assert.Contains("resets on 1 December 2026", json);
+        Assert.Null(composer.LastContext);
     }
 }

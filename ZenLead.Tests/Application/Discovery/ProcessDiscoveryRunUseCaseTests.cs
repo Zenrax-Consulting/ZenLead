@@ -6,6 +6,7 @@ using ZenLead.Application.UseCases.Discovery;
 using ZenLead.Domain.Entities;
 using ZenLead.Domain.Enums;
 using ZenLead.Tests.Application.Leads;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Application.Discovery;
 
@@ -28,7 +29,7 @@ public class ProcessDiscoveryRunUseCaseTests
     }
 
     private ProcessDiscoveryRunUseCase Build(ILeadSource source, LeadSourceOptions? options = null)
-        => new(_runs, source, new LeadIngestionService(_store), options ?? new LeadSourceOptions(), TimeProvider.System,
+        => new(_runs, source, new LeadIngestionService(_store, new FakeSuppressionList()), options ?? new LeadSourceOptions(), TimeProvider.System,
                NullLogger<ProcessDiscoveryRunUseCase>.Instance)
         { Delay = (d, _) => { _delays.Add(d); return Task.CompletedTask; } };
 

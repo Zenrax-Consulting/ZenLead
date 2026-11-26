@@ -31,6 +31,10 @@ public static class RateLimiting
     public const int ForgotPermitsPerWindow = 10;
     public static readonly TimeSpan ForgotWindow = TimeSpan.FromHours(1);
 
+    /// <summary>Public unsubscribe page and one-click POST (F23): 30 per minute per IP by default; override with RateLimits:UnsubscribePermitLimit.</summary>
+    public const string UnsubscribePolicy = "unsubscribe";
+    public const int UnsubscribePermitsPerMinute = 30;
+
     /// <summary>Per-client-IP fixed window, for anonymous endpoints.</summary>
     public static RateLimitPartition<string> PerIpPartition(HttpContext context, int permitLimit, TimeSpan window)
         => RateLimitPartition.GetFixedWindowLimiter(

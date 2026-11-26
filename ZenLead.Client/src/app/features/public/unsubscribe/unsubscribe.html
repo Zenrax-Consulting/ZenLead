@@ -1,0 +1,31 @@
+<mat-card class="auth-card">
+  @switch (state) {
+    @case ('loading') {
+      <mat-card-title>Unsubscribe</mat-card-title>
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+    @case ('ready') {
+      <mat-card-title>Unsubscribe</mat-card-title>
+      <p>Unsubscribe <strong>{{ info?.email }}</strong> from future emails?</p>
+      <div class="approve-actions">
+        <button mat-raised-button color="primary" type="button" (click)="confirm()" [disabled]="submitting">Unsubscribe</button>
+      </div>
+    }
+    @case ('done') {
+      <mat-card-title>You've been unsubscribed</mat-card-title>
+      <p>You won't receive more emails from us.</p>
+    }
+    @case ('already') {
+      <mat-card-title>Already unsubscribed</mat-card-title>
+      <p><strong>{{ info?.email }}</strong> is already unsubscribed. You won't receive more emails from us.</p>
+    }
+    @case ('invalid') {
+      <mat-card-title>Link not valid</mat-card-title>
+      <p>This unsubscribe link isn't valid. Check you opened the full link from the email.</p>
+    }
+    @default {
+      <mat-card-title>Something went wrong</mat-card-title>
+      <p class="auth-error">We couldn't process your request. Please try again later.</p>
+    }
+  }
+</mat-card>

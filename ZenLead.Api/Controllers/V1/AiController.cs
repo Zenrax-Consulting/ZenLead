@@ -4,12 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
 using ZenLead.Application.Abstractions;
+using ZenLead.Application.Sending;
 using ZenLead.Application.UseCases.Ai;
 
 namespace ZenLead.Api.Controllers.V1;
 
 public record ComposeEmailApiRequest(Guid LeadId, string? Context);
 public record ComposeEmailApiResponse(string Subject, string Body, int TokensUsed);
+public record TokenUsageResponse(int Calls, long TotalTokens, decimal EstimatedCostUsd, AiBudgetStatus Budget);
 
 [ApiController]
 [Authorize]
@@ -17,7 +19,8 @@ public record ComposeEmailApiResponse(string Subject, string Body, int TokensUse
 public class AiController(
     ComposeEmailUseCase composeEmail,
     IValidator<ComposeEmailRequest> validator,
-    ITokenUsageTracker usage) : ControllerBase
+    ITokenUsageTracker usage,
+    IAiBudget budget) : ControllerBase
 {
     [HttpPost("compose-email")]
     [EnableRateLimiting(RateLimiting.ComposePolicy)]
@@ -36,6 +39,10 @@ public class AiController(
             return result is null
                 ? NotFound()
                 : Ok(new ComposeEmailApiResponse(result.Subject, result.Body, result.TokensUsed));
+        }
+        catch (AiBudgetExceededException ex)
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { code = "ai_budget_exceeded", message = ex.Message });
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
@@ -56,10 +63,12 @@ public class AiController(
         }
     }
 
-    /// <summary>Usage for the caller's own workspace only — never a cross-tenant total.</summary>
+    /// <summary>Usage for the caller's own workspace only — never a cross-tenant total — plus this month's budget (F23.3).</summary>
     [HttpGet("token-usage")]
-    public async Task<ActionResult<AiUsageSummary>> GetTokenUsage(CancellationToken ct)
-        => this.WorkspaceId() is { } workspaceId
-            ? Ok(await usage.GetSummaryAsync(workspaceId, ct))
-            : Unauthorized();
+    public async Task<ActionResult<TokenUsageResponse>> GetTokenUsage(CancellationToken ct)
+    {
+        if (this.WorkspaceId() is not { } workspaceId) return Unauthorized();
+        var summary = await usage.GetSummaryAsync(workspaceId, ct);
+        return Ok(new TokenUsageResponse(summary.Calls, summary.TotalTokens, summary.EstimatedCostUsd, await budget.GetStatusAsync(workspaceId, ct)));
+    }
 }

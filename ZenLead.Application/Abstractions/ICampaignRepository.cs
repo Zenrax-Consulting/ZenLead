@@ -46,6 +46,12 @@ public interface ICampaignEnrollmentRepository
     Task<PagedResult<CampaignEnrollment>> ListAsync(Guid campaignId, EnrollmentStatus? status, int page, int pageSize, CancellationToken ct = default);
 
     Task<EnrollmentCounts> CountsAsync(Guid campaignId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Applies <see cref="EnrollmentRules.ApplyStop"/> to every live enrollment of the lead, in every campaign of the workspace
+    /// (explicitly scoped: works without a current workspace). Staged, not saved. Returns how many changed.
+    /// </summary>
+    Task<int> StopAllForLeadAsync(Guid workspaceId, Guid leadId, EnrollmentRules.StopEvent stop, CancellationToken ct = default);
 }
 
 public class DuplicateEnrollmentException() : InvalidOperationException("One of the leads was enrolled in this campaign by another request.");

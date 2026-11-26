@@ -8,6 +8,7 @@ using ZenLead.Domain.Entities;
 using ZenLead.Domain.Enums;
 using ZenLead.Infrastructure.Ai;
 using ZenLead.Tests.Application.Ai;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Infrastructure.Ai;
 
@@ -55,7 +56,7 @@ public class UsageOnFailureAndWarmUpTests
         var lead = new Lead { Id = Guid.NewGuid(), WorkspaceId = workspaceId, Name = "Jane", Email = "jane@acme.com", Status = LeadStatus.New, CreatedAt = DateTime.UtcNow };
         leads.Seed(lead);
         var usage = new FakeTokenUsageTracker();
-        return (new ComposeEmailUseCase(leads, composer, usage, new AiPricing()), usage, workspaceId, lead.Id);
+        return (new ComposeEmailUseCase(leads, composer, usage, new AiPricing(), new FakeAiBudget()), usage, workspaceId, lead.Id);
     }
 
     [Fact]

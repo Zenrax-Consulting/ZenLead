@@ -7,6 +7,7 @@ import { Approve } from './features/auth/approve/approve';
 import { ForgotPassword } from './features/auth/forgot-password/forgot-password';
 import { ResetPassword } from './features/auth/reset-password/reset-password';
 import { authGuard, superAdminGuard, tenantGuard } from './core/auth/auth.guard';
+import { Unsubscribe } from './features/public/unsubscribe/unsubscribe';
 import { Shell } from './core/layout/shell/shell';
 import { ComingSoon } from './core/placeholder/coming-soon';
 
@@ -18,6 +19,7 @@ const routes: Routes = [
   { path: 'approve', component: Approve },          // public: the token in the link is the credential
   { path: 'forgot-password', component: ForgotPassword },
   { path: 'reset-password', component: ResetPassword },   // public: the token in the link is the credential
+  { path: 'unsubscribe/:token', component: Unsubscribe },   // public (F23): the signed token is the credential; GET shows, the button POSTs
   {
     path: '',
     component: Shell,

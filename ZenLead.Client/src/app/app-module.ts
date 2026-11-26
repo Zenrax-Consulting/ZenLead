@@ -16,6 +16,8 @@ import { RegisterPending } from './features/auth/register-pending/register-pendi
 import { Approve } from './features/auth/approve/approve';
 import { ForgotPassword } from './features/auth/forgot-password/forgot-password';
 import { ResetPassword } from './features/auth/reset-password/reset-password';
+import { Unsubscribe } from './features/public/unsubscribe/unsubscribe';
+import { AiBudgetBanner } from './core/layout/ai-budget-banner/ai-budget-banner';
 
 @NgModule({
   declarations: [
@@ -26,7 +28,9 @@ import { ResetPassword } from './features/auth/reset-password/reset-password';
     Approve,
     ForgotPassword,
     ResetPassword,
+    Unsubscribe,
     Shell,
+    AiBudgetBanner,
     ComingSoon
   ],
   imports: [

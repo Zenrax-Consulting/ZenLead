@@ -9,7 +9,7 @@ namespace ZenLead.Application.Leads;
 /// The only way leads enter the system besides single manual create (which also uses it).
 /// Callers pass already-parsed rows in batches (CSV: ~500, discovery: one provider page); this class never reads files or calls providers.
 /// </summary>
-public class LeadIngestionService(ILeadIngestionStore store)
+public class LeadIngestionService(ILeadIngestionStore store, ISuppressionList suppression)
 {
     public async Task<IngestionSummary> IngestAsync(
         Guid workspaceId, IReadOnlyList<CandidateLead> rows, IngestionSource source, CancellationToken ct = default)
@@ -38,6 +38,15 @@ public class LeadIngestionService(ILeadIngestionStore store)
             results[c.Index] = LeadStatusRules.IsSuppressed(found.Status)
                 ? new(c.Index, IngestionOutcome.Suppressed, $"Lead is {found.Status}", found.Id)
                 : new(c.Index, IngestionOutcome.Duplicate, found.IsDeleted ? "Previously deleted lead" : "Already exists", found.Id);
+        }
+
+        // the suppression list (F23) also covers addresses with no lead: deleted leads, spam complaints, unsubscribe replies
+        if (toInsert.Count > 0)
+        {
+            var suppressed = await suppression.FilterSuppressedAsync(workspaceId, toInsert.Select(t => t.Email).ToList(), ct);
+            foreach (var t in toInsert.Where(t => suppressed.Contains(t.Email)))
+                results[t.Index] = new(t.Index, IngestionOutcome.Suppressed, "On suppression list");
+            toInsert.RemoveAll(t => suppressed.Contains(t.Email));
         }
 
         if (toInsert.Count > 0)
