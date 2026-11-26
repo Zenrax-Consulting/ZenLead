@@ -187,6 +187,7 @@ public class SendDueEmailsUseCase(
             message.SentAt = Now;
             message.ProviderMessageId = result.ProviderMessageId;
             MarkSent(ctx, window, message.SentAt.Value);
+            await store.AttachOutboundAsync(ctx, message, email.Value.FromAddress, ct);   // inbox thread (F25), same save
             await store.SaveAsync(ct);
             workspaceBudget[item.WorkspaceId] = left - 1;
             return SendOutcome.Sent;
@@ -203,6 +204,8 @@ public class SendDueEmailsUseCase(
             case EmailMessageStatus.Sent or EmailMessageStatus.Delivered or EmailMessageStatus.Bounced or EmailMessageStatus.Dropped:
                 // the provider accepted it; the process died before the enrollment advanced
                 MarkSent(ctx, window, existing.SentAt ?? existing.QueuedAt);
+                if (existing.Status != EmailMessageStatus.Dropped)
+                    await store.AttachOutboundAsync(ctx, existing, email.Value.FromAddress, ct);   // idempotent: a no-op if it was attached
                 await store.SaveAsync(ct);
                 logger.LogWarning("Enrollment {EnrollmentId} step {StepId} was already sent; advanced without re-sending.", e.Id, existing.StepId);
                 return SendOutcome.Repaired;

@@ -70,6 +70,7 @@ public class InterceptingStore(ISenderStore inner) : ISenderStore
     }
     public Task<Campaign?> GetCampaignAsync(Guid workspaceId, Guid campaignId, CancellationToken ct) => inner.GetCampaignAsync(workspaceId, campaignId, ct);
     public Task<bool> CampaignHasLiveEnrollmentsAsync(Guid workspaceId, Guid campaignId, CancellationToken ct) => inner.CampaignHasLiveEnrollmentsAsync(workspaceId, campaignId, ct);
+    public Task AttachOutboundAsync(SendContext ctx, EmailMessage message, string fromAddress, CancellationToken ct) => inner.AttachOutboundAsync(ctx, message, fromAddress, ct);
 }
 
 /// <summary>

@@ -146,3 +146,30 @@ POST {{ZenLead.Api_HostAddress}}/api/v1/unsubscribe/<token from an email footer>
 Content-Type: application/x-www-form-urlencoded
 
 List-Unsubscribe=One-Click
+
+### Inbound reply (public webhook, F25): what SendGrid Inbound Parse posts. Wrong/missing secret → 401; anything authentic → 200.
+### Replace the enrollment id (N format) with a real one to see it attach; an unknown one is quarantined.
+POST {{ZenLead.Api_HostAddress}}/api/v1/webhooks/sendgrid/inbound?secret=<SendGrid:InboundSecret>
+Content-Type: multipart/form-data; boundary=ZenLeadBoundary
+
+--ZenLeadBoundary
+Content-Disposition: form-data; name="from"
+
+Jane Doe <jane@example.com>
+--ZenLeadBoundary
+Content-Disposition: form-data; name="to"
+
+r-00000000000000000000000000000000@reply.leads.zenraxconsulting.com
+--ZenLeadBoundary
+Content-Disposition: form-data; name="subject"
+
+Re: Quick question
+--ZenLeadBoundary
+Content-Disposition: form-data; name="text"
+
+Yes, happy to talk next week.
+--ZenLeadBoundary
+Content-Disposition: form-data; name="headers"
+
+Message-ID: <manual-test-0001@example.com>
+--ZenLeadBoundary--

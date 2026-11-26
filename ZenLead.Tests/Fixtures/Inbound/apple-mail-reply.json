@@ -1,0 +1,11 @@
+{
+  "from": "__LEAD__",
+  "to": "Zenrax <business@zenraxconsulting.test>",
+  "subject": "Re: Quick question about Acme",
+  "headers": "Content-Type: text/plain; charset=us-ascii\nMime-Version: 1.0 (Mac OS X Mail 16.0)\nSubject: Re: Quick question about Acme\nFrom: __LEAD__\nIn-Reply-To: <unknown-id@zenraxconsulting.test>\nDate: Wed, 11 Mar 2026 10:30:00 +0400\nTo: Zenrax <business@zenraxconsulting.test>\nMessage-Id: <APPLE-0001@example.com>\n",
+  "text": "Sounds interesting. Send me the deck?\n\nSent from my iPhone\n\n> On 11 Mar 2026, at 10:00, Zenrax <business@zenraxconsulting.test> wrote:\n> \n> Hello Jane\n",
+  "dkim": "none",
+  "SPF": "pass",
+  "envelope": "{\"to\": [\"r-__ENROLLMENT__@reply.zenlead.test\"], \"from\": \"__LEAD__\"}",
+  "charsets": "{\"to\": \"UTF-8\", \"from\": \"UTF-8\", \"subject\": \"UTF-8\", \"text\": \"us-ascii\"}"
+}

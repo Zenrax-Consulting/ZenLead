@@ -1,0 +1,11 @@
+{
+  "from": "Jane Doe <__LEAD__>",
+  "to": "r-__ENROLLMENT__@reply.zenlead.test",
+  "subject": "Automatic reply: Quick question about Acme",
+  "headers": "From: Jane Doe <__LEAD__>\nTo: r-__ENROLLMENT__@reply.zenlead.test\nSubject: Automatic reply: Quick question about Acme\nDate: Wed, 11 Mar 2026 06:00:05 +0000\nMessage-ID: <OOO-0001@example.com>\nAuto-Submitted: auto-replied\nX-Auto-Response-Suppress: All\n",
+  "text": "I am out of the office until 20 March with limited access to email.\n",
+  "dkim": "{@example.com : pass}",
+  "SPF": "pass",
+  "envelope": "{\"to\": [\"r-__ENROLLMENT__@reply.zenlead.test\"], \"from\": \"__LEAD__\"}",
+  "charsets": "{\"to\": \"UTF-8\", \"from\": \"UTF-8\", \"subject\": \"UTF-8\", \"text\": \"UTF-8\", \"html\": \"UTF-8\"}"
+}

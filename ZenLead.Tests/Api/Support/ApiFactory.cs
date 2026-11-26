@@ -28,6 +28,9 @@ public class ApiFactory : WebApplicationFactory<Program>
     /// <summary>Every email the API sends during the test run (nothing leaves the process).</summary>
     public FakeEmailSender Email { get; } = new();
 
+    /// <summary>The Inbound Parse webhook secret (F25); tests post to <c>?secret=</c> with it.</summary>
+    public const string InboundSecret = "inbound-secret-for-tests-0123456789abcdef";
+
     private static readonly Dictionary<string, string?> Settings = new()
     {
         ["ConnectionStrings:Default"] = "unused",
@@ -36,6 +39,8 @@ public class ApiFactory : WebApplicationFactory<Program>
         ["Jwt:Audience"] = "test",
         ["OpenAI:ApiKey"] = "test",
         ["Unsubscribe:SigningKey"] = new string('u', 48),
+        ["SendGrid:InboundSecret"] = InboundSecret,
+        ["Email:InboundDomain"] = "reply.zenlead.test",
         ["Hangfire:Enabled"] = "false",
         ["Email:Provider"] = "Log",
         ["App:PublicBaseUrl"] = "https://app.zenlead.test",

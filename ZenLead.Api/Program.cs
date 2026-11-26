@@ -39,6 +39,9 @@ using ZenLead.Application.UseCases.Campaigns;
 using ZenLead.Infrastructure.Security;
 using ZenLead.Application.Sending;
 using ZenLead.Application.UseCases.Sending;
+using ZenLead.Application.Inbound;
+using ZenLead.Application.UseCases.Inbound;
+using ZenLead.Infrastructure.Inbound;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -229,6 +232,20 @@ builder.Services.AddScoped<IAiBudget, EfAiBudget>();
 builder.Services.AddScoped<SendDueEmailsUseCase>();
 builder.Services.AddScoped<UnsubscribeUseCase>();
 builder.Services.AddScoped<CampaignSenderJob>();
+
+// inbound replies (F25): SendGrid Inbound Parse webhook → thread, stop the sequence; parser chosen by Inbound:ParseMode
+builder.Services.Configure<InboundOptions>(builder.Configuration.GetSection(InboundOptions.SectionName));
+builder.Services.Configure<WebhookOptions>(o =>
+{
+    o.InboundSecret = builder.Configuration["SendGrid:InboundSecret"];
+    o.CaptureRaw = builder.Configuration.GetValue("Webhooks:CaptureRaw", false);
+});
+if (builder.Configuration.GetValue("Inbound:ParseMode", InboundParseMode.Fields) == InboundParseMode.RawMime)
+    builder.Services.AddSingleton<IInboundEmailParser, MimeKitInboundParser>();
+else builder.Services.AddSingleton<IInboundEmailParser, SendGridFormParser>();
+builder.Services.AddSingleton<IHtmlSanitizer, GanssHtmlSanitizer>();
+builder.Services.AddScoped<IInboundStore, InboundStore>();
+builder.Services.AddScoped<ProcessInboundEmailUseCase>();
 
 // background jobs; the switch lets endpoint tests boot without SQL Server
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
