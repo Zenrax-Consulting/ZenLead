@@ -28,6 +28,7 @@ dotnet build ZenLead.slnx                    # build everything
 dotnet run --project ZenLead.Api             # run the API (also auto-launches the Angular dev server via SpaProxy)
 dotnet test ZenLead.Tests                    # run all backend tests
 dotnet test ZenLead.Tests --filter FullyQualifiedName~ClassName.MethodName   # run a single test
+dotnet test ZenLead.IntegrationTests         # integration tests (T03): LocalDB, Hangfire, Azurite, WireMock providers
 dotnet ef migrations add <Name> -p ZenLead.Infrastructure -s ZenLead.Api    # add an EF Core migration
 dotnet ef database update -p ZenLead.Infrastructure -s ZenLead.Api
 dotnet user-secrets set <Key> <Value> --project ZenLead.Api   # local secrets (never appsettings.json)
@@ -83,7 +84,7 @@ There is **one deployable artifact**: `dotnet publish` on `ZenLead.Api` builds t
 ### Testing conventions (from `plans/`)
 - xUnit tests focus on things that are actually risky to get wrong: tenant isolation, scheduling across time zones/DST and send windows, send idempotency and caps, suppression, token flows (approval, reset, refresh rotation), webhook auth and idempotency, CSV parsing/dedup, JWT claims, the authorization endpoint matrix.
 - No real external calls in tests: fake `IEmailSender`, `IEmailComposer`, `IReplyClassifier` and `ILeadSource`; captured payload fixtures for webhooks (`ZenLead.Tests/Fixtures/`); test keys for signatures. Live-AI tests are skipped by default.
-- Integration tests go through `ApiFactory` (`Microsoft.AspNetCore.Mvc.Testing`).
+- Endpoint tests go through `ApiFactory` (`Microsoft.AspNetCore.Mvc.Testing`, SQLite). Tests that need real SQL Server, Hangfire, Azurite or provider HTTP stubs go in `ZenLead.IntegrationTests` (`SqlServerFixture`, `IntegrationApiFactory`, `HangfireTestServer`, `ProviderStubs`; see `docs/testing/README.md`).
 - Angular gets targeted unit tests (auth interceptor/guards, pure helpers like schedule display and wizard mapping), not full coverage.
 
 ### Working in parallel

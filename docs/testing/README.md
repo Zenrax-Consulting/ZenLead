@@ -8,11 +8,27 @@ How ZenLead is tested, and where things go. The plan is [plans/testing-plan.md](
 |---|---|---|
 | Backend unit + API tests | `dotnet test ZenLead.Tests` | nothing (SQLite in memory) |
 | Angular unit tests | `cd ZenLead.Client; npm test` | Node |
-| Azurite blob test | `$env:AZURITE='1'; dotnet test ZenLead.Tests --filter Category=Azurite` | Azurite running |
 | Live AI check | `$env:RUN_LIVE_AI='1'; dotnet test ZenLead.Tests --filter Category=Live` | a real `OpenAI:ApiKey` (costs money) |
-| Integration (T03) | `dotnet test --filter Category=Integration` | LocalDB, Azurite (arrives with T03) |
+| Integration (T03) | `dotnet test ZenLead.IntegrationTests` | LocalDB. Azurite for the blob tests (they skip with a message without it) |
+| Integration on Docker SQL Server | `$env:ZENLEAD_TEST_SQL='container'; dotnet test ZenLead.IntegrationTests` | Docker (the F30 Linux CI path) |
+| Azurite tests only | `dotnet test ZenLead.IntegrationTests --filter Category=Azurite` | Azurite running |
 | E2E / browser (T07, T08) | the API in the `E2E` environment (see the root README) plus the Playwright suite | LocalDB, Azurite (arrives with T07) |
 | Packs (T09) | `tools/test-runner/run.ps1 -Pack smoke\|regression\|release` | arrives with T09 |
+
+## Integration tests (T03)
+
+`ZenLead.IntegrationTests/` runs our code against real infrastructure: SQL Server (LocalDB by default), Hangfire on SQL Server storage, Azurite, and WireMock stubs of SendGrid, OpenAI and PDL. It is a separate project, so `dotnet test ZenLead.Tests` stays fast and offline; every class carries `Category=Integration` (a guard test enforces it). About 100 tests, under a minute on a dev laptop.
+
+Fixtures in `ZenLead.IntegrationTests/Support/`, reusable by T05, T06 and T10:
+
+| Fixture | What it gives you |
+|---|---|
+| `SqlServerFixture` | A `ZenLeadIT_{guid}` database per test class, schema from the **migrations**, dropped afterwards. `ResetAsync()` empties every table with Respawn (keeps `__EFMigrationsHistory` and `HangFire.Schema`). `CreateContext(workspaceId)`, `CreateHangfireStorage()`. `ZENLEAD_TEST_SQL=container` uses one Testcontainers SQL Server for the run. Databases left by a crashed run are dropped after 6 hours. |
+| `IntegrationApiFactory` | The API over that database: Hangfire enabled (no in-host server, no recurring sender), the real SendGrid / Semantic Kernel / PDL clients pointed at `ProviderStubs`, a movable `Clock`. Call `ResetAsync()` at the start of each test. |
+| `HangfireTestServer` | A real `BackgroundJobServer` (1 worker by default) on a test database, jobs activated from DI. `WaitForJobAsync`, `WaitForIdleAsync`, `FailureOf`; retries off by default, or a given count, or the app's own policy. |
+| `ProviderStubs` | WireMock SendGrid (202 + `X-Message-Id`; 4xx/5xx/slow), OpenAI (chat completions with `usage`; failures, timeout-once) and PDL (two scroll pages; 402/429). Every request is recorded. |
+| `AzuriteFixture` | Skips (`SkippableFact`) with a clear message when Azurite isn't reachable. `ZENLEAD_TEST_AZURITE` overrides the connection string. |
+| `SendingSeed`, `TenantRowSeed` | A due enrollment on an always-open campaign; one row of every tenant entity, with the tenant-filter checks written against a context factory (so T10 can run them on SQLite). |
 
 ## Tags
 

@@ -8,4 +8,5 @@
   <Project Path="ZenLead.Domain/ZenLead.Domain.csproj" />
   <Project Path="ZenLead.Infrastructure/ZenLead.Infrastructure.csproj" />
   <Project Path="ZenLead.Tests/ZenLead.Tests.csproj" />
+  <Project Path="ZenLead.IntegrationTests/ZenLead.IntegrationTests.csproj" />
 </Solution>
