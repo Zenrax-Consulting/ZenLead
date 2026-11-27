@@ -1,0 +1,95 @@
+<div class="inbox" [class.narrow]="isNarrow">
+  @if (showList) {
+    <section class="master" aria-label="Conversations">
+      <div class="master-head">
+        <h1>Inbox</h1>
+        <mat-chip-listbox class="filters" aria-label="Filter conversations" [value]="state.filter" (change)="$event.value && setFilter($event.value)">
+          @for (f of filters; track f.key) {
+            <mat-chip-option [value]="f.key" [selected]="state.filter === f.key">{{ f.label }}</mat-chip-option>
+          }
+        </mat-chip-listbox>
+        <div class="filter-row">
+          <mat-form-field appearance="outline" class="search" subscriptSizing="dynamic">
+            <mat-label>Search lead or subject</mat-label>
+            <input matInput [formControl]="searchControl" maxlength="100">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="campaign" subscriptSizing="dynamic">
+            <mat-label>Campaign</mat-label>
+            <mat-select [value]="state.campaignId ?? null" (selectionChange)="setCampaign($event.value)">
+              <mat-option [value]="null">All campaigns</mat-option>
+              @for (c of campaigns; track c.id) {
+                <mat-option [value]="c.id">{{ c.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+        @if (hasFilters) {
+          <p class="active-filter">Showing: {{ activeFilterLabel }}{{ state.campaignId ? ', one campaign' : '' }}{{ state.q ? ', matching "' + state.q + '"' : '' }}
+            <button mat-button type="button" (click)="clearFilters()">Clear filters</button></p>
+        }
+      </div>
+
+      @if (loading) {
+        <mat-progress-bar mode="indeterminate" aria-label="Loading conversations"></mat-progress-bar>
+      }
+      @if (newCount > 0) {
+        <button mat-flat-button color="primary" type="button" class="new-toast" (click)="scrollToTop()">{{ newCount }} new</button>
+      }
+      @if (errorMessage) {
+        <p class="error" role="alert">{{ errorMessage }}</p>
+      }
+
+      <div class="list" #list>
+        @if (!loading && !errorMessage && threads.length === 0) {
+          @if (everEmpty) {
+            <p class="empty">Replies to your campaigns will appear here.</p>
+          } @else {
+            <p class="empty">No conversations match these filters. <button mat-button type="button" (click)="clearFilters()">Clear filters</button></p>
+          }
+        }
+        <ul class="threads">
+          @for (t of threads; track t.id) {
+            <li>
+              <a class="thread" [class.unread]="!t.isRead" [class.selected]="t.id === selectedId" [routerLink]="['/inbox', t.id]"
+                 queryParamsHandling="preserve" [attr.aria-current]="t.id === selectedId ? 'true' : null" [attr.aria-label]="rowLabel(t)">
+                <div class="row1">
+                  <span class="lead">{{ t.leadName }}</span>
+                  @if (t.companyName) { <span class="muted">· {{ t.companyName }}</span> }
+                  <span class="spacer"></span>
+                  <time class="muted">{{ when(t) }}</time>
+                </div>
+                <div class="subject">{{ t.subject }}</div>
+                <div class="snippet">{{ t.snippet }}</div>
+                <div class="row3">
+                  <span class="chip tone-{{ chip(t.classification).tone }}"><mat-icon aria-hidden="true">{{ chip(t.classification).icon }}</mat-icon>{{ chip(t.classification).label }}</span>
+                  @if (t.needsReview) {
+                    <span class="chip tone-warn"><mat-icon aria-hidden="true">{{ needsReviewChip.icon }}</mat-icon>{{ needsReviewChip.label }}</span>
+                  }
+                  @if (t.campaignName) { <span class="muted campaign-name">{{ t.campaignName }}</span> }
+                </div>
+              </a>
+            </li>
+          }
+        </ul>
+        @if (pageCount > 1) {
+          <div class="pager">
+            <button mat-button type="button" [disabled]="state.page <= 1" (click)="setPage(state.page - 1)">Newer</button>
+            <span class="muted">Page {{ state.page }} of {{ pageCount }}</span>
+            <button mat-button type="button" [disabled]="state.page >= pageCount" (click)="setPage(state.page + 1)">Older</button>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if (showConversation) {
+    <section class="detail" aria-label="Conversation">
+      @if (selectedId) {
+        <app-conversation [threadId]="selectedId" [showBack]="isNarrow" (back)="closeConversation()"
+                          (opened)="onOpened($event)" (reclassified)="onReclassified($event)" (replied)="onReplied()"></app-conversation>
+      } @else {
+        <p class="empty no-selection">Select a conversation to read it.</p>
+      }
+    </section>
+  }
+</div>

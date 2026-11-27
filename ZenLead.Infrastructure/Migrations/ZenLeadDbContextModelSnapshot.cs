@@ -640,6 +640,16 @@ namespace ZenLead.Infrastructure.Migrations
                     b.Property<int>("ClassifiedBy")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ClientRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DeliveryError")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("DeliveryStatus")
+                        .HasColumnType("int");
+
                     b.Property<int>("Direction")
                         .HasColumnType("int");
 
@@ -677,6 +687,9 @@ namespace ZenLead.Infrastructure.Migrations
                     b.Property<bool>("SenderMismatch")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("SentByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -700,6 +713,10 @@ namespace ZenLead.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EmailMessageId");
+
+                    b.HasIndex("ThreadId", "ClientRequestId")
+                        .IsUnique()
+                        .HasFilter("[ClientRequestId] IS NOT NULL");
 
                     b.HasIndex("ThreadId", "OccurredAt");
 

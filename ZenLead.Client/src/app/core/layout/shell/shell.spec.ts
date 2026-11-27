@@ -10,9 +10,12 @@ import { AppModule } from '../../../app-module';
 import { AuthService } from '../../auth/auth.service';
 import { OpsService } from '../ops.service';
 import { WorkspaceService } from '../workspace.service';
+import { InboxUnreadService } from '../../../features/inbox/inbox-unread.service';
 
 describe('Shell', () => {
+  let unread: BehaviorSubject<number>;
   const setup = (mobile = false, superAdmin = false) => {
+    unread = new BehaviorSubject(0);
     const matches = new BehaviorSubject({ matches: mobile, breakpoints: {} });
     const auth = {
       logout: vi.fn(), tryRestoreSession: () => of(false),
@@ -28,6 +31,7 @@ describe('Shell', () => {
         { provide: AuthService, useValue: auth },
         { provide: OpsService, useValue: { status: () => of({ canOpenDashboard: false }), openDashboard: () => of(undefined) } },
         { provide: WorkspaceService, useValue: workspace },
+        { provide: InboxUnreadService, useValue: { count$: unread, refreshNow: vi.fn() } },
         { provide: BreakpointObserver, useValue: { observe: () => matches } }
       ]
     });
@@ -77,5 +81,28 @@ describe('Shell', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.isMobile).toBe(true);
     expect(fixture.nativeElement.querySelector('mat-sidenav').classList).toContain('mat-drawer-over');
+  });
+
+  it('shows the unread inbox count as a badge with an accessible label, hidden at 0', async () => {
+    const { fixture } = setup();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const inboxLink = () => Array.from<HTMLAnchorElement>(fixture.nativeElement.querySelectorAll('mat-nav-list a')).find(a => a.textContent!.includes('Inbox'))!;
+    const badge = () => inboxLink().querySelector('.mat-badge')!;
+    expect(badge().classList).toContain('mat-badge-hidden');
+    expect(inboxLink().getAttribute('aria-label')).toBeNull();
+
+    unread.next(3);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(badge().classList).not.toContain('mat-badge-hidden');
+    expect(inboxLink().querySelector('.mat-badge-content')!.textContent).toContain('3');
+    expect(inboxLink().getAttribute('aria-label')).toBe('Inbox, 3 unread');
+  });
+
+  it('never polls the inbox for the super admin', async () => {
+    const { fixture } = setup(false, true);
+    await fixture.whenStable();
+    expect(unread.observed).toBe(false);
   });
 });

@@ -1,10 +1,12 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 import { LeadSelectionService } from '../../../features/leads/lead-selection.service';
 import { OpsService } from '../ops.service';
 import { WorkspaceService } from '../workspace.service';
+import { InboxUnreadService } from '../../../features/inbox/inbox-unread.service';
+import { Subscription } from 'rxjs';
 
 const TENANT_NAV = [
   { label: 'Leads', icon: 'people', link: '/leads' },
@@ -21,10 +23,13 @@ const ADMIN_NAV = [{ label: 'Workspaces', icon: 'domain', link: '/admin/workspac
   templateUrl: './shell.html',
   styleUrl: './shell.css'
 })
-export class Shell implements OnInit {
+export class Shell implements OnInit, OnDestroy {
   workspaceName: string | null = null;
   isMobile = false;
   canOpenDashboard = false;
+  /** Unread inbox threads (F27); polled by InboxUnreadService while the tab is visible. */
+  unreadCount = 0;
+  private unreadSub?: Subscription;
 
   isSuperAdmin = false;
   homeLink = '/leads';
@@ -37,7 +42,8 @@ export class Shell implements OnInit {
     private breakpoints: BreakpointObserver,
     private cdr: ChangeDetectorRef,
     private selection: LeadSelectionService,
-    private ops: OpsService
+    private ops: OpsService,
+    private inboxUnread: InboxUnreadService
   ) {}
 
   ngOnInit(): void {
@@ -52,12 +58,23 @@ export class Shell implements OnInit {
         next: w => { this.workspaceName = w.name; this.cdr.markForCheck(); },
         error: () => {}
       });
+      this.unreadSub = this.inboxUnread.count$.subscribe(count => { this.unreadCount = count; this.cdr.markForCheck(); });
     }
     this.ops.status().subscribe({
       next: s => { this.canOpenDashboard = s.canOpenDashboard; this.cdr.markForCheck(); },
       error: () => {}
     });
     this.breakpoints.observe('(max-width: 800px)').subscribe(r => { this.isMobile = r.matches; this.cdr.markForCheck(); });
+  }
+
+  ngOnDestroy(): void { this.unreadSub?.unsubscribe(); }
+
+  /** Badge count for a nav item (only the Inbox has one); 0 hides it. */
+  badgeFor(link: string): number { return link === '/inbox' ? this.unreadCount : 0; }
+
+  navLabel(item: { label: string; link: string }): string | null {
+    const n = this.badgeFor(item.link);
+    return n > 0 ? `${item.label}, ${n} unread` : null;
   }
 
   openJobDashboard(): void {

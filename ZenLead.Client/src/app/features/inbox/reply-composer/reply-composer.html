@@ -1,0 +1,21 @@
+<section class="composer" aria-label="Reply">
+  @if (canReply) {
+    <div class="subject"><span class="muted">Subject</span> {{ replySubject }}</div>
+    <mat-form-field appearance="outline" class="body">
+      <mat-label>Write a reply</mat-label>
+      <textarea matInput [formControl]="body" cdkTextareaAutosize cdkAutosizeMinRows="3" cdkAutosizeMaxRows="12"
+                [attr.maxlength]="maxLength" (keydown)="onKeydown($event)"></textarea>
+      <mat-hint align="end">{{ body.value.length | number }} / {{ maxLength | number }}</mat-hint>
+    </mat-form-field>
+    @if (errorMessage) {
+      <p class="error" role="alert">{{ errorMessage }}</p>
+    }
+    <div class="actions">
+      <button mat-raised-button color="primary" type="button" class="send" (click)="send()" [disabled]="!canSend">
+        {{ sending ? 'Sending…' : 'Send' }}
+      </button>
+    </div>
+  } @else {
+    <p class="cannot-reply" role="status"><mat-icon aria-hidden="true">block</mat-icon> {{ cannotReplyReason ?? "You can't reply to this conversation." }}</p>
+  }
+</section>

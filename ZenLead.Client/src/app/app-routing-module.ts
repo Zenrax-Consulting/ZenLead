@@ -27,7 +27,7 @@ const routes: Routes = [
     children: [
       { path: 'leads', loadChildren: () => import('./features/leads/leads-module').then(m => m.LeadsModule) },
       { path: 'campaigns', loadChildren: () => import('./features/campaigns/campaigns-module').then(m => m.CampaignsModule) },
-      { path: 'inbox', component: ComingSoon, data: { title: 'Inbox', sprint: 4 } },
+      { path: 'inbox', loadChildren: () => import('./features/inbox/inbox-module').then(m => m.InboxModule) },
       { path: 'analytics', component: ComingSoon, data: { title: 'Analytics', sprint: 5 } }
     ]
   },
