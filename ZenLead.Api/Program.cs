@@ -45,6 +45,9 @@ using ZenLead.Infrastructure.Inbound;
 using ZenLead.Application.Classification;
 using ZenLead.Application.UseCases.Classification;
 using ZenLead.Application.UseCases.Inbox;
+using ZenLead.Application.Webhooks;
+using ZenLead.Application.UseCases.Webhooks;
+using ZenLead.Application.UseCases.Analytics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -270,6 +273,14 @@ builder.Services.AddScoped<IInboxRepository, InboxRepository>();
 builder.Services.AddScoped<GetInboxThreadUseCase>();
 builder.Services.AddScoped<SendInboxReplyUseCase>();
 builder.Services.AddScoped<ReclassifyThreadUseCase>();
+
+// event webhook & analytics (F28): signed SendGrid delivery events update EmailMessage; cohort analytics API
+builder.Services.Configure<EventWebhookOptions>(builder.Configuration.GetSection(EventWebhookOptions.SectionName));
+builder.Services.AddSingleton<IEventSignatureVerifier, SendGridEventSignatureVerifier>();
+builder.Services.AddScoped<IEmailEventStore, EmailEventStore>();
+builder.Services.AddScoped<ProcessEmailEventsUseCase>();
+builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
+builder.Services.AddScoped<AnalyticsUseCase>();
 
 // background jobs; the switch lets endpoint tests boot without SQL Server
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);

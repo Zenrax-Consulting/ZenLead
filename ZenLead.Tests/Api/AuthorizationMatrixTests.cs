@@ -34,7 +34,9 @@ public class AuthorizationMatrixTests(ApiFactory factory) : IClassFixture<ApiFac
         "GET api/v1/unsubscribe/{token}",
         "POST api/v1/unsubscribe/{token}",
         // F25: SendGrid Inbound Parse webhook; the shared secret in the query string is the credential
-        "POST api/v1/webhooks/sendgrid/inbound"
+        "POST api/v1/webhooks/sendgrid/inbound",
+        // F28: SendGrid signed Event Webhook; the ECDSA signature over timestamp + raw body is the credential
+        "POST api/v1/webhooks/sendgrid/events"
     ];
 
     private static readonly HashSet<string?> KnownPolicies = [null, Policies.AnyUser, Policies.SuperAdminOnly];
@@ -99,6 +101,7 @@ public class AuthorizationMatrixTests(ApiFactory factory) : IClassFixture<ApiFac
     [InlineData("/api/v1/target-profiles")]
     [InlineData("/api/v1/ai/token-usage")]
     [InlineData("/api/v1/workspaces/current")]
+    [InlineData("/api/v1/analytics/workspace/summary")]
     public async Task Super_admin_gets_403_on_tenant_endpoints(string url)
     {
         var (_, token) = await factory.CreateSuperAdminAsync();

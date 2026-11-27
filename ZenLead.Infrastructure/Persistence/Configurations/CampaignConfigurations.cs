@@ -55,6 +55,7 @@ public class EmailMessageConfiguration : IEntityTypeConfiguration<EmailMessage>
         builder.Property(m => m.SmtpMessageId).HasMaxLength(500);
         builder.HasIndex(m => new { m.EnrollmentId, m.StepId }).IsUnique();    // the double-send guard (F23)
         builder.HasIndex(m => new { m.WorkspaceId, m.CampaignId, m.SentAt });   // per-campaign stats (F28)
+        builder.HasIndex(m => new { m.WorkspaceId, m.CampaignId, m.StepId, m.SentAt });   // per-step breakdown (F28)
         builder.HasIndex(m => new { m.WorkspaceId, m.QueuedAt });               // the daily caps
         builder.HasIndex(m => m.ProviderMessageId);
         builder.HasOne<Workspace>().WithMany().HasForeignKey(m => m.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
@@ -70,5 +71,16 @@ public class SuppressedEmailConfiguration : IEntityTypeConfiguration<SuppressedE
         builder.Property(s => s.Email).HasMaxLength(256);
         builder.HasIndex(s => new { s.WorkspaceId, s.Email }).IsUnique();
         builder.HasOne<Workspace>().WithMany().HasForeignKey(s => s.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+/// <summary>F28: idempotency keys of applied Event Webhook events. Platform table (no WorkspaceId); F29 housekeeping prunes it.</summary>
+public class ProcessedWebhookEventConfiguration : IEntityTypeConfiguration<ProcessedWebhookEvent>
+{
+    public void Configure(EntityTypeBuilder<ProcessedWebhookEvent> builder)
+    {
+        builder.HasKey(p => p.SgEventId);
+        builder.Property(p => p.SgEventId).HasMaxLength(ProcessedWebhookEvent.MaxIdLength);
+        builder.HasIndex(p => p.ReceivedAt);                                    // housekeeping deletes by age
     }
 }

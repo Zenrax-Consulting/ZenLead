@@ -1,0 +1,27 @@
+<div class="range-bar">
+  <mat-button-toggle-group [value]="toggleValue" (change)="onToggle($event.value)" aria-label="Date range" hideSingleSelectionIndicator>
+    @for (p of presets; track p.value) {
+      <mat-button-toggle [value]="p.value">{{ p.label }}</mat-button-toggle>
+    }
+    <mat-button-toggle value="custom">Custom</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (custom) {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="custom">
+      <mat-label>From – to</mat-label>
+      <mat-date-range-input [formGroup]="form" [rangePicker]="picker">
+        <input matStartDate formControlName="start" placeholder="Start date" (dateChange)="applyCustom()">
+        <input matEndDate formControlName="end" placeholder="End date" (dateChange)="applyCustom()">
+      </mat-date-range-input>
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-date-range-picker #picker (closed)="applyCustom()"></mat-date-range-picker>
+    </mat-form-field>
+    @if (error) {
+      <span class="error" role="alert">{{ error }}</span>
+    }
+  }
+
+  @if (timeZone) {
+    <span class="zone">Days in {{ timeZone }}</span>
+  }
+</div>

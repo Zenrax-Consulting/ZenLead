@@ -39,7 +39,7 @@ public static class SendScheduler
     }
 
     /// <summary>Local → UTC with DST edge cases resolved deterministically.</summary>
-    internal static DateTime ToUtc(DateTime local, TimeZoneInfo zone)
+    public static DateTime ToUtc(DateTime local, TimeZoneInfo zone)
     {
         local = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
         if (zone.IsInvalidTime(local))                       // spring-forward gap: that wall-clock time never happens → first valid moment after it

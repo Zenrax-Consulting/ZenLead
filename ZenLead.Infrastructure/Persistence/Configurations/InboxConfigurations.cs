@@ -35,6 +35,7 @@ public class InboxMessageConfiguration : IEntityTypeConfiguration<InboxMessage>
         builder.HasIndex(m => new { m.WorkspaceId, m.RawMessageId }).IsUnique()
             .HasFilter("[RawMessageId] IS NOT NULL AND [Direction] = 0");
         builder.HasIndex(m => m.EmailMessageId);
+        builder.HasIndex(m => new { m.WorkspaceId, m.Direction, m.IsAutoReply, m.OccurredAt });   // analytics reply counts (F28)
         // F27: a double click / retry of the same reply attempt can never insert (or send) twice
         builder.Property(m => m.DeliveryError).HasMaxLength(500);
         builder.HasIndex(m => new { m.ThreadId, m.ClientRequestId }).IsUnique().HasFilter("[ClientRequestId] IS NOT NULL");

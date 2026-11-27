@@ -9,7 +9,6 @@ import { ResetPassword } from './features/auth/reset-password/reset-password';
 import { authGuard, superAdminGuard, tenantGuard } from './core/auth/auth.guard';
 import { Unsubscribe } from './features/public/unsubscribe/unsubscribe';
 import { Shell } from './core/layout/shell/shell';
-import { ComingSoon } from './core/placeholder/coming-soon';
 
 const routes: Routes = [
   { path: '', redirectTo: 'leads', pathMatch: 'full' },
@@ -28,7 +27,7 @@ const routes: Routes = [
       { path: 'leads', loadChildren: () => import('./features/leads/leads-module').then(m => m.LeadsModule) },
       { path: 'campaigns', loadChildren: () => import('./features/campaigns/campaigns-module').then(m => m.CampaignsModule) },
       { path: 'inbox', loadChildren: () => import('./features/inbox/inbox-module').then(m => m.InboxModule) },
-      { path: 'analytics', component: ComingSoon, data: { title: 'Analytics', sprint: 5 } }
+      { path: 'analytics', loadChildren: () => import('./features/analytics/analytics-module').then(m => m.AnalyticsModule) }
     ]
   },
   {

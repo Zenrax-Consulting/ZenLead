@@ -1,0 +1,52 @@
+<section class="chart-card" aria-labelledby="bar-list-heading">
+  <header class="chart-header">
+    <h2 id="bar-list-heading">{{ heading }}</h2>
+    @if (rows.length > 0) {
+      <button mat-stroked-button type="button" (click)="toggleTable()" [attr.aria-pressed]="showTable">
+        <mat-icon>{{ showTable ? 'bar_chart' : 'table_rows' }}</mat-icon>
+        {{ showTable ? 'View as chart' : 'View as table' }}
+      </button>
+    }
+  </header>
+
+  @if (rows.length === 0) {
+    <p class="empty">This campaign has no steps yet.</p>
+  } @else if (showTable) {
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">{{ heading }}</caption>
+        <thead>
+          <tr><th scope="col">Step</th><th scope="col">Sent</th><th scope="col">Delivered</th><th scope="col">Opened (approx.)</th><th scope="col">Bounced</th><th scope="col">Replies</th></tr>
+        </thead>
+        <tbody>
+          @for (r of rows; track r.step.stepId) {
+            <tr class="step-row">
+              <th scope="row">{{ r.title }}</th>
+              <td>{{ fmt(r.step.sent) }}</td><td>{{ fmt(r.step.delivered) }}</td><td>{{ fmt(r.step.opened) }}</td>
+              <td>{{ fmt(r.step.bounced) }}</td><td>{{ fmt(r.step.replies) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <ol class="steps">
+      @for (r of rows; track r.step.stepId) {
+        <li class="step-row">
+          <h3>{{ r.title }}</h3>
+          <dl>
+            @for (b of r.bars; track b.label) {
+              <div class="bar-row">
+                <dt>{{ b.label }}</dt>
+                <dd>
+                  <span class="track"><span class="bar" [style.width.%]="b.pct" [class.zero]="b.value === 0"></span></span>
+                  <span class="num">{{ fmt(b.value) }}</span>
+                </dd>
+              </div>
+            }
+          </dl>
+        </li>
+      }
+    </ol>
+  }
+</section>

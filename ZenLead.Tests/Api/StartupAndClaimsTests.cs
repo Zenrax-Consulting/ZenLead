@@ -90,6 +90,7 @@ public class StartupConfigurationTests
         values["Email:Provider"] = "SendGrid";   // outside Development email must be real too (covered separately)
         values["SendGrid:ApiKey"] = "SG.test";
         values["SendGrid:InboundSecret"] = new string('s', 40);
+        values["SendGrid:EventWebhook:PublicKey"] = EventWebhookSigner.Shared.PublicKey;
         values["App:PublicBaseUrl"] = "https://app.zenlead.test";
 
         Assert.Contains(StartupConfiguration.Validate(Config(values), isDevelopment: false), p => p.Contains("LeadSource:Pdl:ApiKey"));
@@ -120,6 +121,7 @@ public class StartupConfigurationTests
 
         values["SendGrid:ApiKey"] = "SG.test";
         values["SendGrid:InboundSecret"] = new string('s', 40);
+        values["SendGrid:EventWebhook:PublicKey"] = EventWebhookSigner.Shared.PublicKey;
         Assert.Empty(StartupConfiguration.Validate(Config(values)));
     }
 
@@ -136,7 +138,28 @@ public class StartupConfigurationTests
         Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("at least 32"));
 
         values["SendGrid:InboundSecret"] = new string('s', 32);
+        values["SendGrid:EventWebhook:PublicKey"] = EventWebhookSigner.Shared.PublicKey;
         Assert.Empty(StartupConfiguration.Validate(Config(values)));
+    }
+
+    [Fact]
+    public void Validate_SendGridProvider_RequiresAValidEventWebhookKey()
+    {
+        var values = Valid();
+        values["Email:Provider"] = "SendGrid";
+        values["SendGrid:ApiKey"] = "SG.test";
+        values["SendGrid:InboundSecret"] = new string('s', 40);
+
+        Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("SendGrid:EventWebhook:PublicKey"));
+
+        values["SendGrid:EventWebhook:PublicKey"] = "not-a-key";
+        Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("not a valid base64 EC public key"));
+
+        values["SendGrid:EventWebhook:PublicKey"] = EventWebhookSigner.Shared.PublicKey;
+        Assert.Empty(StartupConfiguration.Validate(Config(values)));
+
+        values["SendGrid:EventWebhook:MaxAgeHours"] = "0";
+        Assert.Contains(StartupConfiguration.Validate(Config(values)), p => p.Contains("MaxAgeHours"));
     }
 
     [Theory]

@@ -1,0 +1,5 @@
+.range-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+mat-button-toggle-group { flex-wrap: wrap; }
+.custom { width: 260px; }
+.error { color: var(--mat-sys-error); font: var(--mat-sys-body-small); }
+.zone { margin-left: auto; color: var(--mat-sys-on-surface-variant); font: var(--mat-sys-body-small); }

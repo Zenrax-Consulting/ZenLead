@@ -1,0 +1,14 @@
+.page { padding: 16px 24px 32px; display: grid; gap: 16px; max-width: 1200px; }
+.page-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font: var(--mat-sys-headline-small); }
+h2 { margin: 0 0 8px; font: var(--mat-sys-title-medium); }
+.cohort-note { margin: -8px 0 0; color: var(--mat-sys-on-surface-variant); font: var(--mat-sys-body-small); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.stale { opacity: .6; }
+.error { display: flex; align-items: center; gap: 8px; color: var(--mat-sys-error); }
+.table-scroll { overflow-x: auto; }
+.campaign-table { width: 100%; min-width: 640px; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.muted { color: var(--mat-sys-on-surface-variant); }
+.small { font: var(--mat-sys-body-small); }
+@media (max-width: 599px) { .page { padding: 12px; } }

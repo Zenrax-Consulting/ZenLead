@@ -576,6 +576,8 @@ namespace ZenLead.Infrastructure.Migrations
 
                     b.HasIndex("WorkspaceId", "CampaignId", "SentAt");
 
+                    b.HasIndex("WorkspaceId", "CampaignId", "StepId", "SentAt");
+
                     b.ToTable("EmailMessages");
                 });
 
@@ -723,6 +725,8 @@ namespace ZenLead.Infrastructure.Migrations
                     b.HasIndex("WorkspaceId", "RawMessageId")
                         .IsUnique()
                         .HasFilter("[RawMessageId] IS NOT NULL AND [Direction] = 0");
+
+                    b.HasIndex("WorkspaceId", "Direction", "IsAutoReply", "OccurredAt");
 
                     b.ToTable("InboxMessages");
                 });
@@ -960,6 +964,22 @@ namespace ZenLead.Infrastructure.Migrations
                     b.HasIndex("UserId", "CreatedAt");
 
                     b.ToTable("PasswordResetTokens");
+                });
+
+            modelBuilder.Entity("ZenLead.Domain.Entities.ProcessedWebhookEvent", b =>
+                {
+                    b.Property<string>("SgEventId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SgEventId");
+
+                    b.HasIndex("ReceivedAt");
+
+                    b.ToTable("ProcessedWebhookEvents");
                 });
 
             modelBuilder.Entity("ZenLead.Domain.Entities.RefreshToken", b =>

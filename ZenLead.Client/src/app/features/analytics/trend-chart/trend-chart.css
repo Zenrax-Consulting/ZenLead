@@ -1,0 +1,31 @@
+:host { display: block; }
+.chart-card { padding: 16px; border-radius: 12px; border: 1px solid var(--mat-sys-outline-variant); background: var(--mat-sys-surface); }
+.chart-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+h2 { margin: 0; font: var(--mat-sys-title-medium); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; list-style: none; margin: 8px 0 0; padding: 0; font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.plot { position: relative; margin-top: 4px; outline: none; border-radius: 8px; }
+.plot:focus-visible { box-shadow: 0 0 0 2px var(--mat-sys-primary); }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+.grid line { stroke: var(--mat-sys-outline-variant); stroke-width: 1; }
+.grid line.baseline { stroke: var(--mat-sys-outline); }
+.axis-label { fill: var(--mat-sys-on-surface-variant); font-size: 11px; font-variant-numeric: tabular-nums; }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.marker { stroke: var(--mat-sys-surface); stroke-width: 2; paint-order: stroke; }
+.end-label { fill: var(--mat-sys-on-surface); font-size: 12px; font-variant-numeric: tabular-nums; }
+.crosshair { stroke: var(--mat-sys-on-surface-variant); stroke-width: 1; stroke-dasharray: 3 3; }
+.hit rect { fill: transparent; }
+.tooltip {
+  position: absolute; top: 8px; z-index: 1; min-width: 140px; padding: 8px 10px; border-radius: 8px; pointer-events: none;
+  background: var(--mat-sys-inverse-surface); color: var(--mat-sys-inverse-on-surface); font: var(--mat-sys-body-small);
+}
+.tip-row { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 6px; margin-top: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.hint { margin: 4px 0 0; font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
+.empty { display: flex; flex-direction: column; align-items: center; padding: 32px 16px; color: var(--mat-sys-on-surface-variant); text-align: center; }
+.empty mat-icon { font-size: 36px; width: 36px; height: 36px; }
+.table-wrap { overflow-x: auto; margin-top: 8px; max-height: 360px; overflow-y: auto; }
+.data-table { width: 100%; border-collapse: collapse; font: var(--mat-sys-body-medium); }
+.data-table th, .data-table td { padding: 6px 10px; border-bottom: 1px solid var(--mat-sys-outline-variant); text-align: right; font-variant-numeric: tabular-nums; }
+.data-table th:first-child { text-align: left; font-weight: normal; }
+.data-table thead th { font-weight: 500; position: sticky; top: 0; background: var(--mat-sys-surface); }
