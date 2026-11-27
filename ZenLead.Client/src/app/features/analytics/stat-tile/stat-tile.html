@@ -1,0 +1,17 @@
+<div class="tile" [attr.data-tile]="tile.key">
+  <div class="label">
+    <span>{{ tile.label }}</span>
+    @if (tile.info) {
+      <button mat-icon-button type="button" class="info" [matTooltip]="tile.info" [attr.aria-label]="tile.label + ': ' + tile.info">
+        <mat-icon>info_outline</mat-icon>
+      </button>
+    }
+  </div>
+  <div class="value">{{ tile.value }}</div>
+  @if (tile.rateLine) {
+    <div class="rate">{{ tile.rateLine }}</div>
+  }
+  @if (tile.warning) {
+    <div class="warning" role="note"><mat-icon aria-hidden="true">warning</mat-icon>{{ tile.warning }}</div>
+  }
+</div>

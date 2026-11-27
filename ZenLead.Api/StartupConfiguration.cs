@@ -74,6 +74,16 @@ public static class StartupConfiguration
         else if (!string.IsNullOrWhiteSpace(inboundSecret) && inboundSecret.Length < WebhookOptions.MinInboundSecretLength)
             yield return $"'SendGrid:InboundSecret' must be at least {WebhookOptions.MinInboundSecretLength} characters long.";
 
+        // the signed Event Webhook (F28): the verification key from SendGrid's Event Webhook settings
+        var eventKey = configuration["SendGrid:EventWebhook:PublicKey"];
+        if (isSendGrid && string.IsNullOrWhiteSpace(eventKey))
+            yield return "Missing configuration 'SendGrid:EventWebhook:PublicKey' (required when 'Email:Provider' is 'SendGrid'; the Event Webhook verification key). Set it with: dotnet user-secrets set \"SendGrid:EventWebhook:PublicKey\" \"<value>\" --project ZenLead.Api";
+        else if (!string.IsNullOrWhiteSpace(eventKey) && !ZenLead.Infrastructure.Email.SendGridEventSignatureVerifier.IsValidPublicKey(eventKey))
+            yield return "'SendGrid:EventWebhook:PublicKey' is not a valid base64 EC public key (copy the Verification Key from SendGrid → Mail Settings → Event Webhook).";
+        var maxAge = configuration["SendGrid:EventWebhook:MaxAgeHours"];
+        if (!string.IsNullOrWhiteSpace(maxAge) && (!int.TryParse(maxAge, out var hours) || hours < 1 || hours > 72))
+            yield return "'SendGrid:EventWebhook:MaxAgeHours' must be a whole number of hours between 1 and 72 (default 26; SendGrid retries for 24 h).";
+
         var parseMode = configuration["Inbound:ParseMode"];
         if (!string.IsNullOrWhiteSpace(parseMode) && !parseMode.Equals("Fields", StringComparison.OrdinalIgnoreCase) && !parseMode.Equals("RawMime", StringComparison.OrdinalIgnoreCase))
             yield return $"Unknown 'Inbound:ParseMode' '{parseMode}'. Known: Fields (default), RawMime.";

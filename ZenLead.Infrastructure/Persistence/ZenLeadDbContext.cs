@@ -39,6 +39,7 @@ public class ZenLeadDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, G
     public DbSet<InboxThread> InboxThreads => Set<InboxThread>();
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
     public DbSet<InboundQuarantine> InboundQuarantine => Set<InboundQuarantine>();
+    public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents => Set<ProcessedWebhookEvent>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

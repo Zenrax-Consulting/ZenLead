@@ -1,0 +1,53 @@
+<div class="page">
+  <nav class="crumbs"><a routerLink="/analytics" queryParamsHandling="preserve"><mat-icon aria-hidden="true">arrow_back</mat-icon>All analytics</a></nav>
+
+  @if (notFound) {
+    <div class="empty" role="status">
+      <h1>Campaign not found</h1>
+      <p>It may have been deleted, or it belongs to another workspace.</p>
+    </div>
+  } @else {
+    <header class="page-header">
+      <div class="title">
+        <h1>{{ data?.name ?? 'Campaign analytics' }}</h1>
+        @if (data) {
+          <span class="chip tone-{{ chip(data.status).tone }}"><mat-icon aria-hidden="true">{{ chip(data.status).icon }}</mat-icon>{{ chip(data.status).label }}</span>
+          <a mat-button [routerLink]="['/campaigns', data.campaignId]">Open campaign</a>
+        }
+      </div>
+      <app-range-bar [selection]="selection" [timeZone]="data?.timeZone ?? null" (selectionChange)="onRangeChange($event)"></app-range-bar>
+    </header>
+
+    @if (loading) {
+      <mat-progress-bar mode="indeterminate" aria-label="Loading campaign analytics"></mat-progress-bar>
+    }
+
+    @if (errorMessage) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ errorMessage }}</span>
+        <button mat-stroked-button type="button" (click)="retry()">Retry</button>
+      </div>
+    }
+
+    @if (data) {
+      @if (isDraft) {
+        <div class="banner" role="note">
+          <mat-icon aria-hidden="true">edit_note</mat-icon>
+          <span>Nothing sent yet: this campaign is still a draft. Activate it to start collecting results.</span>
+        </div>
+      }
+
+      <div class="tiles" [class.stale]="loading">
+        @for (t of tiles; track t.key) {
+          <app-stat-tile [tile]="t"></app-stat-tile>
+        }
+      </div>
+
+      <app-trend-chart [points]="data.trend" heading="Daily activity" chartId="campaign-trend"></app-trend-chart>
+
+      <app-bar-list [steps]="data.steps" heading="By step"></app-bar-list>
+      <p class="muted small">Replies are counted once per lead, for the latest step sent before the reply. Opens (≈) are approximate.</p>
+    }
+  }
+</div>

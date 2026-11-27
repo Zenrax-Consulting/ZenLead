@@ -1,0 +1,101 @@
+<section class="chart-card" [attr.aria-labelledby]="chartId + '-heading'">
+  <header class="chart-header">
+    <h2 [id]="chartId + '-heading'">{{ heading }}</h2>
+    @if (!empty) {
+      <button mat-stroked-button type="button" class="toggle" (click)="toggleTable()" [attr.aria-pressed]="showTable">
+        <mat-icon>{{ showTable ? 'show_chart' : 'table_rows' }}</mat-icon>
+        {{ showTable ? 'View as chart' : 'View as table' }}
+      </button>
+    }
+  </header>
+
+  @if (empty) {
+    <div class="empty" role="status">
+      <mat-icon aria-hidden="true">insights</mat-icon>
+      <p>No emails were sent in this range yet. Activity will appear here day by day once a campaign sends.</p>
+    </div>
+  } @else if (showTable) {
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">{{ heading }}: {{ description }}</caption>
+        <thead>
+          <tr><th scope="col">Day</th><th scope="col">Sent</th><th scope="col">Opened (approx.)</th><th scope="col">Replies</th></tr>
+        </thead>
+        <tbody>
+          @for (p of points; track p.day) {
+            <tr><th scope="row">{{ longDay(p.day) }}</th><td>{{ fmt(p.sent) }}</td><td>{{ fmt(p.opened) }}</td><td>{{ fmt(p.replies) }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <ul class="legend" aria-hidden="true">
+      @for (s of series; track s.key) {
+        <li>
+          <svg width="18" height="12" viewBox="0 0 18 12"><line x1="0" y1="6" x2="18" y2="6" [attr.stroke]="s.color" stroke-width="2"></line>
+            <path [attr.d]="markerPath(s.shape, 9, 6, 3.5)" [attr.fill]="s.color"></path></svg>
+          {{ s.label }}
+        </li>
+      }
+    </ul>
+    <div class="plot" tabindex="0" (keydown)="onKey($event)" (blur)="hover(null)" (mouseleave)="hover(null)"
+         aria-describedby="{{ chartId }}-hint">
+      <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" role="img" [attr.aria-labelledby]="chartId + '-title ' + chartId + '-desc'"
+           preserveAspectRatio="xMidYMid meet">
+        <title [id]="chartId + '-title'">{{ heading }}</title>
+        <desc [id]="chartId + '-desc'">{{ description }}</desc>
+
+        <g class="grid" aria-hidden="true">
+          @for (t of ticks; track t.value) {
+            <line [attr.x1]="plotLeft" [attr.x2]="plotRight" [attr.y1]="t.y" [attr.y2]="t.y" [class.baseline]="t.value === 0"></line>
+            <text class="axis-label" [attr.x]="plotLeft - 8" [attr.y]="t.y" text-anchor="end" dominant-baseline="middle">{{ fmt(t.value) }}</text>
+          }
+          @for (l of xLabels; track l.x) {
+            <text class="axis-label" [attr.x]="l.x" [attr.y]="plotBottom + 18" text-anchor="middle">{{ l.text }}</text>
+          }
+        </g>
+
+        @if (hoverIndex !== null) {
+          <line class="crosshair" [attr.x1]="xs[hoverIndex]" [attr.x2]="xs[hoverIndex]" [attr.y1]="plotTop" [attr.y2]="plotBottom" aria-hidden="true"></line>
+        }
+
+        @for (s of rendered; track s.key) {
+          <g class="series" [attr.data-series]="s.key" aria-hidden="true">
+            <path class="line" [attr.d]="s.path" [attr.stroke]="s.color"></path>
+            @if (marked) {
+              @for (p of s.points; track $index) {
+                <path class="marker" [attr.d]="markerPath(s.shape, p.x, p.y)" [attr.fill]="s.color"></path>
+              }
+            } @else {
+              <path class="marker" [attr.d]="markerPath(s.shape, s.end.x, s.end.y)" [attr.fill]="s.color"></path>
+            }
+            @if (hoverIndex !== null) {
+              <path class="marker hot" [attr.d]="markerPath(s.shape, s.points[hoverIndex].x, s.points[hoverIndex].y, 6)" [attr.fill]="s.color"></path>
+            }
+            <text class="end-label" [attr.x]="s.end.x + 10" [attr.y]="s.end.labelY" dominant-baseline="middle">{{ s.label }} {{ fmt(s.end.value) }}</text>
+          </g>
+        }
+
+        <g class="hit" aria-hidden="true">
+          @for (x of xs; track $index) {
+            <rect [attr.x]="x - columnWidth / 2" [attr.y]="plotTop" [attr.width]="columnWidth" [attr.height]="plotBottom - plotTop"
+                  (mouseenter)="hover($index)"></rect>
+          }
+        </g>
+      </svg>
+
+      @if (hoverIndex !== null) {
+        <div class="tooltip" role="status" [ngStyle]="tooltipStyle(hoverIndex)">
+          <strong>{{ longDay(points[hoverIndex].day) }}</strong>
+          @for (s of series; track s.key) {
+            <div class="tip-row">
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path [attr.d]="markerPath(s.shape, 6, 6, 4)" [attr.fill]="s.color"></path></svg>
+              <span>{{ s.label }}</span><span class="num">{{ fmt(points[hoverIndex][s.key]) }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+    <p class="hint" [id]="chartId + '-hint'">Hover or use the arrow keys for exact numbers. Opens are approximate.</p>
+  }
+</section>

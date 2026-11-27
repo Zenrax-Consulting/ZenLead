@@ -8,3 +8,15 @@
 .tone-info { color: #1a4f9c; }
 .tone-warn { color: #8a5a00; }
 .tone-bad { color: #b00020; }
+
+/* Chart series colours (F28 analytics). Fixed order = fixed meaning: 1 Sent, 2 Opened, 3 Replies. Validated as a set with the dataviz
+   palette checker (all-pairs CVD and normal-vision separation) in both modes; light-dark() follows the page's color-scheme. Slot 3 is
+   below 3:1 on the light surface, so every chart also ships direct labels, marker shapes and a table view. */
+:root {
+  --chart-1: light-dark(#2a78d6, #3987e5);
+  --chart-2: light-dark(#eb6834, #d95926);
+  --chart-3: light-dark(#1baf7a, #199e70);
+}
+
+/* Screen-reader-only text (table captions etc.). */
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

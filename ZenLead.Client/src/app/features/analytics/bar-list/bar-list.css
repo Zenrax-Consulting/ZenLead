@@ -1,0 +1,20 @@
+:host { display: block; }
+.chart-card { padding: 16px; border-radius: 12px; border: 1px solid var(--mat-sys-outline-variant); background: var(--mat-sys-surface); }
+.chart-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+h2 { margin: 0; font: var(--mat-sys-title-medium); }
+h3 { margin: 0 0 6px; font: var(--mat-sys-title-small); overflow-wrap: anywhere; }
+.steps { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 16px; }
+dl { margin: 0; display: grid; gap: 4px; }
+.bar-row { display: grid; grid-template-columns: 88px 1fr; align-items: center; gap: 8px; }
+dt { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); }
+dd { margin: 0; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.track { flex: 1; min-width: 0; height: 12px; display: flex; align-items: center; }
+.bar { display: block; height: 10px; min-width: 2px; border-radius: 0 4px 4px 0; background: var(--chart-1); }
+.bar.zero { min-width: 0; }
+.num { min-width: 3ch; font: var(--mat-sys-body-small); font-variant-numeric: tabular-nums; color: var(--mat-sys-on-surface); }
+.empty { color: var(--mat-sys-on-surface-variant); }
+.table-wrap { overflow-x: auto; margin-top: 8px; }
+.data-table { width: 100%; border-collapse: collapse; font: var(--mat-sys-body-medium); }
+.data-table th, .data-table td { padding: 6px 10px; border-bottom: 1px solid var(--mat-sys-outline-variant); text-align: right; font-variant-numeric: tabular-nums; }
+.data-table th:first-child { text-align: left; font-weight: normal; }
+.data-table thead th { font-weight: 500; }
