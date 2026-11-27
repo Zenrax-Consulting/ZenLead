@@ -1,6 +1,6 @@
 # T05 — Background Job & Email Testing
 
-**Branch:** `test/jobs-email` · **Size:** L · **Depends on:** T00, T03 (`SqlServerFixture`, `HangfireTestServer`, `ProviderStubs`) · **Waits on:** F25, F26, F28 for those sections
+**Branch:** `test/jobs-email` · **Size:** L · **Depends on:** T00, T03 (`SqlServerFixture`, `HangfireTestServer`, `ProviderStubs`)
 
 ## Goal
 Prove the four Hangfire jobs (lead discovery, CSV import, campaign sender, reply classification) and every email path (transactional, campaign, inbound, events, unsubscribe) are **correct, idempotent, resumable and safe**, including when a job crashes. Then do one controlled live round trip through real SendGrid in Restricted mode.

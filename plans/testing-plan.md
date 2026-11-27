@@ -2,7 +2,7 @@
 
 **Scope:** everything built in Phase 1 (Features 1–10) and Phase 2 up to and including **Feature 28** (Event Webhook & Analytics). Features 29 (hardening), 30 (Azure + CI/CD) and 31 (UAT) are not built yet. This plan says what each of them will rely on from this testing work, and which checks have to wait for them (marked **⏳ F30**).
 
-**Status:** plan only, nothing implemented. Written 2026-11-26 against `master` at `9450463` (F23 merged). F24–F28 are due to merge today. Each workstream doc says which of its parts need F24–F28 on `master` first.
+**Status:** plan only, nothing implemented. Written 2026-11-26 against `master` at `9450463` (F23 merged). **Revisited 2026-11-27 against `f5ad849`: F11–F28 are all on `master`**, so nothing in this plan waits on a product feature any more (only the ⏳ F30 items). Decisions D1–D6 are confirmed, and T00's own decisions are closed in its doc.
 
 **How to read this:** this file is the overview: goals, tools, environments, decisions, the feature × test-type matrix and the parallel schedule. Each workstream has its own file-by-file plan in [testing-features/](testing-features/README.md). Each workstream is one branch and one PR, like the product features.
 
@@ -55,12 +55,12 @@
 | Published-local | `Production`-like (`dotnet publish` output run locally) | LocalDB | Azurite | `Log` blocked → SendGrid Restricted | Fakes where config allows | T06 load, T10 dev↔published parity |
 | Azure prod ⏳ F30 | `Production` | Azure SQL | Azure Blob | SendGrid Restricted until Gate 2 | Real | T10 env parity, F31 UAT smoke |
 
-## 5. Decisions to confirm before starting
+## 5. Decisions (confirmed 2026-11-27)
 
 | # | Decision | Recommendation | Why |
 |---|---|---|---|
 | D1 | SQL Server for integration tests | **LocalDB fixture by default** (already installed, no Docker). Use `Testcontainers.MsSql` when `ZENLEAD_TEST_SQL=container`, for the Linux CI runner in F30. | Devs are on Windows with LocalDB. A Linux CI runner has no LocalDB. |
-| D2 | How E2E reads emails and controls time | New **`E2E` environment** that enables (a) `Email:Provider=Pickup`, which writes each email as JSON to a folder, and (b) a test-only `TestSupportController` (`/api/v1/test/*`: reset/seed, run a job now, advance the clock). It is **only mapped when the environment is `E2E`**, and a startup guard plus a test prove it is absent in every other environment. | Approval/reset links and campaign mail have to be readable by the browser test, and follow-up steps are days apart. The alternative is waiting for the minutely job and mocking time from outside, which is slow and flaky. |
+| D2 | How E2E reads emails and controls time | New **`E2E` environment** that enables (a) `Email:Provider=Pickup`, which writes each email as JSON to a folder, and (b) a test-only `TestSupportController` (`/api/v1/test/*`: reset/seed, run recorded jobs, advance the clock). Hangfire is off in `E2E`; enqueued jobs are recorded and drained by the test (T00-1). It is **only mapped when the environment is `E2E`**, and a startup guard plus a test prove it is absent in every other environment. | Approval/reset links and campaign mail have to be readable by the browser test, and follow-up steps are days apart. The alternative is waiting for the minutely job and mocking time from outside, which is slow and flaky. |
 | D3 | E2E project location and runner | New top-level **`ZenLead.E2E/`** (own `package.json`, `@playwright/test`, TypeScript, `playwright.config.ts`). It replaces `tools/gate1-rehearsal`, which is kept until the T07 smoke suite covers its flows, then deleted. | Keeps Playwright out of the Angular app's dependencies. One place for E2E, browser and black-box API specs. |
 | D4 | Load tool | **k6 with TypeScript scripts** (k6 runs `.ts` directly). Install it with `winget install k6`. | Same language as the E2E suite. Built-in thresholds fail the run. Nothing to add to the solution. |
 | D5 | Where the E2E and load runs point | The **published build** (`dotnet publish` then run the DLL, SPA served from `wwwroot`) for T06 and the T08 nightly run. `ng serve` with the proxy for the fast T07 dev loop. | The published build is what ships (one deployable). Parity between the two is checked in T10. |
@@ -102,25 +102,25 @@ Lane C (security) T00 ──► T02 API testing ──► T04 Security
 Lane D (devops)   T01 Local testing (day 1, no T00 dependency) ──► T10 Parity ──► T09 Regression packs + runner
 ```
 
-- **T00 is the only blocker.** It is small (about half a day). Lanes start as soon as it merges. T01 doesn't need it and starts immediately.
+- **T00 is the only blocker.** It is small to medium (about a day). Lanes start as soon as it merges. T01 doesn't need it and starts immediately.
 - T02 and T04 overlap on the authorization matrix: **T02 owns the endpoint inventory, T04 owns the assertions on it.** Merge T02 first, or agree the inventory file's shape on day 1.
 - T05 needs the integration fixture from T03 (`SqlServerFixture`, `HangfireTestServer`). Start T05's fixture-only tests (inbound and event payloads) in parallel with T03.
-- T07 can start on F11–F23 flows now. Campaigns UI, inbox and analytics specs wait for F24, F27 and F28 on `master`, and are written against the feature docs' selectors in the meantime.
+- T07 covers every flow from the start: F24, F27 and F28 are on `master`, so the campaigns UI, inbox and analytics specs are written against the real screens.
 - T09 comes last because it composes the others' tags. Its tagging rules are fixed in T00 so nobody has to retag later.
 
-| Workstream | Branch | Size | Depends on | Needs F24–F28 merged |
+| Workstream | Branch | Size | Depends on | Waits on |
 |---|---|---|---|---|
-| [T00 Test foundation](testing-features/T00-test-foundation.md) | `test/foundation` | S | – | No |
-| [T01 Local testing](testing-features/T01-local-testing.md) | `test/local-env` | S | – | No |
-| [T02 API testing](testing-features/T02-api-testing.md) | `test/api` | M | T00 | Partly (inbox, analytics endpoints) |
-| [T03 Integration testing](testing-features/T03-integration-testing.md) | `test/integration` | L | T00 | Partly |
-| [T04 Security testing](testing-features/T04-security-testing.md) | `test/security` | M | T00, T02 inventory | Partly (webhooks, inbox XSS) |
-| [T05 Background jobs & email](testing-features/T05-background-jobs-and-email.md) | `test/jobs-email` | L | T00, T03 fixture | Yes for F25, F26, F28 parts |
-| [T06 Performance & load](testing-features/T06-performance-and-load.md) | `test/perf-load` | M | T00 seed, T03 fixture | Partly |
-| [T07 E2E (Playwright + TS)](testing-features/T07-e2e-playwright.md) | `test/e2e-playwright` | L | T00 | Yes for campaigns, inbox, analytics specs |
-| [T08 Browser testing](testing-features/T08-browser-testing.md) | `test/browser-matrix` | M | T07 skeleton | Partly |
-| [T09 Regression](testing-features/T09-regression.md) | `test/regression-packs` | S | all tags | No |
-| [T10 Parity testing](testing-features/T10-parity-testing.md) | `test/parity` | M | T01, T03 | No (Azure parts ⏳ F30) |
+| [T00 Test foundation](testing-features/T00-test-foundation.md) | `test/foundation` | S–M | – | – |
+| [T01 Local testing](testing-features/T01-local-testing.md) | `test/local-env` | S | – | – |
+| [T02 API testing](testing-features/T02-api-testing.md) | `test/api` | M | T00 | – |
+| [T03 Integration testing](testing-features/T03-integration-testing.md) | `test/integration` | L | T00 | – |
+| [T04 Security testing](testing-features/T04-security-testing.md) | `test/security` | M | T00, T02 inventory | – |
+| [T05 Background jobs & email](testing-features/T05-background-jobs-and-email.md) | `test/jobs-email` | L | T00, T03 fixture | – |
+| [T06 Performance & load](testing-features/T06-performance-and-load.md) | `test/perf-load` | M | T00, T03 fixture (adds its own `bulk:{n}` seed) | – |
+| [T07 E2E (Playwright + TS)](testing-features/T07-e2e-playwright.md) | `test/e2e-playwright` | L | T00 | – |
+| [T08 Browser testing](testing-features/T08-browser-testing.md) | `test/browser-matrix` | M | T07 skeleton | – |
+| [T09 Regression](testing-features/T09-regression.md) | `test/regression-packs` | S | all tags | – |
+| [T10 Parity testing](testing-features/T10-parity-testing.md) | `test/parity` | M | T01, T03 | Azure parts ⏳ F30 |
 
 ## 8. Exit criteria (test sign-off for "Features 1–28 done")
 

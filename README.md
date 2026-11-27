@@ -87,6 +87,38 @@ dotnet test ZenLead.Tests
 cd ZenLead.Client && npm test
 ```
 
+Test categories (`[Trait("Category", …)]`, constants in `ZenLead.Tests/Support/TestCategories.cs`): untagged tests are unit tests and run by default; `Integration`, `Azurite`, `Performance` and `Live` are opt-in, for example `dotnet test ZenLead.Tests --filter Category=Azurite`. `Live` tests call real providers and never run by default. See `docs/testing/README.md`.
+
+### E2E environment
+
+`ASPNETCORE_ENVIRONMENT=E2E` runs the API for automated browser and API tests (T00). It uses only fakes: emails are written as JSON files to `Email:PickupDirectory` (`.e2e/mail` at the repo root), AI and lead discovery are deterministic fakes (`Ai:Provider=Fake`, `LeadSource:Provider=Fake`), Hangfire is off and enqueued jobs wait until a test runs them, and sending is `Restricted` to `*@example.test`. Startup refuses a SendGrid, OpenAI or PDL key in this environment. Non-secret settings are in `ZenLead.Api/appsettings.E2E.json`; user-secrets are not read.
+
+The runner passes the secrets as environment variables, generated per run:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = 'E2E'
+$env:Jwt__SigningKey = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+$env:Unsubscribe__SigningKey = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+$env:SendGrid__InboundSecret = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
+$env:SuperAdmin__Email = 'platform-admin@example.test'
+$env:SuperAdmin__Password = 'Zl!' + [Guid]::NewGuid().ToString('N') + 'A1'
+# optional, for Event Webhook tests: the base64 SPKI public key whose private key the test signs with
+# $env:SendGrid__EventWebhook__PublicKey = '<base64>'
+dotnet run --project ZenLead.Api --no-launch-profile
+```
+
+It uses the LocalDB database `ZenLeadE2E` and needs Azurite running for CSV uploads. The test-support endpoints exist only in this environment and only answer loopback callers:
+
+| Endpoint | Does |
+|---|---|
+| `POST /api/v1/test/reset` | Drop and migrate `ZenLeadE2E`, clear the pickup folder and the job queue, reset the clock |
+| `POST /api/v1/test/seed/{empty\|gate2\|inbox\|analytics}` | Seed a scenario with fresh ids; returns the ids, emails and generated passwords |
+| `GET /api/v1/test/jobs` · `POST /api/v1/test/jobs/run-pending[?type=csv\|discovery\|classify]` | List / run the jobs the app enqueued |
+| `POST /api/v1/test/jobs/campaign-sender/run` | One run of the campaign sender |
+| `GET /api/v1/test/clock` · `POST /api/v1/test/clock/advance {"minutes":n}` · `POST /api/v1/test/clock/set {"utc":"…"}` | Read and move the app's clock |
+
+The fake reply classifier reads markers in the reply text: `[[unsubscribe]]`, `[[ooo]]`, `[[not-interested]]`, `[[review]]` (an uncertain unsubscribe that needs review); anything else is Interested.
+
 ## Notes
 
 - Rate limits: `POST /api/v1/ai/compose-email` is limited to 10 requests/minute per workspace; auth endpoints to 20/minute per client IP. Exceeding returns `429` with `Retry-After`.

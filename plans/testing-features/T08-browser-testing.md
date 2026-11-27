@@ -1,6 +1,6 @@
 # T08 — Browser Testing (cross-browser, responsive, accessibility, visual)
 
-**Branch:** `test/browser-matrix` · **Size:** M · **Depends on:** T07 skeleton (config, fixtures, page objects) · **Partly waits on:** F24, F27, F28 screens
+**Branch:** `test/browser-matrix` · **Size:** M · **Depends on:** T07 skeleton (config, fixtures, page objects)
 
 ## Goal
 ZenLead works and looks right on the browsers internal users actually use, at desktop and narrow widths. It meets basic accessibility (F29.6 "accessibility basics"). Unintended visual changes are caught. Reuse the T07 suite instead of writing a second one.

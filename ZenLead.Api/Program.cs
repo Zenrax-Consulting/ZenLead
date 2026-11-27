@@ -48,12 +48,19 @@ using ZenLead.Application.UseCases.Inbox;
 using ZenLead.Application.Webhooks;
 using ZenLead.Application.UseCases.Webhooks;
 using ZenLead.Application.UseCases.Analytics;
+using ZenLead.Api.Controllers.V1.Test;
+using ZenLead.Infrastructure.Testing;
 
 var builder = WebApplication.CreateBuilder(args);
 
-StartupConfiguration.ThrowIfInvalid(builder.Configuration, builder.Environment.IsDevelopment()); // fail fast with a clear message, not a NullReferenceException
+StartupConfiguration.ThrowIfInvalid(builder.Configuration, builder.Environment.EnvironmentName); // fail fast with a clear message, not a NullReferenceException
+
+// automated E2E runs (T00): fakes only, a movable clock, recorded jobs, and the /api/v1/test endpoints (removed in every other environment)
+var isE2E = builder.Environment.IsEnvironment(StartupConfiguration.E2EEnvironment);
+var aiFake = string.Equals(builder.Configuration["Ai:Provider"], "Fake", StringComparison.OrdinalIgnoreCase);
 
 builder.Services.AddControllers()
+    .ConfigureApplicationPartManager(m => m.FeatureProviders.Add(new TestSupportControllerGate(isE2E)))
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
@@ -169,22 +176,36 @@ var openAiHttpClient = new HttpClient(new SocketsHttpHandler
     PooledConnectionLifetime = TimeSpan.FromMinutes(30)
 }) { Timeout = TimeSpan.FromSeconds(10) };
 
-builder.Services.AddKernel()
-    .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:Model"] ?? "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient)
-    // reply classification (F26): a cheaper model, resolved by service id
-    .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:ClassifierModel"] ?? "gpt-4o-mini", apiKey: builder.Configuration["OpenAI:ApiKey"]!,
-        serviceId: ClassificationModelOptions.DefaultServiceId, httpClient: openAiHttpClient);
-
-builder.Services.AddScoped<IEmailComposer, EmailComposer>();
-if (builder.Configuration.GetValue("OpenAI:WarmUpOnStartup", false))
-    builder.Services.AddHostedService<OpenAiWarmUpService>();
+// Ai:Provider=Fake (Development/E2E only) swaps in deterministic stand-ins and never builds an OpenAI client
+if (aiFake)
+{
+    builder.Services.AddScoped<IEmailComposer, FakeEmailComposer>();
+    builder.Services.AddScoped<IReplyClassifier, FakeReplyClassifier>();
+}
+else
+{
+    builder.Services.AddKernel()
+        .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:Model"] ?? "gpt-4o", apiKey: builder.Configuration["OpenAI:ApiKey"]!, httpClient: openAiHttpClient)
+        // reply classification (F26): a cheaper model, resolved by service id
+        .AddOpenAIChatCompletion(modelId: builder.Configuration["OpenAI:ClassifierModel"] ?? "gpt-4o-mini", apiKey: builder.Configuration["OpenAI:ApiKey"]!,
+            serviceId: ClassificationModelOptions.DefaultServiceId, httpClient: openAiHttpClient);
+    builder.Services.AddScoped<IEmailComposer, EmailComposer>();
+    builder.Services.AddScoped<IReplyClassifier, ReplyClassifier>();
+    if (builder.Configuration.GetValue("OpenAI:WarmUpOnStartup", false))
+        builder.Services.AddHostedService<OpenAiWarmUpService>();
+}
 builder.Services.AddScoped<ITokenUsageTracker, EfTokenUsageTracker>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("OpenAI").Get<AiPricing>() ?? new AiPricing());
 
 // lead discovery (F14): the provider is chosen by LeadSource:Provider; everything vendor-specific lives in one Infrastructure class
 var leadSourceOptions = builder.Configuration.GetSection("LeadSource").Get<LeadSourceOptions>() ?? new LeadSourceOptions();
 builder.Services.AddSingleton(leadSourceOptions);
-builder.Services.AddSingleton(TimeProvider.System);
+if (isE2E)
+{
+    builder.Services.AddSingleton(new AdjustableTimeProvider());          // an instance: its optional TimeProvider argument must not resolve to itself
+    builder.Services.AddSingleton<TimeProvider>(sp => sp.GetRequiredService<AdjustableTimeProvider>());
+}
+else builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<FakeLeadSource>();
 builder.Services.AddHttpClient<PdlLeadSource>(client =>
 {
@@ -214,13 +235,19 @@ builder.Services.AddScoped<StartCsvImportUseCase>();
 builder.Services.AddScoped<ProcessCsvImportUseCase>();
 builder.Services.AddScoped<ProcessCsvImportJob>();
 
-// transactional email (F18): "Log" (dev default, writes to the console) or "SendGrid"; startup rejects "Log" outside Development
+// transactional email (F18): "Log" (dev default, writes to the console), "SendGrid", or "Pickup" (Development/E2E: one JSON file per
+// message); startup rejects "Log" outside Development and "Pickup" outside Development/E2E
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+var pickupDirectory = new PickupDirectory(Path.GetFullPath(
+    Path.Combine(builder.Environment.ContentRootPath, builder.Configuration["Email:PickupDirectory"] ?? "../.e2e/mail")));
+builder.Services.AddSingleton(pickupDirectory);
 if (string.Equals(builder.Configuration["Email:Provider"], EmailOptions.SendGridProvider, StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddSingleton<ISendGridClient>(_ => new SendGridClient(new SendGridClientOptions { ApiKey = builder.Configuration["SendGrid:ApiKey"] }));
     builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();
 }
+else if (string.Equals(builder.Configuration["Email:Provider"], EmailOptions.PickupProvider, StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<IEmailSender>(sp => new PickupEmailSender(pickupDirectory.Path, sp.GetRequiredService<TimeProvider>()));
 else builder.Services.AddScoped<IEmailSender, LogEmailSender>();
 
 // campaigns (F22): builder API and scheduling; nothing here sends mail (the sender is F23)
@@ -262,7 +289,6 @@ builder.Services.AddScoped<ProcessInboundEmailUseCase>();
 // reply classification (F26): a Hangfire job per human reply; labels + safe auto-actions (unsubscribe, OOO resume)
 builder.Services.Configure<ClassificationOptions>(builder.Configuration.GetSection(ClassificationOptions.SectionName));
 builder.Services.Configure<ClassificationModelOptions>(_ => { });
-builder.Services.AddScoped<IReplyClassifier, ReplyClassifier>();
 builder.Services.AddScoped<IInboxClassificationStore, InboxClassificationStore>();
 builder.Services.AddScoped<ClassificationEffects>();
 builder.Services.AddScoped<ClassifyReplyUseCase>();
@@ -289,10 +315,18 @@ if (hangfireEnabled)
     builder.Services.AddZenLeadHangfire(builder.Configuration);
     builder.Services.AddScoped<IJobScheduler, HangfireJobScheduler>();
 }
+else if (isE2E)
+{
+    // E2E: enqueued jobs wait in memory until a test runs them (POST /api/v1/test/jobs/run-pending)
+    builder.Services.AddSingleton<RecordedJobQueue>();
+    builder.Services.AddScoped<IJobScheduler, RecordingJobScheduler>();
+    builder.Services.AddSingleton<RecordedJobRunner>();
+}
 else
 {
     builder.Services.AddScoped<IJobScheduler, NoopJobScheduler>();
 }
+if (isE2E) builder.Services.AddScoped<SeedScenarios>();
 
 // workspace membership & registration approval (F20)
 builder.Services.Configure<RegistrationOptions>(builder.Configuration.GetSection(RegistrationOptions.SectionName));

@@ -6,15 +6,30 @@ public static class StartupConfiguration
 {
     public const int MinSigningKeyBytes = 32; // HMAC-SHA256 needs a 256-bit key
 
+    /// <summary>The automated end-to-end test environment (T00): fakes only, test-support endpoints mapped.</summary>
+    public const string E2EEnvironment = "E2E";
+
     private static readonly string[] RequiredKeys =
-        ["ConnectionStrings:Default", "Jwt:SigningKey", "Jwt:Issuer", "Jwt:Audience", "OpenAI:ApiKey", "Unsubscribe:SigningKey"];
+        ["ConnectionStrings:Default", "Jwt:SigningKey", "Jwt:Issuer", "Jwt:Audience", "Unsubscribe:SigningKey"];
 
     /// <summary>Returns a human-readable problem for every missing or invalid required setting.</summary>
     public static IReadOnlyList<string> Validate(IConfiguration configuration, bool isDevelopment = true)
+        => Validate(configuration, isDevelopment ? Environments.Development : Environments.Production);
+
+    /// <summary>Same as <see cref="Validate(IConfiguration, bool)"/>, plus the E2E environment's extra rules.</summary>
+    public static IReadOnlyList<string> Validate(IConfiguration configuration, string environmentName)
     {
+        var isDevelopment = string.Equals(environmentName, Environments.Development, StringComparison.OrdinalIgnoreCase);
+        var isE2E = string.Equals(environmentName, E2EEnvironment, StringComparison.OrdinalIgnoreCase);
         var problems = new List<string>();
 
-        if (!isDevelopment)
+        if (isE2E)
+        {
+            var provider = configuration["LeadSource:Provider"];
+            if (!string.IsNullOrWhiteSpace(provider) && !provider.Equals("Fake", StringComparison.OrdinalIgnoreCase))
+                problems.Add("'LeadSource:Provider' must be 'Fake' in the E2E environment.");
+        }
+        else if (!isDevelopment)
         {
             var provider = configuration["LeadSource:Provider"];
             if (string.IsNullOrWhiteSpace(provider) || provider.Equals("Fake", StringComparison.OrdinalIgnoreCase))
@@ -25,7 +40,9 @@ public static class StartupConfiguration
                 problems.Add("Missing configuration 'LeadSource:Pdl:ApiKey'. Set it with: dotnet user-secrets set \"LeadSource:Pdl:ApiKey\" \"<value>\" --project ZenLead.Api");
         }
 
-        problems.AddRange(ValidateEmail(configuration, isDevelopment));
+        problems.AddRange(ValidateEmail(configuration, isDevelopment, isE2E));
+        problems.AddRange(ValidateAi(configuration, isDevelopment, isE2E));
+        if (isE2E) problems.AddRange(ValidateE2E(configuration));
 
         // fail closed: a typo must never silently become Live (or anything else)
         var mode = configuration["Sending:Mode"];
@@ -54,14 +71,21 @@ public static class StartupConfiguration
     /// SendGrid needs its API key; outside Development the provider must be SendGrid, because the "Log" fallback
     /// would write password-reset and approval links to the server log instead of sending them.
     /// </summary>
-    public static IEnumerable<string> ValidateEmail(IConfiguration configuration, bool isDevelopment)
+    public static IEnumerable<string> ValidateEmail(IConfiguration configuration, bool isDevelopment, bool isE2E = false)
     {
         var provider = configuration["Email:Provider"];
         var isSendGrid = string.Equals(provider, "SendGrid", StringComparison.OrdinalIgnoreCase);
         var isLog = string.IsNullOrWhiteSpace(provider) || string.Equals(provider, "Log", StringComparison.OrdinalIgnoreCase);
+        var isPickup = string.Equals(provider, "Pickup", StringComparison.OrdinalIgnoreCase);
 
-        if (!isSendGrid && !isLog)
-            yield return $"Unknown 'Email:Provider' '{provider}'. Known: Log, SendGrid.";
+        if (!isSendGrid && !isLog && !isPickup)
+            yield return $"Unknown 'Email:Provider' '{provider}'. Known: Log, SendGrid, Pickup.";
+        else if (isE2E && !isPickup)
+            yield return "'Email:Provider' must be 'Pickup' in the E2E environment (tests read emails from Email:PickupDirectory).";
+        else if (isPickup && !isDevelopment && !isE2E)
+            yield return "'Email:Provider' 'Pickup' is only allowed in Development and E2E; it writes account emails to disk instead of sending them.";
+        else if (isPickup && string.IsNullOrWhiteSpace(configuration["Email:PickupDirectory"]))
+            yield return "Missing configuration 'Email:PickupDirectory' (required when 'Email:Provider' is 'Pickup').";
         else if (isLog && !isDevelopment)
             yield return "'Email:Provider' must be 'SendGrid' outside Development; the 'Log' provider would write account emails to the log instead of sending them.";
         else if (isSendGrid && string.IsNullOrWhiteSpace(configuration["SendGrid:ApiKey"]))
@@ -89,9 +113,44 @@ public static class StartupConfiguration
             yield return $"Unknown 'Inbound:ParseMode' '{parseMode}'. Known: Fields (default), RawMime.";
     }
 
-    public static void ThrowIfInvalid(IConfiguration configuration, bool isDevelopment = true)
+    /// <summary>
+    /// <c>Ai:Provider</c> is OpenAI (the default; needs <c>OpenAI:ApiKey</c>) or Fake (deterministic stand-ins, Development and E2E only).
+    /// </summary>
+    public static IEnumerable<string> ValidateAi(IConfiguration configuration, bool isDevelopment, bool isE2E)
     {
-        var problems = Validate(configuration, isDevelopment);
+        var provider = configuration["Ai:Provider"];
+        var isFake = string.Equals(provider, "Fake", StringComparison.OrdinalIgnoreCase);
+        var isOpenAi = string.IsNullOrWhiteSpace(provider) || string.Equals(provider, "OpenAI", StringComparison.OrdinalIgnoreCase);
+
+        if (!isFake && !isOpenAi)
+            yield return $"Unknown 'Ai:Provider' '{provider}'. Known: OpenAI, Fake.";
+        else if (isE2E && !isFake)
+            yield return "'Ai:Provider' must be 'Fake' in the E2E environment (no real OpenAI calls from tests).";
+        else if (isFake && !isDevelopment && !isE2E)
+            yield return "'Ai:Provider' 'Fake' is only allowed in Development and E2E.";
+        else if (isOpenAi && string.IsNullOrWhiteSpace(configuration["OpenAI:ApiKey"]))
+            yield return "Missing configuration 'OpenAI:ApiKey'. Set it with: dotnet user-secrets set \"OpenAI:ApiKey\" \"<value>\" --project ZenLead.Api";
+    }
+
+    /// <summary>E2E runs only against fakes and deterministically: no real provider keys, no Hangfire server, never Live sending.</summary>
+    public static IEnumerable<string> ValidateE2E(IConfiguration configuration)
+    {
+        foreach (var key in new[] { "SendGrid:ApiKey", "OpenAI:ApiKey", "LeadSource:Pdl:ApiKey" })
+            if (!string.IsNullOrWhiteSpace(configuration[key]))
+                yield return $"'{key}' must not be set in the E2E environment; tests never call real providers.";
+        if (configuration.GetValue("Hangfire:Enabled", true))
+            yield return "'Hangfire:Enabled' must be false in the E2E environment; tests run jobs through /api/v1/test/jobs.";
+        var mode = configuration["Sending:Mode"];
+        if (!string.IsNullOrWhiteSpace(mode) && !mode.Equals("Restricted", StringComparison.OrdinalIgnoreCase))
+            yield return "'Sending:Mode' must be 'Restricted' in the E2E environment.";
+    }
+
+    public static void ThrowIfInvalid(IConfiguration configuration, bool isDevelopment = true)
+        => ThrowIfInvalid(configuration, isDevelopment ? Environments.Development : Environments.Production);
+
+    public static void ThrowIfInvalid(IConfiguration configuration, string environmentName)
+    {
+        var problems = Validate(configuration, environmentName);
         if (problems.Count > 0)
             throw new InvalidOperationException(
                 "ZenLead is not configured correctly (see README.md, 'Local setup'):" + Environment.NewLine + " - " +

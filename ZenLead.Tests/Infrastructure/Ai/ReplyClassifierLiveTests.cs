@@ -9,6 +9,7 @@ using ZenLead.Application.Abstractions;
 using ZenLead.Application.UseCases.Classification;
 using ZenLead.Domain.Enums;
 using ZenLead.Infrastructure.Ai;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Infrastructure.Ai;
 
@@ -35,9 +36,9 @@ internal static class LiveAiConfig
 
 /// <summary>
 /// Not in CI. Run manually before Gate 2 and whenever the prompt or model changes; record the result in docs/.
-/// <c>$env:RUN_LIVE_AI="1"; dotnet test ZenLead.Tests --filter Category=LiveAi</c>
+/// <c>$env:RUN_LIVE_AI="1"; dotnet test ZenLead.Tests --filter Category=Live</c>
 /// </summary>
-[Trait("Category", "LiveAi")]
+[Trait("Category", TestCategories.Live)]
 public class ReplyClassifierLiveTests(ITestOutputHelper output)
 {
     private static ReplyClassifier CreateClassifier()
