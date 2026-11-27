@@ -1,6 +1,6 @@
 # T02 — API Testing
 
-**Branch:** `test/api` · **Size:** M · **Depends on:** T00 · **Partly waits on:** F24, F27, F28 endpoints
+**Branch:** `test/api` · **Size:** M · **Depends on:** T00
 
 ## Goal
 Every `/api/v1` endpoint has HTTP-level tests for its contract: status codes, response shape, validation errors, paging, auth requirement and a cross-workspace case. There are two layers:

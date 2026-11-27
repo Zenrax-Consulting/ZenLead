@@ -1,6 +1,6 @@
 # T07 — End-to-End Testing (Playwright + TypeScript)
 
-**Branch:** `test/e2e-playwright` · **Size:** L · **Depends on:** T00 (`E2E` env, pickup mail, test-support endpoints, seeds) · **Waits on:** F24, F27, F28 for the campaign-UI, inbox and analytics specs (write them against the feature docs and enable them when merged)
+**Branch:** `test/e2e-playwright` · **Size:** L · **Depends on:** T00 (`E2E` env, pickup mail, test-support endpoints, seeds)
 
 ## Goal
 Automate the real user journeys through the real Angular UI and API, from the super admin creating the workspace to reading analytics, so the Gate 2 loop is a green test rather than a manual rehearsal. Replace `tools/gate1-rehearsal` (D3).
@@ -45,7 +45,7 @@ ZenLead.E2E/
 ## 3. Fixtures
 | Fixture | Provides |
 |---|---|
-| `api` | `ApiClient` logged in as needed; `api.test.seed('gate2')`, `api.test.runJob('campaign-sender')`, `api.test.advanceClock(minutes)` |
+| `api` | `ApiClient` logged in as needed; `api.test.seed('gate2')` (fresh ids per call, returns ids and passwords), `api.test.runPendingJobs(type?)`, `api.test.runSender()`, `api.test.advanceClock(minutes)`, `api.test.serverNow()` |
 | `mailbox` | `waitForEmail({ to, subjectContains, timeoutMs })` polling `MAIL_DIR`; `link(email, pattern)` |
 | `workspace` | Fresh workspace + active admin user, created by the super admin via `/admin/workspaces` then registered+approved via API, returning creds |
 | `loggedInAs(role)` | `'superAdmin' \| 'admin' \| 'member' \| 'pending'`. Logs in via the UI once per worker and reuses **in-memory** auth by replaying the login, because the access token is never persisted. Refresh-token-in-`localStorage` storage state makes reloads behave like real users. |
@@ -93,7 +93,7 @@ ZenLead.E2E/
 ### Inbox (F25–F27), enabled when F27 merges
 | Spec | Flow |
 |---|---|
-| `inbox/reply-arrives.spec.ts` @critical | After a step-1 send, `sendgrid.ts` posts an inbound multipart built from that email's Reply-To and Message-ID (with the secret) → `runJob('classify-pending')` (fake classifier) → within the poll interval the thread appears with an unread badge in the shell nav and an "Interested" chip, threaded to the right lead/campaign; lead status `Replied`; step 2 never sends. |
+| `inbox/reply-arrives.spec.ts` @critical | After a step-1 send, `sendgrid.ts` posts an inbound multipart built from that email's Reply-To and Message-ID (with the secret) → `runPendingJobs('classify')` (fake classifier) → within the poll interval the thread appears with an unread badge in the shell nav and an "Interested" chip, threaded to the right lead/campaign; lead status `Replied`; step 2 never sends. |
 | `inbox/unsubscribe-reply.spec.ts` | Reply text containing `[[unsubscribe]]` → classification Unsubscribe → enrollment paused, lead `Unsubscribed`. |
 | `inbox/ooo.spec.ts` | Auto-reply fixture → not classified as human, sequence resumes per rules. |
 | `inbox/answer.spec.ts` @critical | Open thread (marks read, badge decrements) → reply from the composer → pickup email has `In-Reply-To`/`References` → outbound message shows in the conversation. |
@@ -113,7 +113,7 @@ ZenLead.E2E/
 
 ## 5. Stability rules
 - No `waitForTimeout`. Wait on web-first assertions, `waitForResponse` for specific API calls, or `expect.poll` for mailbox/job state.
-- Jobs are triggered via `/api/v1/test/jobs/*`, never by waiting for the minutely cron (the recurring job is off in E2E).
+- Jobs are triggered via `/api/v1/test/jobs/*`, never by waiting for the minutely cron. Hangfire is off in E2E: CSV, discovery and classification enqueues are recorded and run with `POST /test/jobs/run-pending`, and the sender with `POST /test/jobs/campaign-sender/run` (T00-1).
 - Time-based behaviour uses `advanceClock`. Angular polling intervals can be shortened only through E2E-specific environment config if needed, never with test-only code paths in components.
 - Each spec cleans up nothing: isolation by fresh workspace. Global reset happens per run.
 - A test that fails, passes on retry and repeats that is quarantined with `test.fixme` plus an issue, never left flaking in the regression pack.

@@ -1,6 +1,6 @@
 # T06 — Performance & Load Testing
 
-**Branch:** `test/perf-load` · **Size:** M · **Depends on:** T00 seed scenarios (`bulk:{n}`), T03 fixture · **Feeds:** F29.5 performance sanity
+**Branch:** `test/perf-load` · **Size:** M · **Depends on:** T00 (seed content, builders), T03 fixture · **Owns:** the `bulk:{n}` seed (moved from T00, decision T00-3) · **Feeds:** F29.5 performance sanity
 
 ## Goal
 Show that the single-org MVP meets clear latency and throughput budgets at the data sizes the plans name (50k leads, 10k–50k-row CSV, 1k due enrollments, webhook bursts). Find N+1 queries and missing indexes before Azure B1 / free-tier SQL (⏳ F30) makes them expensive. This is **sanity at the real scale**, not web-scale stress testing: the load model is three users plus webhooks.
@@ -17,7 +17,7 @@ Show that the single-org MVP meets clear latency and throughput budgets at the d
 
 ## 2. Environment
 - **Published build** (`tools/local-env/start-app.ps1 -Published`) on LocalDB `ZenLeadPerf`, Hangfire enabled, fakes for AI/leads, `Email:Provider` = the WireMock SendGrid stub (T03) run as a standalone process (`tools/load/stubs/start-stubs.ps1`).
-- Seed with `seed.ps1 -Scenario bulk:50000`, then a campaign with 1k active enrollments due now.
+- Seed with `seed.ps1 -Scenario bulk:50000`, then a campaign with 1k active enrollments due now. T06 adds `bulk:{n}` as a standalone seeding tool that writes straight to the perf DB (`SqlBulkCopy`), because the published build has no `/api/v1/test/*` endpoints. It is tested against T03's `SqlServerFixture`.
 - Record the machine spec in every result file. Budgets are for a dev laptop. ⏳ F30 re-runs the smoke profile once on B1/Azure SQL to set the real baseline.
 
 ## 3. Budgets (k6 thresholds; a breach fails the run)

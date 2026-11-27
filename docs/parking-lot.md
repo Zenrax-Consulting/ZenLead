@@ -101,3 +101,8 @@ Scheduled/recurring runs, auto-enrolment of discovered leads, a standalone email
 
 ### Explicitly out of scope (per the plan)
 Saved mapping templates, re-mapping a started import, Excel files, an import history list, drag-reordering of columns.
+
+## Testing (T00 test foundation)
+
+### Known gaps / follow-ups
+- [ ] Several call sites still use `DateTime.UtcNow` instead of `TimeProvider`: JWT expiry (`JwtTokenGenerator`), refresh tokens (`RefreshTokenService`), and `CreatedAt`/`UpdatedAt` stamps in `LeadIngestionService`, `EfTokenUsageTracker`, `CampaignRepository`, `CsvImportRepository`, `LeadIngestionStore`, `LeadRepository`, `TargetProfileRepository`, `WorkspaceRepository`, `AppUser` and `TargetProfilesController`. The E2E test clock (T00) doesn't move them, so E2E tests must not assert on these stamps after advancing the clock. Move them to `TimeProvider` when they're next touched (candidate for F29).
