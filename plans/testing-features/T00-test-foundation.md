@@ -31,7 +31,7 @@ Checked against the code. T00 relies on these and does not rebuild them:
 | `ZenLead.Infrastructure/Ai/FakeEmailComposer.cs`, `FakeReplyClassifier.cs` | Deterministic output keyed on the input, selected by `Ai:Provider=Fake`. Composer: subject and body built from the lead's first name and company plus the step text; fixed token counts. Classifier markers in the reply body: `[[unsubscribe]]` → `Unsubscribe` 0.99, `[[ooo]]` → `OutOfOffice` 0.95, `[[not-interested]]` → `NotInterested` 0.95, `[[review]]` → `Interested` 0.30 (below the review threshold), otherwise `Interested` 0.95. Both still go through `IAiBudget` and write `AiUsageLog` rows, so the budget banner and usage screens work. These are Infrastructure classes, separate from the test-project fakes, which stay as they are. |
 | `ZenLead.Api/appsettings.E2E.json` | Non-secret E2E config: `ConnectionStrings:Default` → LocalDB `ZenLeadE2E`, `Email:Provider=Pickup`, `Email:PickupDirectory=../.e2e/mail`, `LeadSource:Provider=Fake`, `Ai:Provider=Fake`, `Hangfire:Enabled=false`, `Sending:Mode=Restricted`, `Sending:RecipientAllowList=["example.test"]`, `Seed:SuperAdmin=false` (the scenarios seed it), `App:PublicBaseUrl=https://localhost:52618`, `Storage:ConnectionString=UseDevelopmentStorage=true`, generous `RateLimits:*`. The runner generates secrets per run and passes them as environment variables: `Jwt__SigningKey`, `Unsubscribe__SigningKey`, `SendGrid__InboundSecret`, `SendGrid__EventWebhook__PublicKey` (the private key stays with the runner for signing), `SuperAdmin__Email`, `SuperAdmin__Password`. |
 | `ZenLead.Tests/Api/TestSupportGuardTests.cs` | **Security guard:** under `Development` and `Production`, every `/api/v1/test/*` route returns 404. `Email:Provider=Pickup` or `Ai:Provider=Fake` makes startup fail outside `Development`/`E2E`. Under `E2E`, a non-loopback caller gets 403, and startup fails if a SendGrid or OpenAI key is present. |
-| `ZenLead.Tests/Api/StartupConfigurationTests.cs` | Extend for the new environment rules above. |
+| `ZenLead.Tests/Api/StartupConfigurationEnvironmentTests.cs` | The new environment rules above (the existing `StartupConfigurationTests` are unchanged). |
 | `.gitignore` | `.e2e/`, `ZenLead.E2E/test-results/`, `ZenLead.E2E/playwright-report/`, `tools/load/results/` |
 
 ### Test-support endpoints (`/api/v1/test/*`, E2E only)
@@ -66,9 +66,12 @@ Every call creates **fresh GUIDs**, and workspace names and emails carry a run i
 ## Tests in this PR
 - `TestSupportGuardTests` and the `StartupConfigurationTests` additions (above).
 - `PickupEmailSenderTests`: writes valid JSON with every field, never writes outside the configured folder (the file name is timestamp + GUID, never taken from the subject), and creates the folder if it's missing.
-- `RecordingJobSchedulerTests`: records each enqueue in order. `run-pending` runs each job in its own scope and reports a failing job without stopping the others.
-- `FakeAiTests`: each classifier marker maps to its documented label; composer output is the same for the same input; both write an `AiUsageLog` row.
-- `SeedScenariosTests` (SQLite): each scenario runs twice in a row on the same DB without failing or colliding, and returns the ids it promises. Workspace isolation holds between the two runs.
+- `FakeAiTests`: each classifier marker maps to its documented label; composer output is the same for the same input and keeps a personalised step's subject and body.
+- `TestSupportEndpointsTests` (the API booted in `E2E` over SQLite by `E2EApiFactory`, with the environment's own registrations):
+  - **Seeds:** each scenario runs twice on the same DB without colliding and returns the ids it promises; the returned credentials sign in; the "other" workspace can't read the main workspace's leads; seed dates follow the test clock.
+  - **Recorded jobs:** enqueues are recorded, not run; `run-pending` runs classification through the real `ClassifyReplyJob` with the fake classifier and writes `AiUsageLog` rows; a failing job is reported and the others still run; `?type=` leaves other jobs queued.
+  - **Sender and pickup:** registering writes the approval email to the pickup folder; `campaign-sender/run` mails a due enrollment there.
+  - **Clock:** advance and set move the app's `TimeProvider`.
 
 ## Verification
 1. With Azurite running and the runner env vars set: `$env:ASPNETCORE_ENVIRONMENT='E2E'; dotnet run --project ZenLead.Api --no-launch-profile`. `POST /api/v1/test/reset`, then `POST /api/v1/test/seed/gate2` returns ids. Register a user, and an approval email JSON appears in `.e2e/mail`.

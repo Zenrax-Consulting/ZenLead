@@ -2,11 +2,12 @@ using System.Text;
 using Azure.Storage.Blobs;
 using ZenLead.Infrastructure.Csv;
 using ZenLead.Infrastructure.Storage;
+using ZenLead.Tests.Support;
 
 namespace ZenLead.Tests.Infrastructure.Storage;
 
 /// <summary>Needs Azurite on the default ports. Skipped unless AZURITE=1, so the default CI run never touches it.</summary>
-[Trait("Category", "Azurite")]
+[Trait("Category", TestCategories.Azurite)]
 public class AzureBlobStorageTests
 {
     private static bool Enabled => Environment.GetEnvironmentVariable("AZURITE") == "1";
