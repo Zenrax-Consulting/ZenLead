@@ -44,3 +44,14 @@ dotnet test ZenLead.IntegrationTests                         # LocalDB
 $env:ZENLEAD_TEST_SQL='container'; dotnet test ZenLead.IntegrationTests   # Docker SQL Server
 ```
 Target duration under 5 minutes on a dev laptop. Anything slower moves to `Category=Performance` (T06).
+
+## As built (2026-11-28)
+About 100 tests in `ZenLead.IntegrationTests/`, green on LocalDB + Azurite in under a minute. Where the build differs from the plan above:
+- **Phase 1 baseline:** no frozen schema dump. The test migrates a fresh database to `AddAiUsageLog` with the real migrations, then runs `Fixtures/Sql/phase1-baseline.sql`, which only inserts rows (incl. the mixed-case duplicate pair). The schema can't drift from Phase 1 that way.
+- **SendGrid 5xx / timeout:** tested as built (retryable → resent after backoff), not as "uncertain". The gap is in `docs/parking-lot.md` for F29. The crash path (a stale `Queued` row → `Failed("Uncertain…")`, never resent) is tested as specified.
+- **T02 `Stack=Both` re-run:** deferred until T02 merges. `ApiOnSqlServerTests` and `LeadSearchTests` cover auth, lead CRUD, isolation, search and sorting on SQL Server meanwhile.
+- **Reset:** Respawn also empties Hangfire's job tables (keeping `HangFire.Schema`), so a job from one test never runs in the next.
+- **Hangfire global state:** the factory replaces the app's `JobStorage` with an explicit instance (never `JobStorage.Current`), removes the in-host job server, and resets Hangfire's process-wide log provider after each host starts (`HangfireLogging`), because Hangfire.AspNetCore ties it to a host that tests dispose.
+- **Discovery backoff** (2 s / 8 s / 30 s) is recorded by the factory (`DiscoveryRetryDelays`) instead of waited out.
+- `ZENLEAD_TEST_AZURITE` overrides the Azurite connection string (for CI). The container path is implemented but unverified locally (no Docker).
+

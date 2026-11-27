@@ -56,7 +56,7 @@ npm i -g azurite
 azurite --silent --location %TEMP%\azurite
 ```
 
-(or use the Azurite component of Visual Studio). In Azure, set `Storage:AccountUri` instead and the app authenticates with `DefaultAzureCredential`. The Azurite round-trip tests are skipped unless `AZURITE=1` is set.
+(or use the Azurite component of Visual Studio). In Azure, set `Storage:AccountUri` instead and the app authenticates with `DefaultAzureCredential`. The Azurite tests live in `ZenLead.IntegrationTests` and skip, with a message, when Azurite isn't running.
 
 Outbound email (F18) goes through `Email:Provider`: `Log` (the Development default, set in `appsettings.Development.json`) writes each message, including approval and reset links, to the API console instead of sending it; `SendGrid` sends for real and needs `SendGrid:ApiKey`. Outside Development the provider must be `SendGrid`. To test real delivery locally, `dotnet user-secrets set "Email:Provider" "SendGrid" --project ZenLead.Api`, then (signed in as an address in `Hangfire:AdminEmails`) call `POST /api/v1/ops/test-email`: it mails the caller's own address.
 
@@ -85,9 +85,10 @@ Passwords must be at least 8 characters with a digit, a lowercase and an upperca
 ```
 dotnet test ZenLead.Tests
 cd ZenLead.Client && npm test
+dotnet test ZenLead.IntegrationTests     # real SQL Server (LocalDB), Hangfire, Azurite, stubbed SendGrid/OpenAI/PDL
 ```
 
-Test categories (`[Trait("Category", …)]`, constants in `ZenLead.Tests/Support/TestCategories.cs`): untagged tests are unit tests and run by default; `Integration`, `Azurite`, `Performance` and `Live` are opt-in, for example `dotnet test ZenLead.Tests --filter Category=Azurite`. `Live` tests call real providers and never run by default. See `docs/testing/README.md`.
+Test categories (`[Trait("Category", …)]`, constants in `ZenLead.Tests/Support/TestCategories.cs`): untagged tests are unit tests and run by default; `Integration`, `Azurite`, `Performance` and `Live` are opt-in. The integration tests (T03) are their own project, `ZenLead.IntegrationTests`: they need LocalDB (or `ZENLEAD_TEST_SQL=container` and Docker) and Azurite for the blob tests, and never call a real provider. `Live` tests call real providers and never run by default. See `docs/testing/README.md`.
 
 ### E2E environment
 

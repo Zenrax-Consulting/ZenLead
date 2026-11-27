@@ -7,7 +7,7 @@ Pending items left after a feature's implementation. Add a section per feature; 
 Items below come from the plan's Verification and "Not in this feature" sections. The repo doesn't show whether the manual checks were run, so they are listed as unconfirmed.
 
 ### Unconfirmed manual checks
-- [ ] Run the `AddCompanyAndLeadProvenance` migration against a LocalDB holding Phase 1 leads, including a mixed-case duplicate email pair, to confirm it fails loudly and then succeeds after the fix.
+- [x] Run the `AddCompanyAndLeadProvenance` migration against a LocalDB holding Phase 1 leads, including a mixed-case duplicate email pair, to confirm it fails loudly and then succeeds after the fix. Automated by T03 (`MigrationTests.Phase1Database_…`).
 - [ ] Two-workspace check via `ZenLead.Api.http`: B gets 404 on A's lead (GET and DELETE), duplicate email gives 409, `New` → `Contacted` gives 200 and back to `New` gives 409.
 - [ ] Generate a draft from lead detail for a lead with a company and confirm the prompt includes the company.
 
@@ -31,7 +31,7 @@ Items below come from the plan's Verification and "Not in this feature" sections
 ## Feature 13 — Leads UI: list & detail
 
 ### Unconfirmed manual checks
-- [ ] Seed about 50k leads in a dev DB and confirm: list loads in under 1 s, page 2000 works, every column sorts, `q=acme` matches name/email/company, `q=%` only matches a literal percent sign.
+- [ ] Seed about 50k leads in a dev DB and confirm: list loads in under 1 s, page 2000 works. (The rest — every column sorts stably, `q=acme` matches name/email/company, `q=%` / `_` / `[` match literally — is automated on SQL Server by T03 `LeadSearchTests`; the 50k timing moves to T06.)
 - [ ] Copy the list URL into a new tab and see the same view.
 - [ ] Select leads across two pages, open a lead, go back: selection is intact.
 
@@ -78,7 +78,7 @@ Scheduled/recurring runs, auto-enrolment of discovered leads, a standalone email
 ### Not verified
 - [ ] Run the plan's Verification end to end with Azurite and the API: messy 5-10k row file (`;` variant, Latin-1 export, duplicates, an unsubscribed lead), `start`, poll `status` to Completed, counts reconcile, job visible at `/hangfire`, errors file opens in Excel with no formulas executing, same file again imports 0.
 - [ ] Kill the API mid-import and restart, to confirm the job resumes from the checkpoint and the final count equals the file's valid unique rows.
-- [ ] Run `AZURITE=1 dotnet test ZenLead.Tests --filter Category=Azurite` against a real Azurite; confirms `BlobClient.OpenReadAsync` returns a seekable stream (the reader copes either way by buffering).
+- [x] Run the Azurite tests against a real Azurite; confirms `BlobClient.OpenReadAsync` returns a seekable stream (the reader copes either way by buffering). Now `dotnet test ZenLead.IntegrationTests --filter Category=Azurite` (T03), which also streams a 10 MB file and runs a CSV import through the API and Hangfire.
 
 ### Known gaps / follow-ups
 - [ ] No startup check for `Storage:ConnectionString` / `Storage:AccountUri` outside Development; with neither set it falls back to the Azurite connection string. Decide whether `StartupConfiguration` should fail fast in production (F30).
@@ -106,3 +106,12 @@ Saved mapping templates, re-mapping a started import, Excel files, an import his
 
 ### Known gaps / follow-ups
 - [ ] Several call sites still use `DateTime.UtcNow` instead of `TimeProvider`: JWT expiry (`JwtTokenGenerator`), refresh tokens (`RefreshTokenService`), and `CreatedAt`/`UpdatedAt` stamps in `LeadIngestionService`, `EfTokenUsageTracker`, `CampaignRepository`, `CsvImportRepository`, `LeadIngestionStore`, `LeadRepository`, `TargetProfileRepository`, `WorkspaceRepository`, `AppUser` and `TargetProfilesController`. The E2E test clock (T00) doesn't move them, so E2E tests must not assert on these stamps after advancing the clock. Move them to `TimeProvider` when they're next touched (candidate for F29).
+
+## Testing (T03 integration)
+
+### Known gaps / follow-ups
+- [ ] **SendGrid 5xx and client timeouts are retried, so a lead can get the same step twice.** `SendGridEmailSender` maps 429, 5xx and timeouts to a retryable failure (as the F18 plan says); `SendDueEmailsUseCase` then deletes the `Queued` row and retries after the backoff. A 5xx or timeout *after* SendGrid accepted the request means the email may already be out. T03's spec wanted those treated as "uncertain" (failed, never resent), matching the at-most-once rule for crashes. Tested as built (`SendGridSenderTests.ClientTimeoutAfterSendGridAccepted_…_KnownGap`): decide in F29 whether 5xx/timeouts should become `Failed("Uncertain…")` and only 429 / connection refused stay retryable.
+- [ ] **T00 seed templates use `{{first_name}}`, which is not a token** (`TemplateRenderer` knows `{{firstName}}`, `{{lastName}}`, `{{name}}`, `{{company}}`, `{{title}}`). `SeedScenarios` step bodies and the `CampaignBuilder.WithStep` defaults are sent literally ("Hi {{first_name}},"). Switch them to `{{firstName}}`.
+- [ ] Re-run T02's `[Trait("Stack","Both")]` contract tests on `IntegrationApiFactory` once T02 is merged (T03 ships its own API-on-SQL-Server suite meanwhile).
+- [ ] `ZENLEAD_TEST_SQL=container` (Testcontainers SQL Server) is implemented but has not run: no Docker on the dev machine. First run is part of F30's CI work.
+
