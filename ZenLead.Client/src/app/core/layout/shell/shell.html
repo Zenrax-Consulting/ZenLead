@@ -19,9 +19,10 @@
   <mat-sidenav #nav [mode]="isMobile ? 'over' : 'side'" [opened]="!isMobile">
     <mat-nav-list>
       @for (item of navItems; track item.link) {
-        <a mat-list-item [routerLink]="item.link" routerLinkActive="active" (click)="isMobile && nav.close()">
+        <a mat-list-item [routerLink]="item.link" routerLinkActive="active" (click)="isMobile && nav.close()" [attr.aria-label]="navLabel(item)">
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle>{{ item.label }}</span>
+          <span matListItemTitle [matBadge]="badgeFor(item.link)" [matBadgeHidden]="badgeFor(item.link) === 0" matBadgeOverlap="false"
+                matBadgeSize="small" aria-hidden="false">{{ item.label }}</span>
         </a>
       }
     </mat-nav-list>

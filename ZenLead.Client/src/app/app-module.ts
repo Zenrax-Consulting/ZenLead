@@ -2,6 +2,7 @@ import { firstValueFrom } from 'rxjs';
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { NgModule, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { MatBadgeModule } from '@angular/material/badge';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
@@ -34,7 +35,7 @@ import { AiBudgetBanner } from './core/layout/ai-budget-banner/ai-budget-banner'
     ComingSoon
   ],
   imports: [
-    BrowserModule, SharedModule,
+    BrowserModule, SharedModule, MatBadgeModule,
     AppRoutingModule
   ],
   providers: [

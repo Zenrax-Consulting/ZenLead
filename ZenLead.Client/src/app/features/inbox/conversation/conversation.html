@@ -1,0 +1,88 @@
+<div class="conversation">
+  @if (loading && !detail) {
+    <mat-progress-bar mode="indeterminate" aria-label="Loading conversation"></mat-progress-bar>
+  }
+  @if (errorMessage) {
+    <p class="error" role="alert">{{ errorMessage }}</p>
+  }
+  @if (detail; as d) {
+    <header class="conv-header">
+      @if (showBack) {
+        <button mat-icon-button type="button" class="back" (click)="back.emit()" aria-label="Back to conversations"><mat-icon>arrow_back</mat-icon></button>
+      }
+      <div class="who">
+        <h2><a [routerLink]="['/leads', d.leadId]">{{ d.leadName }}</a></h2>
+        <div class="meta">
+          <span>{{ d.leadEmail }}</span>
+          @if (d.companyName || d.leadTitle) {
+            <span>· {{ d.leadTitle }}{{ d.leadTitle && d.companyName ? ', ' : '' }}{{ d.companyName }}</span>
+          }
+          @if (leadStatusChip; as s) {
+            <span class="chip tone-{{ s.tone }}"><mat-icon aria-hidden="true">{{ s.icon }}</mat-icon>{{ s.label }}</span>
+          }
+          @if (d.campaignId) {
+            <a class="campaign" [routerLink]="['/campaigns', d.campaignId]">{{ d.campaignName ?? 'Campaign' }}</a>
+          }
+        </div>
+        <div class="subject">{{ d.subject }}</div>
+      </div>
+      <button mat-stroked-button type="button" class="label-button" #labelMenu="matMenuTrigger" [matMenuTriggerFor]="labelsMenu"
+              [disabled]="reclassifying" [attr.aria-label]="'Classification: ' + chip(d.classification).label + '. Change'">
+        <mat-icon aria-hidden="true">{{ chip(d.classification).icon }}</mat-icon> {{ chip(d.classification).label }}
+        <mat-icon aria-hidden="true">arrow_drop_down</mat-icon>
+      </button>
+      <mat-menu #labelsMenu="matMenu">
+        @for (label of labels; track label) {
+          <button mat-menu-item type="button" (click)="setLabel(label)" [attr.aria-checked]="d.classification === label" role="menuitemradio">
+            <mat-icon>{{ d.classification === label ? 'check' : chip(label).icon }}</mat-icon>{{ chip(label).label }}
+          </button>
+        }
+      </mat-menu>
+    </header>
+
+    @if (reviewMessage; as r) {
+      <div class="review-banner" role="status">
+        <mat-icon aria-hidden="true">rate_review</mat-icon>
+        <span>The AI wasn't sure about this reply (it thinks: <em>{{ chip(r.classification).label }}</em>{{ r.classificationConfidence != null ? ', ' + confidencePercent(r) : '' }}). Please confirm.</span>
+        <button mat-flat-button color="primary" type="button" class="confirm" (click)="confirmSuggested()" [disabled]="reclassifying">Confirm</button>
+        <button mat-button type="button" class="choose" (click)="chooseLabel()" [disabled]="reclassifying">Choose…</button>
+      </div>
+    }
+
+    <ol class="messages" aria-label="Messages">
+      @for (m of d.messages; track m.id) {
+        <li class="message" [class.outbound]="isOutbound(m)" [class.inbound]="!isOutbound(m)">
+          <div class="msg-head">
+            <strong class="sender">{{ senderLabel(m) }}</strong>
+            <span class="muted">{{ isOutbound(m) ? 'to ' + d.leadName : m.fromAddress }}</span>
+            <span class="spacer"></span>
+            <time class="muted">{{ when(m) }}</time>
+          </div>
+          <div class="chips">
+            @if (m.isAutoReply) {
+              <span class="chip tone-info auto-reply"><mat-icon aria-hidden="true">smart_toy</mat-icon>Auto-reply</span>
+            }
+            @if (m.senderMismatch) {
+              <span class="chip tone-warn mismatch"><mat-icon aria-hidden="true">alternate_email</mat-icon>Sent from a different address than the lead</span>
+            }
+            @if (m.deliveryStatus === 'Pending') {
+              <span class="chip tone-neutral delivery"><mat-icon aria-hidden="true">schedule_send</mat-icon>Sending…</span>
+            }
+            @if (m.deliveryStatus === 'Failed') {
+              <span class="chip tone-bad delivery"><mat-icon aria-hidden="true">error</mat-icon>Failed — not sent{{ m.deliveryError ? ': ' + m.deliveryError : '' }}</span>
+            }
+          </div>
+          <div class="body">{{ showQuoted.has(m.id) && m.fullTextBody ? m.fullTextBody : m.textBody }}</div>
+          @if (m.fullTextBody) {
+            <button mat-button type="button" class="quoted-toggle" (click)="toggleQuoted(m.id)" [attr.aria-expanded]="showQuoted.has(m.id)">
+              {{ showQuoted.has(m.id) ? 'Hide quoted text' : 'Show quoted text' }}
+            </button>
+          }
+        </li>
+      }
+    </ol>
+
+    <app-reply-composer [threadId]="d.id" [subject]="d.subject" [canReply]="d.canReply" [cannotReplyReason]="d.cannotReplyReason"
+                        (sent)="onSent($event)" (failed)="onFailed($event)" (blocked)="onBlocked()"></app-reply-composer>
+  }
+</div>

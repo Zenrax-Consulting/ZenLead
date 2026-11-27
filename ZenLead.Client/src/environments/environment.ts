@@ -1,4 +1,4 @@
 export const environment = {
   // Flipped on in the same PR as the feature that fills the lead selection bar (F14 discovery, F24 campaigns).
-  features: { discovery: true, campaigns: true }
+  features: { discovery: true, campaigns: true, inbox: true, aiReplySuggest: false }   // aiReplySuggest: F27 stretch, endpoint not built
 };
